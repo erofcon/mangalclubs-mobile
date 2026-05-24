@@ -1,4 +1,5 @@
 import {
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -24,6 +25,7 @@ const clamp = (v: number, min: number, max: number) =>
 const CONTENT_HORIZONTAL_PADDING = 16;
 const CHIP_GAP = 8;
 const REVEAL_EDGE_PADDING = 16;
+const ANDROID_DECELERATION_RATE = 0.992;
 
 export function CategoriesGrid({
                                    categories,
@@ -152,7 +154,6 @@ export function CategoriesGrid({
         });
     }, [savedScrollX]);
 
-    // Keep the active category inside the visible horizontal viewport.
     useEffect(() => {
         if (!activeCategoryId) return;
 
@@ -164,12 +165,12 @@ export function CategoriesGrid({
         }
 
         shouldRevealActiveRef.current = true;
-        requestReveal(activeCategoryId, false);
+        requestReveal(activeCategoryId, true);
     }, [activeCategoryId, requestReveal]);
 
     const revealPendingActiveCategory = useCallback(() => {
         if (!activeCategoryId || !shouldRevealActiveRef.current) return;
-        requestReveal(activeCategoryId, false);
+        requestReveal(activeCategoryId, true);
     }, [activeCategoryId, requestReveal]);
 
     const handleViewportLayout = (e: LayoutChangeEvent) => {
@@ -201,7 +202,7 @@ export function CategoriesGrid({
         if (now - lastPressRef.current < 100) return;
         lastPressRef.current = now;
         shouldRevealActiveRef.current = true;
-        requestReveal(id, false);
+        requestReveal(id, true);
 
         onSelectCategory(id);
     };
@@ -217,6 +218,8 @@ export function CategoriesGrid({
                 contentContainerStyle={styles.content}
                 keyboardShouldPersistTaps="always"
                 nestedScrollEnabled
+                decelerationRate={Platform.OS === "android" ? ANDROID_DECELERATION_RATE : "normal"}
+                overScrollMode={Platform.OS === "android" ? "never" : "auto"}
                 scrollEventThrottle={16}
                 onContentSizeChange={handleContentSizeChange}
                 onScroll={(e) => {
@@ -232,7 +235,7 @@ export function CategoriesGrid({
                         <TouchableOpacity
                             key={category.id}
                             activeOpacity={0.7}
-                            disallowInterruption
+                            disallowInterruption={Platform.OS === "android"}
                             onLayout={(e) => handleChipLayout(category.id, e)}
                             onPress={() => handlePress(category.id)}
                             style={[
@@ -254,6 +257,7 @@ export function CategoriesGrid({
 const styles = StyleSheet.create({
     container: {
         paddingTop: 8,
+        paddingHorizontal:8,
     },
     content: {
         gap: CHIP_GAP,

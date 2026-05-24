@@ -1,0 +1,11 @@
+export const GRID_COLUMNS = 3;
+export const GAP = 12;
+export const H_PADDING = 16;
+export const WEB_MAX_WIDTH = 430;
+export const NATIVE_FALLBACK_WIDTH = 360;
+export const SECTION_OFFSET_GAP = 18;
+export const BOTTOM_REACH_THRESHOLD = 2;
+export const SCROLL_TARGET_TOLERANCE = 6;
+export const AUTO_SCROLL_LOCK_TIMEOUT_MS = 900;
+export const SCROLL_CATEGORY_HAPTIC_THROTTLE_MS = 650;
+export const ANDROID_DECELERATION_RATE = 0.992;
