@@ -1,0 +1,1 @@
+export {IndexScreen as default} from '@/features/screens/index/IndexScreen'

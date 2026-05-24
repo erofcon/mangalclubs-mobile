@@ -1,0 +1,782 @@
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {
+    FlatList,
+    ImageSourcePropType,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
+} from "react-native";
+import {LinearGradient} from "expo-linear-gradient";
+
+import {Image} from "expo-image";
+import {Feather} from "@expo/vector-icons";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import {
+    Gesture,
+    GestureDetector,
+    GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import Animated, {
+    Extrapolation,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
+} from "react-native-reanimated";
+
+import {StoriesData} from "@/mocks/mocks-data";
+import {Story} from "@/types/story";
+import {SHADOW, themeColors} from "@/utils/theme-colors";
+
+const DEFAULT_IMAGE_DURATION = 5000;
+const STORY_SWIPE_DISTANCE = 56;
+const STORY_CLOSE_DISTANCE = 110;
+const STORY_AXIS_RATIO = 1.15;
+const STORY_DRAG_START_DISTANCE = 12;
+const STORY_SETTLE_DURATION = 190;
+
+const storyImageByPath: Record<string, ImageSourcePropType> = {
+    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3524636564161616270.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3524636564161616270.jpg"),
+    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834709189977711846.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834709189977711846.jpg"),
+    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710202994431662.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710202994431662.jpg"),
+    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710151765166617.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710151765166617.jpg"),
+    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710048291748543.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710048291748543.jpg"),
+
+    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130754686048071.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130754686048071.jpg"),
+    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753352259742.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753352259742.jpg"),
+    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753218028097.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753218028097.jpg"),
+    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130750248452637.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130750248452637.jpg"),
+    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748897879169.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748897879169.jpg"),
+    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748646239697.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748646239697.jpg"),
+
+    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708386996456768.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708386996456768.jpg"),
+    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708283296482743.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708283296482743.jpg"),
+    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708282700931770.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708282700931770.jpg"),
+    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708280670891279.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708280670891279.jpg"),
+    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801707989854605294.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801707989854605294.jpg"),
+};
+
+function resolveStoryImage(src?: string): ImageSourcePropType | undefined {
+    if (!src) return undefined;
+    return storyImageByPath[src] ?? {uri: src};
+}
+
+export function Stories() {
+    const insets = useSafeAreaInsets();
+    const {width} = useWindowDimensions();
+
+    const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+    const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+    const [progress, setProgress] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isMediaLoading, setIsMediaLoading] = useState(false);
+    const [hasMediaError, setHasMediaError] = useState(false);
+
+    const elapsedRef = useRef(0);
+    const isSwitchingRef = useRef(false);
+    const suppressTapRef = useRef(false);
+    const stripX = useSharedValue(0);
+    const dragY = useSharedValue(0);
+    const gestureAxis = useSharedValue<0 | 1 | 2>(0);
+    const activeStoryIndexValue = useSharedValue(0);
+
+    const activeStory = activeStoryIndex !== null ? StoriesData[activeStoryIndex] : null;
+    const activeSlide = activeStory?.slides[activeSlideIndex] ?? null;
+
+    const resetSlideState = useCallback(() => {
+        elapsedRef.current = 0;
+        setProgress(0);
+        setIsPaused(false);
+        setIsMediaLoading(false);
+        setHasMediaError(false);
+    }, []);
+
+    const close = useCallback(() => {
+        setActiveStoryIndex(null);
+        setActiveSlideIndex(0);
+        setProgress(0);
+        setIsPaused(false);
+        setIsMediaLoading(false);
+        setHasMediaError(false);
+        isSwitchingRef.current = false;
+        suppressTapRef.current = false;
+        gestureAxis.value = 0;
+        stripX.value = 0;
+        dragY.value = 0;
+    }, [dragY, stripX]);
+
+    const openStory = useCallback((index: number) => {
+        Haptics.selectionAsync().catch(() => {
+        });
+        resetSlideState();
+        activeStoryIndexValue.value = index;
+        stripX.value = -index * width;
+        setActiveStoryIndex(index);
+        setActiveSlideIndex(0);
+    }, [activeStoryIndexValue, resetSlideState, stripX, width]);
+
+    const commitStorySwitch = useCallback((targetIndex: number) => {
+        resetSlideState();
+        activeStoryIndexValue.value = targetIndex;
+        setActiveStoryIndex(targetIndex);
+        setActiveSlideIndex(0);
+        isSwitchingRef.current = false;
+
+        window.setTimeout(() => {
+            suppressTapRef.current = false;
+        }, 80);
+    }, [activeStoryIndexValue, resetSlideState]);
+
+    const markGestureStarted = useCallback(() => {
+        setIsPaused(true);
+        suppressTapRef.current = true;
+    }, []);
+
+    const markGestureFinished = useCallback(() => {
+        setIsPaused(false);
+
+        window.setTimeout(() => {
+            suppressTapRef.current = false;
+        }, 80);
+    }, []);
+
+    const markStorySwitching = useCallback(() => {
+        isSwitchingRef.current = true;
+        suppressTapRef.current = true;
+    }, []);
+
+    const goNext = useCallback(() => {
+        if (!activeStory || activeStoryIndex === null || isSwitchingRef.current) return;
+
+        if (activeSlideIndex < activeStory.slides.length - 1) {
+            resetSlideState();
+            setActiveSlideIndex((value) => value + 1);
+            return;
+        }
+
+        if (activeStoryIndex < StoriesData.length - 1) {
+            const targetIndex = activeStoryIndex + 1;
+
+            resetSlideState();
+            activeStoryIndexValue.value = targetIndex;
+            stripX.value = -targetIndex * width;
+            setActiveStoryIndex(targetIndex);
+            setActiveSlideIndex(0);
+            return;
+        }
+
+        close();
+    }, [activeSlideIndex, activeStory, activeStoryIndex, activeStoryIndexValue, close, resetSlideState, stripX, width]);
+
+    const goPrev = useCallback(() => {
+        if (!activeStory || activeStoryIndex === null || isSwitchingRef.current) return;
+
+        if (activeSlideIndex > 0) {
+            resetSlideState();
+            setActiveSlideIndex((value) => value - 1);
+            return;
+        }
+
+        if (activeStoryIndex > 0) {
+            const targetIndex = activeStoryIndex - 1;
+            const previousStory = StoriesData[activeStoryIndex - 1];
+
+            resetSlideState();
+            activeStoryIndexValue.value = targetIndex;
+            stripX.value = -targetIndex * width;
+            setActiveStoryIndex(targetIndex);
+            setActiveSlideIndex(previousStory.slides.length - 1);
+        }
+    }, [activeSlideIndex, activeStory, activeStoryIndex, activeStoryIndexValue, resetSlideState, stripX, width]);
+
+    const panGesture = useMemo(() => Gesture.Pan()
+        .minDistance(STORY_DRAG_START_DISTANCE)
+        .onBegin(() => {
+            gestureAxis.value = 0;
+            runOnJS(markGestureStarted)();
+        })
+        .onUpdate((event) => {
+            const activeIndex = activeStoryIndexValue.value;
+            const baseX = -activeIndex * width;
+            const absoluteX = Math.abs(event.translationX);
+            const absoluteY = Math.abs(event.translationY);
+
+            if (gestureAxis.value === 0) {
+                if (absoluteX > absoluteY * STORY_AXIS_RATIO) {
+                    gestureAxis.value = 1;
+                } else if (
+                    event.translationY > 0 &&
+                    absoluteY > absoluteX * STORY_AXIS_RATIO
+                ) {
+                    gestureAxis.value = 2;
+                } else {
+                    return;
+                }
+            }
+
+            if (gestureAxis.value === 2) {
+                dragY.value = Math.max(0, event.translationY);
+                stripX.value = baseX;
+                return;
+            }
+
+            const isPastFirstStory = activeIndex === 0 && event.translationX > 0;
+            const isPastLastStory =
+                activeIndex === StoriesData.length - 1 && event.translationX < 0;
+            const dampedX = isPastFirstStory || isPastLastStory
+                ? event.translationX * 0.22
+                : event.translationX;
+
+            stripX.value = baseX + dampedX;
+            dragY.value = 0;
+        })
+        .onEnd((event) => {
+            const activeIndex = activeStoryIndexValue.value;
+            const baseX = -activeIndex * width;
+            const absoluteX = Math.abs(event.translationX);
+            const absoluteY = Math.abs(event.translationY);
+
+            if (
+                gestureAxis.value === 2 &&
+                event.translationY > STORY_CLOSE_DISTANCE &&
+                absoluteY > absoluteX
+            ) {
+                runOnJS(close)();
+                return;
+            }
+
+            if (
+                gestureAxis.value === 1 &&
+                event.translationX < -STORY_SWIPE_DISTANCE &&
+                absoluteX > absoluteY * STORY_AXIS_RATIO &&
+                activeIndex < StoriesData.length - 1
+            ) {
+                const targetIndex = activeIndex + 1;
+
+                runOnJS(markStorySwitching)();
+                stripX.value = withTiming(
+                    -targetIndex * width,
+                    {duration: STORY_SETTLE_DURATION},
+                    (finished) => {
+                        if (finished) {
+                            dragY.value = 0;
+                            gestureAxis.value = 0;
+                            runOnJS(commitStorySwitch)(targetIndex);
+                        }
+                    }
+                );
+                return;
+            }
+
+            if (
+                gestureAxis.value === 1 &&
+                event.translationX > STORY_SWIPE_DISTANCE &&
+                absoluteX > absoluteY * STORY_AXIS_RATIO &&
+                activeIndex > 0
+            ) {
+                const targetIndex = activeIndex - 1;
+
+                runOnJS(markStorySwitching)();
+                stripX.value = withTiming(
+                    -targetIndex * width,
+                    {duration: STORY_SETTLE_DURATION},
+                    (finished) => {
+                        if (finished) {
+                            dragY.value = 0;
+                            gestureAxis.value = 0;
+                            runOnJS(commitStorySwitch)(targetIndex);
+                        }
+                    }
+                );
+                return;
+            }
+
+            stripX.value = withSpring(baseX, {damping: 22, stiffness: 260});
+            dragY.value = withSpring(0, {damping: 22, stiffness: 260});
+            gestureAxis.value = 0;
+            runOnJS(markGestureFinished)();
+        })
+        .onFinalize((_event, success) => {
+            if (!success) {
+                const baseX = -activeStoryIndexValue.value * width;
+
+                stripX.value = withSpring(baseX, {damping: 22, stiffness: 260});
+                dragY.value = withSpring(0, {damping: 22, stiffness: 260});
+                gestureAxis.value = 0;
+                runOnJS(markGestureFinished)();
+            }
+        }), [
+        activeStoryIndexValue,
+        close,
+        commitStorySwitch,
+        dragY,
+        gestureAxis,
+        markGestureFinished,
+        markGestureStarted,
+        markStorySwitching,
+        stripX,
+        width,
+    ]);
+
+    const tapGesture = useMemo(() => Gesture.Tap()
+        .maxDuration(220)
+        .maxDistance(10)
+        .onEnd((event, success) => {
+            if (!success) return;
+
+            const topControlsHeight = insets.top + 78;
+
+            if (event.y <= topControlsHeight) return;
+
+            if (event.x < width * 0.42) {
+                runOnJS(goPrev)();
+                return;
+            }
+
+            runOnJS(goNext)();
+        }), [goNext, goPrev, insets.top, width]);
+
+    const storyGesture = useMemo(
+        () => Gesture.Exclusive(panGesture, tapGesture),
+        [panGesture, tapGesture]
+    );
+
+    useEffect(() => {
+        if (!activeStory || !activeSlide || isPaused || isMediaLoading || hasMediaError) return;
+
+        const duration = activeSlide.durationMs ?? DEFAULT_IMAGE_DURATION;
+        const startedAt = Date.now();
+        const startElapsed = elapsedRef.current;
+
+        const timerId = window.setInterval(() => {
+            const elapsed = startElapsed + Date.now() - startedAt;
+            elapsedRef.current = elapsed;
+
+            const nextProgress = Math.min((elapsed / duration) * 100, 100);
+            setProgress(nextProgress);
+
+            if (nextProgress >= 100) {
+                window.clearInterval(timerId);
+                goNext();
+            }
+        }, 40);
+
+        return () => window.clearInterval(timerId);
+    }, [activeSlide, activeStory, goNext, hasMediaError, isMediaLoading, isPaused]);
+
+    const viewerAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            {translateY: dragY.value},
+            {
+                scale: interpolate(
+                    dragY.value,
+                    [0, 220],
+                    [1, 0.86],
+                    Extrapolation.CLAMP
+                ),
+            },
+        ],
+    }));
+
+    const stripAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{translateX: stripX.value}],
+    }));
+
+    const backdropAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(
+            dragY.value,
+            [0, 220],
+            [1, 0.25],
+            Extrapolation.CLAMP
+        ),
+    }));
+
+    useEffect(() => {
+        if (activeStoryIndex === null || isSwitchingRef.current) return;
+
+        activeStoryIndexValue.value = activeStoryIndex;
+        stripX.value = -activeStoryIndex * width;
+    }, [activeStoryIndex, activeStoryIndexValue, stripX, width]);
+
+    return (
+        <>
+            <View style={styles.section}>
+                <FlatList
+                    horizontal
+                    data={StoriesData}
+                    keyExtractor={(item) => String(item.id)}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({item, index}) => (
+                        <StoryPreview
+                            story={item}
+                            index={index}
+                            onPress={() => openStory(index)}
+                        />
+                    )}
+                />
+            </View>
+
+            <Modal
+                visible={activeStory !== null}
+                transparent={false}
+                animationType="fade"
+                presentationStyle="fullScreen"
+                statusBarTranslucent
+                onRequestClose={close}
+            >
+                <GestureHandlerRootView style={styles.modal}>
+                    <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}/>
+                    <PreloadedStoryImages/>
+
+                    {activeStory && activeSlide && (
+                        <GestureDetector gesture={storyGesture}>
+                            <Animated.View style={[styles.viewer, viewerAnimatedStyle]}>
+                                <Animated.View
+                                    style={[
+                                        styles.storyStrip,
+                                        {width: width * StoriesData.length},
+                                        stripAnimatedStyle,
+                                    ]}
+                                >
+                                    {StoriesData.map((story, index) => (
+                                        <StoryMediaPanel
+                                            key={String(story.id)}
+                                            width={width}
+                                            storyIndex={index}
+                                            slideIndex={index === activeStoryIndex ? activeSlideIndex : 0}
+                                            onLoadStart={index === activeStoryIndex ? () => {
+                                                setIsMediaLoading(true);
+                                                setHasMediaError(false);
+                                            } : undefined}
+                                            onLoadEnd={index === activeStoryIndex ? () => setIsMediaLoading(false) : undefined}
+                                            onError={index === activeStoryIndex ? () => {
+                                                setIsMediaLoading(false);
+                                                setHasMediaError(true);
+                                            } : undefined}
+                                        />
+                                    ))}
+                                </Animated.View>
+
+                                <View style={[styles.topLayer, {paddingTop: insets.top + 8}]}>
+                                    <View style={styles.progressRow}>
+                                        {activeStory.slides.map((slide, index) => (
+                                            <View key={String(slide.id)} style={styles.progressTrack}>
+                                                <View
+                                                    style={[
+                                                        styles.progressFill,
+                                                        {
+                                                            width:
+                                                                index < activeSlideIndex
+                                                                    ? "100%"
+                                                                    : index === activeSlideIndex
+                                                                        ? `${progress}%`
+                                                                        : "0%",
+                                                        },
+                                                    ]}
+                                                />
+                                            </View>
+                                        ))}
+                                    </View>
+
+                                    <View style={styles.headerRow}>
+                                        <Text style={styles.viewerTitle} numberOfLines={1}>
+                                            {activeStory.title}
+                                        </Text>
+
+                                        <Pressable
+                                            onPress={close}
+                                            hitSlop={12}
+                                            style={styles.closeButton}
+                                        >
+                                            <Feather name="x" size={26} color="#fff"/>
+                                        </Pressable>
+                                    </View>
+                                </View>
+
+                                {hasMediaError && (
+                                    <View style={styles.loadingLayer} pointerEvents="none">
+                                        <Text style={styles.errorText}>
+                                            Не удалось загрузить изображение
+                                        </Text>
+                                    </View>
+                                )}
+
+                            </Animated.View>
+                        </GestureDetector>
+                    )}
+                </GestureHandlerRootView>
+            </Modal>
+        </>
+    );
+}
+
+function StoryMediaPanel({
+                             width,
+                             storyIndex,
+                             slideIndex,
+                             onLoadStart,
+                             onLoadEnd,
+                             onError,
+                         }: {
+    width: number;
+    storyIndex: number | null;
+    slideIndex: number;
+    onLoadStart?: () => void;
+    onLoadEnd?: () => void;
+    onError?: () => void;
+}) {
+    const story = storyIndex !== null ? StoriesData[storyIndex] : null;
+    const slide = story?.slides[slideIndex] ?? story?.slides[0] ?? null;
+
+    return (
+        <View style={[styles.storyPanel, {width}]}>
+            {slide && (
+                <Image
+                    key={`${story?.id}-${slide.id}`}
+                    source={resolveStoryImage(slide.src ?? slide.poster)}
+                    style={styles.media}
+                    contentFit="contain"
+                    transition={0}
+                    cachePolicy="memory-disk"
+                    recyclingKey={`${story?.id}-${slide.id}`}
+                    onLoadStart={onLoadStart}
+                    onLoadEnd={onLoadEnd}
+                    onError={onError}
+                />
+            )}
+        </View>
+    );
+}
+
+function PreloadedStoryImages() {
+    return (
+        <View pointerEvents="none" style={styles.preloadLayer}>
+            {StoriesData.flatMap((story) => [
+                story.previewImage,
+                ...story.slides.map((slide) => slide.src),
+                ...story.slides.map((slide) => slide.poster).filter(Boolean),
+            ]).map((src, index) => (
+                <Image
+                    key={`${src}-${index}`}
+                    source={resolveStoryImage(src)}
+                    style={styles.preloadImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                />
+            ))}
+        </View>
+    );
+}
+
+function StoryPreview({
+                          story,
+                          index,
+                          onPress,
+                      }: {
+    story: Story;
+    index: number;
+    onPress: () => void;
+}) {
+    return (
+        <Pressable
+            onPress={onPress}
+            style={({pressed}) => [
+                styles.preview,
+                index === 0 && styles.firstPreview,
+                pressed && styles.previewPressed,
+            ]}
+        >
+            <View style={styles.previewImageFrame}>
+                <Image
+                    source={resolveStoryImage(story.previewImage)}
+                    style={styles.previewImage}
+                    contentFit="cover"
+                    transition={150}
+                    cachePolicy="memory-disk"
+                />
+
+                <LinearGradient
+                    colors={["transparent", "rgba(0,0,0,0.85)"]}
+                    style={styles.previewOverlay}
+                >
+                    <Text style={styles.previewTitle} numberOfLines={2}>
+                        {story.title}
+                    </Text>
+                </LinearGradient>
+            </View>
+        </Pressable>
+    );
+}
+
+const styles = StyleSheet.create({
+    section: {
+        paddingVertical: 18,
+        paddingHorizontal:8,
+    },
+    listContent: {
+        paddingHorizontal: 0,
+    },
+    preview: {
+        width: 128,
+        alignItems: "center",
+    },
+    firstPreview: {
+        marginLeft: 0,
+    },
+    previewPressed: {
+        opacity: 0.82,
+        transform: [{scale: 0.98}],
+    },
+    previewImageFrame: {
+        width: 118,
+        height: 128,
+        padding: 2,
+        borderRadius: 18,
+        borderWidth: 1.5,
+        borderColor: themeColors.primary,
+        backgroundColor: "#101010",
+        overflow: "hidden",
+        ...SHADOW,
+    },
+    previewImage: {
+        width: "100%",
+        height: "100%",
+        borderRadius: 7,
+        backgroundColor: "#111",
+    },
+    previewOverlay: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+        backgroundColor: "rgba(0,0,0,0.35)",
+    },
+
+    previewTitle: {
+        color: "#fff",
+        fontFamily: "Point-SemiBold",
+        fontSize: 13,
+        lineHeight: 15,
+        textAlign: "left",
+
+        textShadowColor: "rgba(0,0,0,0.7)",
+        textShadowOffset: {width: 0, height: 1},
+        textShadowRadius: 3,
+    },
+    modal: {
+        flex: 1,
+        backgroundColor: "#000",
+    },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "#000",
+    },
+    viewer: {
+        ...StyleSheet.absoluteFillObject,
+        overflow: "hidden",
+        backgroundColor: "#000",
+    },
+    storyStrip: {
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        left: 0,
+        flexDirection: "row",
+        backgroundColor: "#000",
+    },
+    storyPanel: {
+        height: "100%",
+        overflow: "hidden",
+        backgroundColor: "#000",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    media: {
+        width: "100%",
+        height: "100%",
+    },
+    preloadLayer: {
+        position: "absolute",
+        left: -2,
+        top: -2,
+        width: 1,
+        height: 1,
+        opacity: 0,
+        overflow: "hidden",
+    },
+    preloadImage: {
+        width: 1,
+        height: 1,
+    },
+    topLayer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 30,
+        paddingHorizontal: 10,
+    },
+    progressRow: {
+        flexDirection: "row",
+        gap: 4,
+    },
+    progressTrack: {
+        flex: 1,
+        height: 3,
+        borderRadius: 999,
+        overflow: "hidden",
+        backgroundColor: "rgba(255,255,255,0.35)",
+    },
+    progressFill: {
+        height: "100%",
+        borderRadius: 999,
+        backgroundColor: "#fff",
+    },
+    headerRow: {
+        marginTop: 12,
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    viewerTitle: {
+        flex: 1,
+        color: "#fff",
+        fontFamily: "Point-SemiBold",
+        fontSize: 16,
+        lineHeight: 20,
+        textShadowColor: "rgba(0,0,0,0.65)",
+        textShadowOffset: {width: 0, height: 1},
+        textShadowRadius: 4,
+    },
+    closeButton: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.35)",
+    },
+    loadingLayer: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.28)",
+    },
+    errorText: {
+        color: "#fff",
+        fontFamily: "Point-Regular",
+        fontSize: 14,
+    },
+});

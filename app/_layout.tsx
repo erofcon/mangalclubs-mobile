@@ -1,24 +1,51 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import {Stack} from "expo-router";
+import {View} from "react-native";
+import {useFonts} from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import {useEffect} from "react";
+import {AppProviders} from "@/providers/AppProviders";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+SplashScreen.preventAutoHideAsync().then(r => {
+});
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    const [loaded, error] = useFonts({
+        // основной текст
+        "Point-Regular": require("@/assets/fonts/point/Point-Regular.ttf"),
+
+        // вторичный/длинный текст, если Book выглядит приятнее Regular
+        "Point-Book": require("@/assets/fonts/point/Point-Book.ttf"),
+
+        // кнопки, табы, небольшие заголовки
+        "Point-SemiBold": require("@/assets/fonts/point/Point-SemiBold.ttf"),
+
+        // крупные заголовки
+        "Point-Bold": require("@/assets/fonts/point/Point-Bold.ttf"),
+
+        // очень крупные акценты
+        "Point-ExtraBold": require("@/assets/fonts/point/Point-ExtraBold.ttf"),
+    });
+
+    useEffect(() => {
+        if (loaded || error) {
+            SplashScreen.hideAsync().then(r => {
+            });
+        }
+    }, [loaded, error]);
+
+    if (!loaded && !error) {
+        return null;
+    }
+
+    return (
+        <AppProviders>
+            <View style={{flex: 1, paddingTop: 10}}>
+                <Stack screenOptions={{headerShown: false}}>
+                    <Stack.Screen name="(index)"/>
+                </Stack>
+            </View>
+        </AppProviders>
+    );
 }
