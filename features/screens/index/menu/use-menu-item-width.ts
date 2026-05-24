@@ -6,6 +6,7 @@ import {
     GRID_COLUMNS,
     H_PADDING,
     NATIVE_FALLBACK_WIDTH,
+    PRODUCT_CARD_MAX_WIDTH,
     WEB_MAX_WIDTH,
 } from "@/features/screens/index/menu/constants";
 
@@ -23,6 +24,6 @@ export function useMenuItemWidth(containerWidth: number) {
         if (!listWidth) return 0;
 
         const availableWidth = listWidth - H_PADDING * 2 - GAP * (GRID_COLUMNS - 1);
-        return Math.floor(availableWidth / GRID_COLUMNS);
+        return Math.min(Math.floor(availableWidth / GRID_COLUMNS), PRODUCT_CARD_MAX_WIDTH);
     }, [listWidth]);
 }

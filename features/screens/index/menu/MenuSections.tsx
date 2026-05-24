@@ -53,6 +53,8 @@ export const MenuSections = memo(function MenuSections({
                                         width={itemWidth}
                                         id={item.id}
                                         title={item.name}
+                                        description={item.description}
+                                        weight={item.weight}
                                         priceFrom={item.price}
                                         image={item.image}
                                     />
@@ -94,11 +96,21 @@ function CategoryVideoHeader({category}: { category: MenuCategory }) {
             <LinearGradient
                 colors={[
                     "rgba(0,0,0,0.62)",
-                    "rgba(0,0,0,0.38)",
-                    "rgba(0,0,0,0.68)",
+                    "rgba(0,0,0,0.24)",
+                    "rgba(0,0,0,0.18)",
                 ]}
                 locations={[0, 0.48, 1]}
                 style={[StyleSheet.absoluteFill, styles.gradientOverlay]}
+            />
+
+            <LinearGradient
+                colors={[
+                    "rgba(7,8,8,0)",
+                    "rgba(7,8,8,0.64)",
+                    themeColors.background,
+                ]}
+                locations={[0, 0.52, 1]}
+                style={styles.videoBottomFade}
             />
 
             <Text style={styles.videoTitle} numberOfLines={2}>
@@ -163,13 +175,12 @@ const styles = StyleSheet.create({
     },
     videoHeader: {
         position: "relative",
-        marginBottom: 12,
+        marginBottom: 0,
         aspectRatio: 1.58,
         borderTopRightRadius: 28,
         borderTopLeftRadius: 28,
         overflow: "hidden",
-        backgroundColor: themeColors.card,
-        borderWidth: 1,
+        backgroundColor: themeColors.background,
         ...SHADOW,
     },
     video: {
@@ -179,23 +190,32 @@ const styles = StyleSheet.create({
     gradientOverlay: {
         pointerEvents: "none",
     },
+    videoBottomFade: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: "52%",
+        pointerEvents: "none",
+    },
     videoTitle: {
         position: "absolute",
         top: 22,
         left: 22,
         right: 22,
-        color: "#FFFFFF",
-        fontSize: 23,
-        fontWeight: "800",
+        color: themeColors.text,
+        fontSize: 24,
+        fontFamily: "Point-Bold",
         lineHeight: 27,
     },
     productsRow: {
         flexDirection: "row",
         gap: GAP,
         paddingHorizontal: H_PADDING,
-        marginBottom: 12,
+        justifyContent: "center",
+        marginBottom: 24,
     },
     productsRowOverVideo: {
-        marginTop: -52,
+        marginTop: -36,
     },
 });

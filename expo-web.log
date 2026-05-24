@@ -1,0 +1,31 @@
+
+> mangalclubs-mobile@1.0.0 web
+> expo start --web --port 8082
+
+Starting project at D:\ExpoProjects\mangalclubs-mobile
+Starting Metro Bundler
+Networking has been disabled
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Web node_modules\expo-router\entry.js ▓▓▓▓▓░░░░░░░░░░░ 33.3% (22/58)
+λ node_modules\expo-router\node\render.js ▓▓▓░░░░░░░░░░░░░ 24.3% (181/373)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.4% (457/598)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 69.0% (753/919)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 67.6% ( 956/1163)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 84.0% (1233/1345)
+λ Bundled 12843ms node_modules\expo-router\node\render.js (1523 modules)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.0% (1521/1529)
+Web Bundled 14920ms node_modules\expo-router\entry.js (1529 modules)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 78.1% (1088/1231)
+Web Bundled 4514ms node_modules\expo-router\entry.js (1531 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 50ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 693ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 58ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 43ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 896ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 44ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console

@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
         paddingBottom: 18,
         zIndex: 100,
         elevation: 100,
+        backgroundColor: themeColors.background,
     },
     sectionsBlock: {
         width: "100%",

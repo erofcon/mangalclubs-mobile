@@ -1,7 +1,8 @@
-export const GRID_COLUMNS = 3;
+export const GRID_COLUMNS = 1;
 export const GAP = 12;
 export const H_PADDING = 16;
 export const WEB_MAX_WIDTH = 430;
+export const PRODUCT_CARD_MAX_WIDTH = 420;
 export const NATIVE_FALLBACK_WIDTH = 360;
 export const SECTION_OFFSET_GAP = 18;
 export const BOTTOM_REACH_THRESHOLD = 2;
