@@ -4,6 +4,7 @@ import {useFonts} from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import {AppProviders} from "@/providers/AppProviders";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 
 
 SplashScreen.preventAutoHideAsync().then(r => {
@@ -40,12 +41,14 @@ export default function RootLayout() {
     }
 
     return (
-        <AppProviders>
-            <View style={{flex: 1, paddingTop: 10}}>
-                <Stack screenOptions={{headerShown: false}}>
-                    <Stack.Screen name="(index)"/>
-                </Stack>
-            </View>
-        </AppProviders>
+        <GestureHandlerRootView style={{flex: 1}}>
+            <AppProviders>
+                <View style={{flex: 1, paddingTop: 10}}>
+                    <Stack screenOptions={{headerShown: false}}>
+                        <Stack.Screen name="(index)"/>
+                    </Stack>
+                </View>
+            </AppProviders>
+        </GestureHandlerRootView>
     );
 }
