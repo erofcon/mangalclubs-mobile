@@ -4,6 +4,7 @@ import {ImageSourcePropType} from "react-native";
 export interface Category {
     id: string;
     title: string;
+    video?: ImageSourcePropType;
 }
 
 export interface MenuItem {

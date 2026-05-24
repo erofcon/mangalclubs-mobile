@@ -44,9 +44,7 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{flex: 1}}>
             <AppProviders>
                 <View style={{flex: 1, paddingTop: 10}}>
-                    <Stack screenOptions={{headerShown: false}}>
-                        <Stack.Screen name="(index)"/>
-                    </Stack>
+                    <Stack screenOptions={{headerShown: false}}/>
                 </View>
             </AppProviders>
         </GestureHandlerRootView>

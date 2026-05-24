@@ -106,14 +106,17 @@ export const categories: Category[] = [
     {
         id: "99",
         title: "Стейки из мраморной говядины",
+        video: require("@/assets/mocks/categories-video/steak.mp4"),
     },
     {
         id: "98",
         title: "Мангал",
+        video: require("@/assets/mocks/categories-video/mangal.mp4"),
     },
     {
         id: "97",
         title: "Салаты",
+        video: require("@/assets/mocks/categories-video/salad.mp4"),
     },
 ];
 
@@ -121,6 +124,7 @@ export const menus: MenuCategory[] = [
     {
         id: categories[0].id,
         title: categories[0].title,
+        video: categories[0].video,
         items: [
             {
                 id: "1",
@@ -151,6 +155,7 @@ export const menus: MenuCategory[] = [
     {
         id: categories[1].id,
         title: categories[1].title,
+        video: categories[1].video,
         items: [
             {
                 id: "3",
@@ -205,6 +210,7 @@ export const menus: MenuCategory[] = [
     {
         id: categories[2].id,
         title: categories[2].title,
+        video: categories[2].video,
         items: [
             {
                 id: "11",
