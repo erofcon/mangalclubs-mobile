@@ -9,7 +9,6 @@ import {
     useWindowDimensions,
     View,
 } from "react-native";
-import {LinearGradient} from "expo-linear-gradient";
 
 import {Image} from "expo-image";
 import {Feather} from "@expo/vector-icons";
@@ -112,8 +111,7 @@ export function Stories() {
     }, [dragY, stripX]);
 
     const openStory = useCallback((index: number) => {
-        Haptics.selectionAsync().catch(() => {
-        });
+        Haptics.selectionAsync().catch(() => {});
         resetSlideState();
         activeStoryIndexValue.value = index;
         stripX.value = -index * width;
@@ -507,7 +505,6 @@ export function Stories() {
                                         </Text>
                                     </View>
                                 )}
-
                             </Animated.View>
                         </GestureDetector>
                     )}
@@ -602,14 +599,13 @@ function StoryPreview({
                     cachePolicy="memory-disk"
                 />
 
-                <LinearGradient
-                    colors={["transparent", "rgba(0,0,0,0.85)"]}
-                    style={styles.previewOverlay}
-                >
+                <View style={styles.previewDarken} />
+
+                <View style={styles.previewTextWrap}>
                     <Text style={styles.previewTitle} numberOfLines={2}>
                         {story.title}
                     </Text>
-                </LinearGradient>
+                </View>
             </View>
         </Pressable>
     );
@@ -618,13 +614,13 @@ function StoryPreview({
 const styles = StyleSheet.create({
     section: {
         paddingVertical: 18,
-        paddingHorizontal:8,
+        paddingHorizontal: 8,
     },
     listContent: {
         paddingHorizontal: 0,
     },
     preview: {
-        width: 128,
+        width: 198,
         alignItems: "center",
     },
     firstPreview: {
@@ -635,12 +631,11 @@ const styles = StyleSheet.create({
         transform: [{scale: 0.98}],
     },
     previewImageFrame: {
-        width: 118,
-        height: 128,
+        width: 188,
+        height: 238,
         padding: 2,
         borderRadius: 18,
         borderWidth: 1.5,
-        borderColor: themeColors.primary,
         backgroundColor: "#101010",
         overflow: "hidden",
         ...SHADOW,
@@ -651,23 +646,24 @@ const styles = StyleSheet.create({
         borderRadius: 7,
         backgroundColor: "#111",
     },
-    previewOverlay: {
+    previewDarken: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0,0,0,0.22)",
+    },
+    previewTextWrap: {
         position: "absolute",
         left: 0,
         right: 0,
         bottom: 0,
         paddingHorizontal: 8,
         paddingVertical: 8,
-        backgroundColor: "rgba(0,0,0,0.35)",
     },
-
     previewTitle: {
-        color: "#fff",
+        color: themeColors.text,
         fontFamily: "Point-SemiBold",
-        fontSize: 13,
+        fontSize: 18,
         lineHeight: 15,
         textAlign: "left",
-
         textShadowColor: "rgba(0,0,0,0.7)",
         textShadowOffset: {width: 0, height: 1},
         textShadowRadius: 3,

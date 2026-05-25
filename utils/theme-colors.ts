@@ -12,7 +12,7 @@ export const themeColors = {
     cardHover: '#1A1815',
 
     // Text colors
-    text: '#d8d0c5',
+    text: '#ffffff',
     textSecondary: '#8f867b',
     textOnPrimary: '#18130c',
 

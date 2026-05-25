@@ -6,10 +6,10 @@ import {
     View,
     type LayoutChangeEvent,
 } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import { SHADOW, themeColors } from "@/utils/theme-colors";
-import { useCallback, useEffect, useRef } from "react";
-import type { Category } from "@/types/products";
+import {TouchableOpacity} from "react-native-gesture-handler";
+import {SHADOW, themeColors} from "@/utils/theme-colors";
+import {useCallback, useEffect, useRef} from "react";
+import type {Category} from "@/types/products";
 
 type CategoriesGridProps = {
     categories: Category[];
@@ -23,9 +23,8 @@ const clamp = (v: number, min: number, max: number) =>
     Math.max(min, Math.min(v, max));
 
 const CONTENT_HORIZONTAL_PADDING = 16;
-const CHIP_GAP = 8;
-const REVEAL_EDGE_PADDING = 16;
-const ANDROID_DECELERATION_RATE = 0.992;
+const CHIP_GAP = 20;
+const REVEAL_EDGE_PADDING = 24;
 
 export function CategoriesGrid({
                                    categories,
@@ -42,40 +41,25 @@ export function CategoriesGrid({
 
     const chipWidthsRef = useRef<Record<string, number>>({});
     const didRestoreScrollRef = useRef(false);
-    const lastActiveCategoryIdRef = useRef<Category["id"] | null>(null);
-    const shouldRevealActiveRef = useRef(false);
+    const lastActiveRef = useRef<Category["id"] | null>(null);
     const lastPressRef = useRef(0);
 
-    const getMeasuredContentWidth = useCallback(() => {
-        if (!categories.length) return 0;
-
-        let width = CONTENT_HORIZONTAL_PADDING * 2;
-
-        for (let index = 0; index < categories.length; index += 1) {
-            const category = categories[index];
-            const chipWidth = chipWidthsRef.current[category.id];
-            if (!chipWidth) return null;
-
-            width += chipWidth;
-
-            if (index < categories.length - 1) {
-                width += CHIP_GAP;
-            }
-        }
-
-        return width;
-    }, [categories]);
-
     const getChipLayout = useCallback(
-        (id: Category["id"]) => {
+        (id: string) => {
             let x = CONTENT_HORIZONTAL_PADDING;
 
-            for (const category of categories) {
-                const width = chipWidthsRef.current[category.id];
-                if (!width) return null;
+            for (const c of categories) {
+                const width = chipWidthsRef.current[c.id];
 
-                if (category.id === id) {
-                    return { x, width };
+                if (width == null) {
+                    return null;
+                }
+
+                if (c.id === id) {
+                    return {
+                        x,
+                        width,
+                    };
                 }
 
                 x += width + CHIP_GAP;
@@ -86,63 +70,74 @@ export function CategoriesGrid({
         [categories]
     );
 
-    const scrollToReveal = useCallback((id: string, animated: boolean) => {
-        const layout = getChipLayout(id);
-        if (!layout) return;
+    const scrollToReveal = useCallback(
+        (id: string, animated = true) => {
+            const layout = getChipLayout(id);
 
-        const viewportWidth = viewportWidthRef.current;
-        const measuredContentWidth = getMeasuredContentWidth();
-        const contentWidth = contentWidthRef.current || measuredContentWidth || 0;
+            if (!layout) return;
 
-        if (!viewportWidth || !contentWidth) return;
+            const viewportWidth = viewportWidthRef.current;
+            const contentWidth = contentWidthRef.current;
 
-        const edgePadding = REVEAL_EDGE_PADDING;
-        const currentX = currentScrollXRef.current;
-        const chipLeft = layout.x;
-        const chipRight = layout.x + layout.width;
-        const visibleLeft = currentX + edgePadding;
-        const visibleRight = currentX + viewportWidth - edgePadding;
+            if (!viewportWidth || !contentWidth) return;
 
-        let targetX: number | null = null;
+            const currentX = currentScrollXRef.current;
 
-        if (chipLeft < visibleLeft) {
-            targetX = chipLeft - edgePadding;
-        } else if (chipRight > visibleRight) {
-            targetX = chipRight - viewportWidth + edgePadding;
-        }
+            const chipLeft = layout.x;
+            const chipRight = layout.x + layout.width;
 
-        if (targetX === null) {
-            shouldRevealActiveRef.current = false;
-            return;
-        }
+            const visibleLeft = currentX + REVEAL_EDGE_PADDING;
+            const visibleRight =
+                currentX + viewportWidth - REVEAL_EDGE_PADDING;
 
-        const maxX = Math.max(contentWidth - viewportWidth, 0);
-        const nextX = clamp(targetX, 0, maxX);
-        currentScrollXRef.current = nextX;
-        onScrollXChange(nextX);
-        shouldRevealActiveRef.current = false;
+            let targetX: number | null = null;
 
-        scrollRef.current?.scrollTo({
-            x: nextX,
-            y: 0,
-            animated,
-        });
-    }, [getChipLayout, getMeasuredContentWidth, onScrollXChange]);
+            if (chipLeft < visibleLeft) {
+                targetX = chipLeft - REVEAL_EDGE_PADDING;
+            } else if (chipRight > visibleRight) {
+                targetX =
+                    chipRight -
+                    viewportWidth +
+                    REVEAL_EDGE_PADDING;
+            }
 
-    const requestReveal = useCallback((id: string, animated: boolean) => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                scrollToReveal(id, animated);
+            if (targetX === null) return;
+
+            const maxX = Math.max(
+                contentWidth - viewportWidth,
+                0
+            );
+
+            const nextX = clamp(targetX, 0, maxX);
+
+            currentScrollXRef.current = nextX;
+            onScrollXChange(nextX);
+
+            scrollRef.current?.scrollTo({
+                x: nextX,
+                y: 0,
+                animated,
             });
-        });
-    }, [scrollToReveal]);
+        },
+        [getChipLayout, onScrollXChange]
+    );
 
-    // Restore the manual horizontal position if the sticky header remounts.
+    const requestReveal = useCallback(
+        (id: string, animated = true) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    scrollToReveal(id, animated);
+                });
+            });
+        },
+        [scrollToReveal]
+    );
+
     useEffect(() => {
         if (didRestoreScrollRef.current) return;
-        if (!savedScrollX) return;
 
         didRestoreScrollRef.current = true;
+
         currentScrollXRef.current = savedScrollX;
 
         requestAnimationFrame(() => {
@@ -157,52 +152,25 @@ export function CategoriesGrid({
     useEffect(() => {
         if (!activeCategoryId) return;
 
-        const previousActiveCategoryId = lastActiveCategoryIdRef.current;
-        lastActiveCategoryIdRef.current = activeCategoryId;
-
-        if (previousActiveCategoryId === activeCategoryId) {
+        if (lastActiveRef.current === activeCategoryId) {
             return;
         }
 
-        shouldRevealActiveRef.current = true;
-        requestReveal(activeCategoryId, true);
+        lastActiveRef.current = activeCategoryId;
+
+        requestReveal(activeCategoryId);
     }, [activeCategoryId, requestReveal]);
-
-    const revealPendingActiveCategory = useCallback(() => {
-        if (!activeCategoryId || !shouldRevealActiveRef.current) return;
-        requestReveal(activeCategoryId, true);
-    }, [activeCategoryId, requestReveal]);
-
-    const handleViewportLayout = (e: LayoutChangeEvent) => {
-        viewportWidthRef.current = e.nativeEvent.layout.width;
-        revealPendingActiveCategory();
-    };
-
-    const handleContentSizeChange = (w: number) => {
-        contentWidthRef.current = w;
-        revealPendingActiveCategory();
-    };
-
-    const handleChipLayout = (id: string, e: LayoutChangeEvent) => {
-        const { width } = e.nativeEvent.layout;
-        chipWidthsRef.current[id] = width;
-
-        const measuredContentWidth = getMeasuredContentWidth();
-        if (measuredContentWidth) {
-            contentWidthRef.current = Math.max(contentWidthRef.current, measuredContentWidth);
-        }
-
-        revealPendingActiveCategory();
-    };
 
     const handlePress = (id: string) => {
         const now = Date.now();
 
-        // anti double-tap glitch (Android fix)
-        if (now - lastPressRef.current < 100) return;
+        if (now - lastPressRef.current < 120) {
+            return;
+        }
+
         lastPressRef.current = now;
-        shouldRevealActiveRef.current = true;
-        requestReveal(id, true);
+
+        requestReveal(id);
 
         onSelectCategory(id);
     };
@@ -210,46 +178,90 @@ export function CategoriesGrid({
     if (!categories.length) return null;
 
     return (
-        <View style={styles.container} onLayout={handleViewportLayout}>
-            <ScrollView
-                ref={scrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.content}
-                keyboardShouldPersistTaps="always"
-                nestedScrollEnabled
-                decelerationRate={Platform.OS === "android" ? ANDROID_DECELERATION_RATE : "normal"}
-                overScrollMode={Platform.OS === "android" ? "never" : "auto"}
-                scrollEventThrottle={16}
-                onContentSizeChange={handleContentSizeChange}
-                onScroll={(e) => {
-                    const scrollX = e.nativeEvent.contentOffset.x;
-                    currentScrollXRef.current = scrollX;
-                    onScrollXChange(scrollX);
-                }}
-            >
-                {categories.map((category) => {
-                    const isActive = category.id === activeCategoryId;
+        <View style={styles.container}>
+            <View style={styles.scrollArea}>
+                <ScrollView
+                    ref={scrollRef}
+                    horizontal
+                    bounces={false}
+                    alwaysBounceHorizontal={false}
+                    showsHorizontalScrollIndicator={false}
+                    scrollEventThrottle={16}
+                    decelerationRate={
+                        Platform.OS === "android"
+                            ? 0.98
+                            : "normal"
+                    }
+                    contentContainerStyle={styles.content}
+                    onLayout={(e: LayoutChangeEvent) => {
+                        viewportWidthRef.current =
+                            e.nativeEvent.layout.width;
+                    }}
+                    onContentSizeChange={(width) => {
+                        contentWidthRef.current = width;
 
-                    return (
-                        <TouchableOpacity
-                            key={category.id}
-                            activeOpacity={0.7}
-                            disallowInterruption={Platform.OS === "android"}
-                            onLayout={(e) => handleChipLayout(category.id, e)}
-                            onPress={() => handlePress(category.id)}
-                            style={[
-                                styles.chip,
-                                isActive && styles.chipActive,
-                            ]}
-                        >
-                            <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                                {category.title}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </ScrollView>
+                        // Восстанавливаем скролл только после
+                        // получения реальной ширины контента
+                        if (savedScrollX > 0) {
+                            requestAnimationFrame(() => {
+                                scrollRef.current?.scrollTo({
+                                    x: savedScrollX,
+                                    y: 0,
+                                    animated: false,
+                                });
+                            });
+                        }
+                    }}
+                    onScroll={(e) => {
+                        const x =
+                            e.nativeEvent.contentOffset.x;
+
+                        currentScrollXRef.current = x;
+
+                        onScrollXChange(x);
+                    }}
+                >
+                    {categories.map((c) => {
+                        const active =
+                            c.id === activeCategoryId;
+
+                        return (
+                            <TouchableOpacity
+                                key={c.id}
+                                activeOpacity={0.8}
+                                onLayout={(e) => {
+                                    chipWidthsRef.current[
+                                        c.id
+                                        ] =
+                                        e.nativeEvent.layout.width;
+                                }}
+                                onPress={() =>
+                                    handlePress(c.id)
+                                }
+                                style={styles.chip}
+                            >
+                                <Text
+                                    style={[
+                                        styles.text,
+                                        active &&
+                                        styles.textActive,
+                                    ]}
+                                >
+                                    {c.title}
+                                </Text>
+
+                                <View
+                                    style={[
+                                        styles.underline,
+                                        active &&
+                                        styles.underlineActive,
+                                    ]}
+                                />
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+            </View>
         </View>
     );
 }
@@ -257,32 +269,50 @@ export function CategoriesGrid({
 const styles = StyleSheet.create({
     container: {
         paddingTop: 8,
-        paddingHorizontal:8,
     },
+
+    scrollArea: {
+        flex: 1,
+        minWidth: 0,
+    },
+
     content: {
-        gap: CHIP_GAP,
-        alignItems: "center",
         paddingHorizontal: CONTENT_HORIZONTAL_PADDING,
-    },
-    chip: {
-        height: 40,
-        paddingHorizontal: 16,
-        borderRadius: 999,
-        backgroundColor: themeColors.card,
-        borderWidth: 1,
         alignItems: "center",
+    },
+
+    chip: {
+        height: 42,
         justifyContent: "center",
-        ...SHADOW,
+        alignItems: "center",
+        marginRight: CHIP_GAP,
+        position: "relative",
+        paddingBottom: 8,
     },
-    chipActive: {
-        borderColor: themeColors.border,
-    },
-    chipText: {
+
+    text: {
         color: themeColors.text,
         fontSize: 15,
-        fontWeight: "600",
+        fontFamily: "Point-Regular",
+        opacity: 0.7,
     },
-    chipTextActive: {
-        color: themeColors.primary,
+
+    textActive: {
+        opacity: 1,
+        fontFamily: "Point-SemiBold",
+    },
+
+    underline: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        borderRadius: 999,
+        backgroundColor: "transparent",
+    },
+
+    underlineActive: {
+        backgroundColor: themeColors.text,
     },
 });

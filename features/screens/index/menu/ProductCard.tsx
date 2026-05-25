@@ -1,18 +1,16 @@
-import {Feather} from "@expo/vector-icons";
-import {Image, ImageSourcePropType, Pressable, StyleSheet, Text, View} from "react-native";
+import {memo} from "react";
+import {
+    Image,
+    type ImageSourcePropType,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
 import {SHADOW, themeColors} from "@/utils/theme-colors";
 
-
-export function ProductCard({
-                                width,
-                                id,
-                                title,
-                                description,
-                                weight,
-                                priceFrom,
-                                image,
-                            }: {
+type ProductCardProps = {
     width: number;
     id: string;
     title: string;
@@ -20,117 +18,117 @@ export function ProductCard({
     weight?: string;
     priceFrom: number;
     image?: ImageSourcePropType;
-}) {
+};
+
+export const ProductCard = memo(function ProductCard({
+                                                         width,
+                                                         id,
+                                                         title,
+                                                         description,
+                                                         priceFrom,
+                                                         image,
+                                                     }: ProductCardProps) {
     return (
         <Pressable
             accessibilityRole="button"
             accessibilityLabel={title}
             testID={`product-card-${id}`}
-            style={[styles.productCard, {width, minWidth: width, maxWidth: width}]}
+            style={[styles.card, {width}]}
             onPress={() => {}}
             hitSlop={8}
         >
-            <View style={styles.imageWrap}>
-                <Image source={image} style={styles.productImg} resizeMode="cover"/>
-            </View>
-
             <View style={styles.content}>
-                <Text style={styles.productTitle} numberOfLines={1}>
-                    {title}
-                </Text>
+                <View style={styles.imageWrap}>
+                    {image ? (
+                        <Image
+                            source={image}
+                            style={styles.image}
+                            resizeMode="cover"
+                        />
+                    ) : null}
+                </View>
 
-                {description ? (
-                    <Text style={styles.productDescription} numberOfLines={1}>
-                        {description}
+                <View style={styles.info}>
+                    <Text style={styles.title} numberOfLines={2}>
+                        {title}
                     </Text>
-                ) : null}
 
-                {weight ? (
-                    <Text style={styles.productWeight} numberOfLines={1}>
-                        {weight}
-                    </Text>
-                ) : null}
+                    {!!description && (
+                        <Text style={styles.description} numberOfLines={1}>
+                            {description}
+                        </Text>
+                    )}
 
-                <Text style={styles.priceText}>{priceFrom.toLocaleString("ru-RU")} ₽</Text>
+                    <View style={styles.priceBox}>
+                        <Text style={styles.priceText}>
+                            {priceFrom.toLocaleString("ru-RU")} ₽
+                        </Text>
+                    </View>
+                </View>
             </View>
-
-            <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Добавить ${title} в корзину`}
-                style={styles.cartButton}
-                onPress={() => {}}
-                hitSlop={8}
-            >
-                <Feather name="shopping-cart" size={18} color={themeColors.primary}/>
-            </Pressable>
         </Pressable>
     );
-}
+});
 
 const styles = StyleSheet.create({
-    productCard: {
-        height: 130,
-        backgroundColor: themeColors.background,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor:themeColors.border,
-        flexDirection: "row",
-        alignItems: "stretch",
-        overflow: "hidden",
-        ...SHADOW,
+    card: {
+        width: "100%",
+        paddingVertical: 14,
     },
+
+    content: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+    },
+
     imageWrap: {
-        width: "32%",
-        minWidth: 124,
-        maxWidth: 168,
-        height: "100%",
+        width: 122,
+        height: 122,
+        borderRadius: 18,
         overflow: "hidden",
         backgroundColor: themeColors.card,
+        ...SHADOW,
     },
-    productImg: {
+
+    image: {
         width: "100%",
         height: "100%",
     },
-    content: {
+
+    info: {
         flex: 1,
-        paddingLeft: 8,
-        paddingRight: 8,
-        paddingVertical: 18,
-        justifyContent: "flex-start",
+        justifyContent: "center",
+        minHeight: 102,
     },
-    productTitle: {
+
+    title: {
         color: themeColors.text,
         fontSize: 16,
         fontFamily: "Point-Bold",
     },
-    productDescription: {
-        marginTop: 8,
-        color:themeColors.textSecondary,
-        fontSize: 12,
-        fontFamily: "Point-Regular",
-    },
-    productWeight: {
-        marginTop: 12,
+
+    description: {
+        marginTop: 4,
         color: themeColors.textSecondary,
         fontSize: 15,
+        lineHeight: 18,
         fontFamily: "Point-Regular",
     },
-    priceText: {
+
+    priceBox: {
+        alignSelf: "flex-start",
         marginTop: 12,
+        backgroundColor: themeColors.card,
+        borderRadius: 999,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+
+    priceText: {
         color: themeColors.text,
         fontSize: 16,
+        letterSpacing: 0.8,
         fontFamily: "Point-Bold",
-    },
-    cartButton: {
-        position: "absolute",
-        right: 18,
-        bottom: 18,
-        width: 34,
-        height: 34,
-        borderRadius: 7,
-        borderWidth: 1,
-        borderColor: themeColors.border,
-        alignItems: "center",
-        justifyContent: "center",
     },
 });

@@ -1,5 +1,5 @@
 export const GRID_COLUMNS = 1;
-export const GAP = 12;
+export const GAP = 22;
 export const H_PADDING = 16;
 export const WEB_MAX_WIDTH = 430;
 export const PRODUCT_CARD_MAX_WIDTH = 420;
