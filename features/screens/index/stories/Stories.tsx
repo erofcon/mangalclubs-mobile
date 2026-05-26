@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     FlatList,
     ImageSourcePropType,
@@ -111,7 +111,8 @@ export function Stories() {
     }, [dragY, stripX]);
 
     const openStory = useCallback((index: number) => {
-        Haptics.selectionAsync().catch(() => {});
+        Haptics.selectionAsync().catch(() => {
+        });
         resetSlideState();
         activeStoryIndexValue.value = index;
         stripX.value = -index * width;
@@ -404,6 +405,12 @@ export function Stories() {
 
     return (
         <>
+            <Text style={styles.storiesTitle}
+                  numberOfLines={1}
+            >
+                Истории
+            </Text>
+
             <View style={styles.section}>
                 <FlatList
                     horizontal
@@ -599,28 +606,35 @@ function StoryPreview({
                     cachePolicy="memory-disk"
                 />
 
+                {/* Затемнение */}
                 <View style={styles.previewDarken} />
-
-                <View style={styles.previewTextWrap}>
-                    <Text style={styles.previewTitle} numberOfLines={2}>
-                        {story.title}
-                    </Text>
-                </View>
             </View>
+
+            <Text style={styles.previewTitle} numberOfLines={2}>
+                {story.title}
+            </Text>
         </Pressable>
     );
 }
 
 const styles = StyleSheet.create({
+    storiesTitle: {
+        color: themeColors.text,
+        fontSize: 16,
+        fontFamily: "Point-Bold",
+        paddingHorizontal: 12,
+    },
+
     section: {
-        paddingVertical: 18,
-        paddingHorizontal: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
     },
     listContent: {
         paddingHorizontal: 0,
     },
     preview: {
-        width: 198,
+        width: 115,
+        marginRight: 12,
         alignItems: "center",
     },
     firstPreview: {
@@ -631,24 +645,25 @@ const styles = StyleSheet.create({
         transform: [{scale: 0.98}],
     },
     previewImageFrame: {
-        width: 188,
-        height: 238,
+        width: 115,
+        height: 144,
         padding: 2,
         borderRadius: 18,
         borderWidth: 1.5,
-        backgroundColor: "#101010",
+        borderColor: themeColors.cardBorder,
+        backgroundColor: themeColors.card,
         overflow: "hidden",
         ...SHADOW,
     },
     previewImage: {
         width: "100%",
         height: "100%",
-        borderRadius: 7,
-        backgroundColor: "#111",
+        borderRadius: 14,
+        backgroundColor: themeColors.card,
     },
     previewDarken: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0,0,0,0.22)",
+        backgroundColor: "rgba(0,0,0,0.28)",
     },
     previewTextWrap: {
         position: "absolute",
@@ -659,14 +674,12 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     previewTitle: {
+        marginTop: 8,
         color: themeColors.text,
-        fontFamily: "Point-SemiBold",
-        fontSize: 18,
-        lineHeight: 15,
-        textAlign: "left",
-        textShadowColor: "rgba(0,0,0,0.7)",
-        textShadowOffset: {width: 0, height: 1},
-        textShadowRadius: 3,
+        fontFamily: "Point-Regular",
+        fontSize: 14,
+        lineHeight: 19,
+        textAlign: "center",
     },
     modal: {
         flex: 1,

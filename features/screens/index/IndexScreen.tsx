@@ -1,87 +1,108 @@
-import {StyleSheet, Text, View, Pressable} from "react-native";
+import {StyleSheet, Text, View, Pressable, ScrollView} from "react-native";
 import {Screen} from "@/components/ui/Screen";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
 
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import {Categories} from "@/features/screens/index/categories/Categories";
+import {Stories} from "@/features/screens/index/stories/Stories";
+import {RestaurantsList} from "@/features/screens/index/restaurants/RestaurantsList";
 
 export function IndexScreen() {
     return (
         <Screen withTopInset>
 
-            {/* Header */}
-            <View style={styles.headerContainer}>
-                <Pressable style={styles.addressContainer}>
-                    <View style={styles.locationIconContainer}>
-                        <Ionicons
-                            name="location-outline"
-                            size={24}
-                            color={themeColors.primary}
-                        />
-                    </View>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.content}
+            >
 
-                    <View style={styles.addressTextContainer}>
-                        <View style={styles.addressRow}>
-                            <Text
-                                style={styles.addressTitle}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                г. Грозный ул. Светлая 124
-                            </Text>
-
-                            <MaterialCommunityIcons
-                                name="chevron-down"
-                                size={18}
-                                color={themeColors.textSecondary}
+                {/* Header */}
+                <View style={styles.headerContainer}>
+                    <Pressable style={styles.addressContainer}>
+                        <View style={styles.locationIconContainer}>
+                            <Ionicons
+                                name="location-outline"
+                                size={24}
+                                color={themeColors.primary}
                             />
                         </View>
 
-                        <Text style={styles.deliveryText}>
-                            Доставка
-                        </Text>
-                    </View>
-                </Pressable>
+                        <View style={styles.addressTextContainer}>
+                            <View style={styles.addressRow}>
+                                <Text
+                                    style={styles.addressTitle}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    г. Грозный ул. Светлая 124
+                                </Text>
 
-                <Pressable style={styles.accountButton}>
-                    <MaterialCommunityIcons
-                        name="account-outline"
-                        size={24}
-                        color={themeColors.primary}
-                    />
-                </Pressable>
-            </View>
+                                <MaterialCommunityIcons
+                                    name="chevron-down"
+                                    size={18}
+                                    color={themeColors.textSecondary}
+                                />
+                            </View>
 
-            {/* Search */}
-            <View style={styles.searchWrapper}>
-                <Pressable style={styles.searchContainer}>
-                    <View style={styles.searchLeft}>
-                        <Ionicons
-                            name="search-outline"
-                            size={24}
-                            color={themeColors.border}
-                        />
+                            <Text style={styles.deliveryText}>
+                                Доставка
+                            </Text>
+                        </View>
+                    </Pressable>
 
-                        <Text style={styles.searchPlaceholder}>
-                            Поиск блюд и ресторанов
-                        </Text>
-                    </View>
-
-                    <Pressable style={styles.filterButton}>
+                    <Pressable style={styles.accountButton}>
                         <MaterialCommunityIcons
-                            name="tune-variant"
+                            name="account-outline"
                             size={24}
                             color={themeColors.primary}
                         />
                     </Pressable>
-                </Pressable>
-            </View>
+                </View>
+
+                {/* Search */}
+                <View style={styles.searchWrapper}>
+                    <Pressable style={styles.searchContainer}>
+                        <View style={styles.searchLeft}>
+                            <Ionicons
+                                name="search-outline"
+                                size={24}
+                                color={themeColors.border}
+                            />
+
+                            <Text style={styles.searchPlaceholder}>
+                                Поиск блюд и ресторанов
+                            </Text>
+                        </View>
+
+                        <Pressable style={styles.filterButton}>
+                            <MaterialCommunityIcons
+                                name="tune-variant"
+                                size={24}
+                                color={themeColors.primary}
+                            />
+                        </Pressable>
+                    </Pressable>
+                </View>
+
+                <Categories/>
+
+                <Stories/>
+
+                <RestaurantsList/>
+
+            </ScrollView>
+
 
         </Screen>
     );
 }
 
 const styles = StyleSheet.create({
+    content: {
+        paddingBottom: 64,
+    },
+
     headerContainer: {
         flexDirection: "row",
         alignItems: "center",

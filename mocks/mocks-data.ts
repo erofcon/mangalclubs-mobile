@@ -106,17 +106,14 @@ export const categories: Category[] = [
     {
         id: "99",
         title: "Стейки из мраморной говядины",
-        video: require("@/assets/mocks/categories-video/steak.mp4"),
     },
     {
         id: "98",
         title: "Мангал",
-        video: require("@/assets/mocks/categories-video/mangal.mp4"),
     },
     {
         id: "97",
         title: "Салаты",
-        video: require("@/assets/mocks/categories-video/salad.mp4"),
     },
 ];
 
