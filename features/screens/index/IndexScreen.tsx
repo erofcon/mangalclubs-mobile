@@ -1,156 +1,204 @@
+import {StyleSheet, Text, View, Pressable} from "react-native";
 import {Screen} from "@/components/ui/Screen";
-import {Stories} from "@/features/screens/index/stories/Stories";
-import {Address} from "@/features/screens/index/header/Address";
-import {SearchBanner} from "@/features/screens/index/search/SearchBanner";
-import {ActionButtons} from "@/features/screens/index/action/ActionButtons";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useCallback, useMemo, useState} from "react";
-import {useMenuItemWidth} from "@/features/screens/index/menu/use-menu-item-width";
-import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
-    type LayoutChangeEvent,
-} from "react-native";
-import {menus} from "@/mocks/mocks-data";
-import type {MenuItem} from "@/types/products";
-import {useIndexMenuScroll} from "@/features/screens/index/menu/use-index-menu-scroll";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
-import {ANDROID_DECELERATION_RATE} from "@/features/screens/index/menu/constants";
-import {CategoriesGrid} from "@/features/screens/index/menu/CategoriesGrid";
-import {MenuSections} from "@/features/screens/index/menu/MenuSections";
+
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export function IndexScreen() {
-
-    const insets = useSafeAreaInsets();
-    const [containerWidth, setContainerWidth] = useState(0);
-    const itemWidth = useMenuItemWidth(containerWidth);
-
-    const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
-        setContainerWidth(event.nativeEvent.layout.width);
-    }, []);
-
-    const availableCategories = useMemo(() => {
-        return menus.filter((category) => category.items.length > 0);
-    }, []);
-
-    const itemsByCategory = useMemo(() => {
-        return availableCategories.reduce<Record<string, MenuItem[]>>((acc, category) => {
-            acc[category.id] = category.items;
-            return acc;
-        }, {});
-    }, [availableCategories]);
-
-    const {
-        activeCategoryId,
-        categoryTabsScrollXRef,
-        handleCategoryLayout,
-        handleCategoryTabsScrollXChange,
-        handleMenuMomentumEnd,
-        handleMenuScroll,
-        handleMenuScrollBeginDrag,
-        handleMenuScrollEndDrag,
-        handleSectionsLayout,
-        handleTabsLayout,
-        scrollRef,
-        scrollToCategory,
-    } = useIndexMenuScroll(availableCategories);
-
-
     return (
         <Screen withTopInset>
-            <View style={styles.root} onLayout={onContainerLayout}>
 
-                <ScrollView
-                    ref={scrollRef}
-                    style={styles.scroll}
-                    contentContainerStyle={{
-                        paddingBottom: insets.bottom + 32,
-                    }}
-                    stickyHeaderIndices={[4]}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="always"
-                    showsVerticalScrollIndicator={false}
-                    decelerationRate={Platform.OS === "android" ? ANDROID_DECELERATION_RATE : "normal"}
-                    overScrollMode={Platform.OS === "android" ? "never" : "auto"}
-                    scrollEventThrottle={16}
-                    onScroll={handleMenuScroll}
-                    onScrollBeginDrag={handleMenuScrollBeginDrag}
-                    onScrollEndDrag={handleMenuScrollEndDrag}
-                    onMomentumScrollEnd={handleMenuMomentumEnd}
-                >
-                    <Address/>
-                    <SearchBanner/>
-                    <Stories/>
-                    <ActionButtons/>
-
-                    <View
-                        collapsable={false}
-                        style={styles.categoriesStickyBlock}
-                        onLayout={handleTabsLayout}
-                    >
-                        <CategoriesGrid
-                            categories={availableCategories}
-                            activeCategoryId={activeCategoryId}
-                            savedScrollX={categoryTabsScrollXRef.current}
-                            onSelectCategory={scrollToCategory}
-                            onScrollXChange={handleCategoryTabsScrollXChange}
+            {/* Header */}
+            <View style={styles.headerContainer}>
+                <Pressable style={styles.addressContainer}>
+                    <View style={styles.locationIconContainer}>
+                        <Ionicons
+                            name="location-outline"
+                            size={24}
+                            color={themeColors.primary}
                         />
                     </View>
 
-                    <View
-                        collapsable={false}
-                        style={styles.sectionsBlock}
-                        onLayout={handleSectionsLayout}
-                    >
-                        <MenuSections
-                            categories={availableCategories}
-                            itemsByCategory={itemsByCategory}
-                            itemWidth={itemWidth}
-                            onCategoryLayout={handleCategoryLayout}
-                        />
-                    </View>s
+                    <View style={styles.addressTextContainer}>
+                        <View style={styles.addressRow}>
+                            <Text
+                                style={styles.addressTitle}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                            >
+                                г. Грозный ул. Светлая 124
+                            </Text>
 
+                            <MaterialCommunityIcons
+                                name="chevron-down"
+                                size={18}
+                                color={themeColors.textSecondary}
+                            />
+                        </View>
 
-                </ScrollView>
+                        <Text style={styles.deliveryText}>
+                            Доставка
+                        </Text>
+                    </View>
+                </Pressable>
+
+                <Pressable style={styles.accountButton}>
+                    <MaterialCommunityIcons
+                        name="account-outline"
+                        size={24}
+                        color={themeColors.primary}
+                    />
+                </Pressable>
             </View>
 
+            {/* Search */}
+            <View style={styles.searchWrapper}>
+                <Pressable style={styles.searchContainer}>
+                    <View style={styles.searchLeft}>
+                        <Ionicons
+                            name="search-outline"
+                            size={24}
+                            color={themeColors.border}
+                        />
+
+                        <Text style={styles.searchPlaceholder}>
+                            Поиск блюд и ресторанов
+                        </Text>
+                    </View>
+
+                    <Pressable style={styles.filterButton}>
+                        <MaterialCommunityIcons
+                            name="tune-variant"
+                            size={24}
+                            color={themeColors.primary}
+                        />
+                    </Pressable>
+                </Pressable>
+            </View>
 
         </Screen>
-    )
+    );
 }
 
-
 const styles = StyleSheet.create({
-    stories_section: {
+    headerContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+
+        paddingHorizontal: 12,
+        paddingTop: 8,
+        paddingBottom: 14,
+    },
+
+    addressContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+
         flex: 1,
-        backgroundColor: themeColors.card,
-        borderRadius: 28,
+    },
+
+    locationIconContainer: {
+        width: 42,
+        height: 42,
+
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    addressTextContainer: {
+        flex: 1,
+        minWidth: 0,
+    },
+
+    addressRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 2,
+    },
+
+    addressTitle: {
+        color: themeColors.text,
+        fontSize: 16,
+        fontFamily: "Point-Bold",
+        letterSpacing: -0.4,
+
+        maxWidth: 180,
+    },
+
+    deliveryText: {
+        marginTop: 2,
+
+        color: themeColors.textSecondary,
+        fontSize: 14,
+        fontFamily: "Point-Regular",
+    },
+
+    accountButton: {
+        width: 42,
+        height: 42,
+        borderRadius: 999,
+
+        alignItems: "center",
+        justifyContent: "center",
 
         borderWidth: 1,
-        borderColor: themeColors.cardBorder,
+        borderColor: themeColors.border,
+
+        backgroundColor: themeColors.card,
 
         ...SHADOW,
     },
-    root: {
+
+    /* Search */
+
+    searchWrapper: {
+        paddingVertical: 18,
+        paddingHorizontal: 12,
+    },
+
+    searchContainer: {
+        height: 52,
+        borderRadius: 17,
+
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+
+        paddingLeft: 18,
+        paddingRight: 10,
+
+        backgroundColor: themeColors.card,
+
+        borderWidth: 1,
+        borderColor: themeColors.border,
+
+        ...SHADOW,
+    },
+
+    searchLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+
         flex: 1,
-        width: "100%",
     },
-    scroll: {
+
+    searchPlaceholder: {
+        color: themeColors.textSecondary,
+        fontSize: 16,
+        fontFamily: "Point-Regular",
+
         flex: 1,
     },
-    categoriesStickyBlock: {
-        position: "relative",
-        paddingHorizontal: 0,
-        paddingBottom: 18,
-        zIndex: 100,
-        elevation: 100,
-        backgroundColor: themeColors.background,
-    },
-    sectionsBlock: {
-        width: "100%",
-        zIndex: 0,
-        elevation: 0,
+
+    filterButton: {
+        width: 44,
+        height: 44,
+
+        alignItems: "center",
+        justifyContent: "center",
     },
 });

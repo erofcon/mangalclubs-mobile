@@ -1,4 +1,11 @@
+import {Screen} from "@/components/ui/Screen";
+import {Stories} from "@/features/screens/index/stories/Stories";
+import {Address} from "@/features/screens/index/header/Address";
+import {SearchBanner} from "@/features/screens/index/search/SearchBanner";
+import {ActionButtons} from "@/features/screens/index/action/ActionButtons";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useCallback, useMemo, useState} from "react";
+import {useMenuItemWidth} from "@/features/screens/index/menu/use-menu-item-width";
 import {
     Platform,
     ScrollView,
@@ -6,21 +13,16 @@ import {
     View,
     type LayoutChangeEvent,
 } from "react-native";
-import {useSafeAreaInsets} from "react-native-safe-area-context";
-
-import {Screen} from "@/components/ui/Screen";
+import {menus} from "@/mocks/mocks-data";
+import type {MenuItem} from "@/types/products";
+import {useIndexMenuScroll} from "@/features/screens/index/menu/use-index-menu-scroll";
+import {SHADOW, themeColors} from "@/utils/theme-colors";
 import {ANDROID_DECELERATION_RATE} from "@/features/screens/index/menu/constants";
 import {CategoriesGrid} from "@/features/screens/index/menu/CategoriesGrid";
 import {MenuSections} from "@/features/screens/index/menu/MenuSections";
-import {useIndexMenuScroll} from "@/features/screens/index/menu/use-index-menu-scroll";
-import {useMenuItemWidth} from "@/features/screens/index/menu/use-menu-item-width";
-import {menus} from "@/mocks/mocks-data";
-import type {MenuItem} from "@/types/products";
-import {SHADOW, themeColors} from "@/utils/theme-colors";
-import {Header} from "@/features/screens/index/header/Header";
-import {Stories} from "@/features/screens/index/stories/Stories";
 
 export function IndexScreen() {
+
     const insets = useSafeAreaInsets();
     const [containerWidth, setContainerWidth] = useState(0);
     const itemWidth = useMenuItemWidth(containerWidth);
@@ -55,16 +57,18 @@ export function IndexScreen() {
         scrollToCategory,
     } = useIndexMenuScroll(availableCategories);
 
+
     return (
         <Screen withTopInset>
             <View style={styles.root} onLayout={onContainerLayout}>
+
                 <ScrollView
                     ref={scrollRef}
                     style={styles.scroll}
                     contentContainerStyle={{
                         paddingBottom: insets.bottom + 32,
                     }}
-                    stickyHeaderIndices={[2]}
+                    stickyHeaderIndices={[4]}
                     nestedScrollEnabled
                     keyboardShouldPersistTaps="always"
                     showsVerticalScrollIndicator={false}
@@ -76,10 +80,10 @@ export function IndexScreen() {
                     onScrollEndDrag={handleMenuScrollEndDrag}
                     onMomentumScrollEnd={handleMenuMomentumEnd}
                 >
-                    <Header/>
-
-
+                    <Address/>
+                    <SearchBanner/>
                     <Stories/>
+                    <ActionButtons/>
 
                     <View
                         collapsable={false}
@@ -106,12 +110,17 @@ export function IndexScreen() {
                             itemWidth={itemWidth}
                             onCategoryLayout={handleCategoryLayout}
                         />
-                    </View>
+                    </View>s
+
+
                 </ScrollView>
             </View>
+
+
         </Screen>
-    );
+    )
 }
+
 
 const styles = StyleSheet.create({
     stories_section: {
