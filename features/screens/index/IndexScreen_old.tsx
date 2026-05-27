@@ -110,7 +110,7 @@ export function IndexScreen() {
                             itemWidth={itemWidth}
                             onCategoryLayout={handleCategoryLayout}
                         />
-                    </View>s
+                    </View>
 
 
                 </ScrollView>

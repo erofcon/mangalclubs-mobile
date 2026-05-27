@@ -26,6 +26,7 @@ export const ProductCard = memo(function ProductCard({
                                                          title,
                                                          description,
                                                          priceFrom,
+                                                         weight,
                                                          image,
                                                      }: ProductCardProps) {
     return (
@@ -33,8 +34,12 @@ export const ProductCard = memo(function ProductCard({
             accessibilityRole="button"
             accessibilityLabel={title}
             testID={`product-card-${id}`}
-            style={[styles.card, {width}]}
-            onPress={() => {}}
+            style={({pressed}) => [
+                styles.card,
+                pressed && styles.previewPressed,
+            ]}
+            onPress={() => {
+            }}
             hitSlop={8}
         >
             <View style={styles.content}>
@@ -61,7 +66,7 @@ export const ProductCard = memo(function ProductCard({
 
                     <View style={styles.priceBox}>
                         <Text style={styles.priceText}>
-                            {priceFrom.toLocaleString("ru-RU")} ₽
+                            {weight} / {priceFrom.toLocaleString("ru-RU")} ₽
                         </Text>
                     </View>
                 </View>
@@ -81,7 +86,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 14,
     },
-
+    previewPressed: {
+        opacity: 0.82,
+        transform: [{scale: 0.98}],
+    },
     imageWrap: {
         width: 122,
         height: 122,

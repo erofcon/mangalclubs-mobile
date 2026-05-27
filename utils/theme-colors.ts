@@ -20,6 +20,10 @@ export const themeColors = {
     hover: '#E09A00',
     border: '#615739',
     cardBorder: '#2A2418',
+    surface: '#181715',
+    textMuted: '#8f867b',
+    pillActiveBg: '#ECAC18',
+    pillActiveText: '#18130c',
 
     // Status colors
     notification: '#DD2E44',

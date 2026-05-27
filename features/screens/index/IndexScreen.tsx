@@ -7,8 +7,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import {Categories} from "@/features/screens/index/categories/Categories";
 import {Stories} from "@/features/screens/index/stories/Stories";
 import {RestaurantsList} from "@/features/screens/index/restaurants/RestaurantsList";
+import {router} from "expo-router";
+
 
 export function IndexScreen() {
+
     return (
         <Screen withTopInset>
 
@@ -19,7 +22,17 @@ export function IndexScreen() {
 
                 {/* Header */}
                 <View style={styles.headerContainer}>
-                    <Pressable style={styles.addressContainer}>
+                    <Pressable style={styles.addressContainer}
+                               onPress={() =>
+                                   router.push({
+                                       pathname: "/order_type",
+                                       params: {
+                                           type: "delivery",
+                                       },
+                                   })
+                               }
+                    >
+
                         <View style={styles.locationIconContainer}>
                             <Ionicons
                                 name="location-outline"
@@ -92,7 +105,6 @@ export function IndexScreen() {
                 <RestaurantsList/>
 
             </ScrollView>
-
 
         </Screen>
     );

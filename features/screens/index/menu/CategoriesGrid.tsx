@@ -7,7 +7,7 @@ import {
     type LayoutChangeEvent,
 } from "react-native";
 import {TouchableOpacity} from "react-native-gesture-handler";
-import {SHADOW, themeColors} from "@/utils/theme-colors";
+import {themeColors} from "@/utils/theme-colors";
 import {useCallback, useEffect, useRef} from "react";
 import type {Category} from "@/types/products";
 

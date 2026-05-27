@@ -31,11 +31,60 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
     const lastScrollCategoryHapticAtRef = useRef(0);
     const lastViewportHeightRef = useRef(0);
     const lastContentHeightRef = useRef(0);
+    const scrollAnimationFrameRef = useRef<number | null>(null);
 
     const [activeCategoryId, setActiveCategoryId] = useState<Category["id"] | null>(null);
     const [isTabsPinned, setIsTabsPinned] = useState(false);
     const [tabsAnchorOffsetY, setTabsAnchorOffsetY] = useState(Number.POSITIVE_INFINITY);
     const [stickyTabsHeight, setStickyTabsHeight] = useState(0);
+
+    const cancelSmoothScroll = useCallback(() => {
+        if (scrollAnimationFrameRef.current !== null) {
+            cancelAnimationFrame(scrollAnimationFrameRef.current);
+            scrollAnimationFrameRef.current = null;
+        }
+    }, []);
+
+    const smoothScrollTo = useCallback((toY: number) => {
+        cancelSmoothScroll();
+
+        const fromY = currentScrollYRef.current;
+        const distance = toY - fromY;
+
+        if (Math.abs(distance) < 1) {
+            scrollRef.current?.scrollTo({
+                y: toY,
+                animated: false,
+            });
+            return;
+        }
+
+        const duration = Math.min(820, Math.max(460, Math.abs(distance) * 0.42));
+        const startedAt = Date.now();
+        const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+        const tick = () => {
+            const elapsed = Date.now() - startedAt;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = easeOutCubic(progress);
+            const nextY = fromY + distance * eased;
+
+            scrollRef.current?.scrollTo({
+                y: nextY,
+                animated: false,
+            });
+
+            if (progress < 1) {
+                scrollAnimationFrameRef.current = requestAnimationFrame(tick);
+                return;
+            }
+
+            currentScrollYRef.current = toY;
+            scrollAnimationFrameRef.current = null;
+        };
+
+        scrollAnimationFrameRef.current = requestAnimationFrame(tick);
+    }, [cancelSmoothScroll]);
 
     useEffect(() => {
         categoryRelativeOffsetsRef.current = {};
@@ -59,8 +108,10 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
             if (autoScrollUnlockTimeoutRef.current !== null) {
                 clearTimeout(autoScrollUnlockTimeoutRef.current);
             }
+
+            cancelSmoothScroll();
         };
-    }, []);
+    }, [cancelSmoothScroll]);
 
     const clearAutoScrollLock = useCallback(() => {
         autoScrollLockRef.current = false;
@@ -279,9 +330,11 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
     );
 
     const handleMenuScrollBeginDrag = useCallback(() => {
+        cancelSmoothScroll();
+
         if (!autoScrollLockRef.current) return;
         clearAutoScrollLock();
-    }, [clearAutoScrollLock]);
+    }, [cancelSmoothScroll, clearAutoScrollLock]);
 
     const scrollToCategory = useCallback(
         (categoryId: Category["id"]) => {
@@ -316,15 +369,13 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                 scheduleAutoScrollUnlock();
             }
 
-            scrollRef.current?.scrollTo({
-                y: targetY,
-                animated: shouldAnimateScroll,
-            });
+            smoothScrollTo(targetY);
         },
         [
             availableCategories,
             clearAutoScrollLock,
             scheduleAutoScrollUnlock,
+            smoothScrollTo,
             stickyTabsHeight,
         ]
     );

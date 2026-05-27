@@ -51,7 +51,9 @@ export const MenuSections = memo(function MenuSections({
                     }
                 >
 
-                    <Text style={styles.sectionTitle}>
+                    <Text style={styles.sectionTitle}
+                          numberOfLines={1}
+                    >
                         {category.title}
                     </Text>
 

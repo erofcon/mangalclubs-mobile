@@ -1,0 +1,1 @@
+export {OrderTypeScreen as default} from "@/features/screens/order_type/OrderTypeScreen"
