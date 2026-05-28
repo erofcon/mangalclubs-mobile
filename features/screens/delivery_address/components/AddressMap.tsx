@@ -11,7 +11,9 @@ type Props = {
     onCenterChanged?: (coords: {
         latitude: number;
         longitude: number;
+        zoom?: number;
     }) => void;
+    onMapReady?: () => void;
 };
 
 export type AddressMapRef = {
@@ -19,13 +21,13 @@ export type AddressMapRef = {
 };
 
 export const AddressMap = forwardRef<AddressMapRef, Props>(
-    ({onCenterChanged}, ref) => {
+    ({onCenterChanged, onMapReady}, ref) => {
         const webViewRef = useRef<WebView>(null);
 
         useImperativeHandle(ref, () => ({
             moveTo(latitude, longitude) {
                 webViewRef.current?.injectJavaScript(`
-                    window.moveTo(${latitude}, ${longitude});
+                    window.moveMapTo(${latitude}, ${longitude});
                     true;
                 `);
             },
@@ -41,17 +43,26 @@ export const AddressMap = forwardRef<AddressMapRef, Props>(
                 style={styles.map}
                 javaScriptEnabled
                 domStorageEnabled
+                scrollEnabled={false}
+                bounces={false}
                 onMessage={(event) => {
                     try {
                         const data = JSON.parse(event.nativeEvent.data);
+
+                        if (data.type === "mapReady") {
+                            onMapReady?.();
+                            return;
+                        }
 
                         if (data.type === "centerChanged") {
                             onCenterChanged?.({
                                 latitude: data.latitude,
                                 longitude: data.longitude,
+                                zoom: data.zoom,
                             });
                         }
-                    } catch (e) {
+                    } catch {
+                        // ignore malformed messages
                     }
                 }}
             />
@@ -62,5 +73,6 @@ export const AddressMap = forwardRef<AddressMapRef, Props>(
 const styles = StyleSheet.create({
     map: {
         flex: 1,
+        backgroundColor: "#ffffff",
     },
 });
