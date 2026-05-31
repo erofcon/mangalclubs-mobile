@@ -110,7 +110,12 @@ export function IndexScreen() {
 
                 {/* Search */}
                 <View style={styles.searchWrapper}>
-                    <Pressable style={styles.searchContainer}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Открыть поиск блюд"
+                        style={styles.searchContainer}
+                        onPress={() => router.push("/search")}
+                    >
                         <View style={styles.searchLeft}>
                             <Ionicons
                                 name="search-outline"
