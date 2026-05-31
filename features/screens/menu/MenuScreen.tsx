@@ -3,7 +3,8 @@ import {StatusBar} from "expo-status-bar";
 import {VideoHeader} from "@/features/screens/menu/video_header/VideoHeader";
 import {OrderType} from "@/features/screens/menu/order_type/OrderType";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
-import {useCallback, useMemo, useState, type ComponentRef, type RefObject} from "react";
+import {useCallback, useMemo, useRef, useState, type ComponentRef, type RefObject} from "react";
+import {router} from "expo-router";
 import {useMenuItemWidth} from "@/features/screens/index/menu/use-menu-item-width";
 import {
     LayoutChangeEvent,
@@ -11,8 +12,10 @@ import {
     NativeSyntheticEvent,
     Platform,
     StyleSheet,
+    Text,
     View,
 } from "react-native";
+import {TouchableOpacity} from "react-native-gesture-handler";
 import Animated, {
     runOnJS,
     useAnimatedScrollHandler,
@@ -26,6 +29,10 @@ import {CategoriesGrid} from "@/features/screens/index/menu/CategoriesGrid";
 import {themeColors} from "@/utils/theme-colors";
 import {MenuSections} from "@/features/screens/index/menu/MenuSections";
 import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
+import {
+    AppBottomSheetModal,
+    type AppBottomSheetRef,
+} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
 
@@ -33,6 +40,7 @@ export function MenuScreen() {
     const insets = useSafeAreaInsets();
     const [containerWidth, setContainerWidth] = useState(0);
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+    const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
 
     const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
@@ -83,6 +91,22 @@ export function MenuScreen() {
         },
     });
 
+    const handleSearchPress = useCallback(() => {
+        router.push("/search");
+    }, []);
+
+    const openCategoriesSheet = useCallback(() => {
+        categoriesSheetRef.current?.open();
+    }, []);
+
+    const handleSheetCategoryPress = useCallback(
+        (categoryId: string) => {
+            categoriesSheetRef.current?.close();
+            scrollToCategory(categoryId);
+        },
+        [scrollToCategory],
+    );
+
     return (
         <>
             <StatusBar style="light" />
@@ -124,6 +148,8 @@ export function MenuScreen() {
                                     categories={availableCategories}
                                     activeCategoryId={activeCategoryId}
                                     savedScrollX={categoryTabsScrollXRef.current}
+                                    onSearchPress={handleSearchPress}
+                                    onCategoriesPress={openCategoriesSheet}
                                     onSelectCategory={scrollToCategory}
                                     onScrollXChange={handleCategoryTabsScrollXChange}
                                 />
@@ -149,6 +175,44 @@ export function MenuScreen() {
                         item={selectedDish}
                         onDismiss={() => setSelectedDish(null)}
                     />
+
+                    <AppBottomSheetModal
+                        ref={categoriesSheetRef}
+                        title="Категории"
+                        snapPoints={["34%"]}
+                        enableDynamicSizing={false}
+                        scrollable
+                    >
+                        <View style={styles.categoryChips}>
+                            {availableCategories.map((category) => {
+                                const isActive = category.id === activeCategoryId;
+
+                                return (
+                                    <TouchableOpacity
+                                        key={category.id}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={category.title}
+                                        activeOpacity={0.72}
+                                        style={[
+                                            styles.categoryChip,
+                                            isActive && styles.categoryChipActive,
+                                        ]}
+                                        onPress={() => handleSheetCategoryPress(category.id)}
+                                    >
+                                    <Text
+                                        style={[
+                                            styles.categoryChipText,
+                                            isActive && styles.categoryChipTextActive,
+                                        ]}
+                                        numberOfLines={1}
+                                    >
+                                        {category.title}
+                                    </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </AppBottomSheetModal>
                 </View>
             </Screen>
         </>
@@ -184,5 +248,37 @@ const styles = StyleSheet.create({
         zIndex: 0,
         elevation: 0,
         backgroundColor: themeColors.background,
+    },
+    categoryChips: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8,
+        paddingBottom: 8,
+    },
+    categoryChip: {
+        minHeight: 30,
+        maxWidth: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 7,
+        backgroundColor: "rgba(255, 238, 230, 0.95)",
+        borderWidth: 1,
+        borderColor: "rgba(244, 196, 182, 0.7)",
+    },
+    categoryChipActive: {
+        backgroundColor: "#FFE2DA",
+        borderColor: "#E89A88",
+    },
+    categoryChipText: {
+        color: "#D76D5F",
+        fontSize: 13,
+        lineHeight: 16,
+        fontFamily: "Point-SemiBold",
+    },
+    categoryChipTextActive: {
+        color: "#C94F43",
     },
 });

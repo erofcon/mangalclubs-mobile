@@ -7,6 +7,7 @@ import {
     type LayoutChangeEvent,
 } from "react-native";
 import {TouchableOpacity} from "react-native-gesture-handler";
+import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {themeColors} from "@/utils/theme-colors";
 import {useCallback, useEffect, useRef} from "react";
 import type {Category} from "@/types/products";
@@ -15,6 +16,8 @@ type CategoriesGridProps = {
     categories: Category[];
     activeCategoryId: Category["id"] | null;
     savedScrollX: number;
+    onSearchPress?: () => void;
+    onCategoriesPress?: () => void;
     onSelectCategory: (categoryId: Category["id"]) => void;
     onScrollXChange: (scrollX: number) => void;
 };
@@ -30,6 +33,8 @@ export function CategoriesGrid({
                                    categories,
                                    activeCategoryId,
                                    savedScrollX,
+                                   onSearchPress,
+                                   onCategoriesPress,
                                    onSelectCategory,
                                    onScrollXChange,
                                }: CategoriesGridProps) {
@@ -179,6 +184,38 @@ export function CategoriesGrid({
 
     return (
         <View style={styles.container}>
+            <View style={styles.actions}>
+                <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Открыть поиск"
+                    activeOpacity={0.72}
+                    style={styles.iconButton}
+                    onPress={onSearchPress}
+                    hitSlop={8}
+                >
+                    <Ionicons
+                        name="search-outline"
+                        size={22}
+                        color={themeColors.text}
+                    />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Открыть категории"
+                    activeOpacity={0.72}
+                    style={styles.iconButton}
+                    onPress={onCategoriesPress}
+                    hitSlop={8}
+                >
+                    <MaterialCommunityIcons
+                        name="tune-variant"
+                        size={22}
+                        color={themeColors.text}
+                    />
+                </TouchableOpacity>
+            </View>
+
             <View style={styles.scrollArea}>
                 <ScrollView
                     ref={scrollRef}
@@ -269,6 +306,27 @@ export function CategoriesGrid({
 const styles = StyleSheet.create({
     container: {
         paddingTop: 8,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+
+    actions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingLeft: 12,
+        paddingRight: 8,
+    },
+
+    iconButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.card,
+        borderWidth: 1,
+        borderColor: themeColors.cardBorder,
     },
 
     scrollArea: {
