@@ -4,6 +4,8 @@ import {createJSONStorage, persist} from "zustand/middleware";
 
 import type {Coordinates} from "@/utils/location-config";
 
+export const MAX_SAVED_ADDRESSES = 5;
+
 export type SavedAddress = {
     id: string;
     city: string;
@@ -30,6 +32,7 @@ type AddressStore = {
     addAddress: (address: SavedAddressInput) => {
         id: string;
         created: boolean;
+        limitReached?: boolean;
     };
     deleteAddress: (id: string) => void;
     selectAddress: (id: string) => void;
@@ -101,6 +104,14 @@ export const useAddressStore = create<AddressStore>()(
                     return {
                         id: existing.id,
                         created: false,
+                    };
+                }
+
+                if (addresses.length >= MAX_SAVED_ADDRESSES) {
+                    return {
+                        id: "",
+                        created: false,
+                        limitReached: true,
                     };
                 }
 

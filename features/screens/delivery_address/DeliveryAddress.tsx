@@ -17,13 +17,10 @@ import {
     getHumanLocationError,
 } from "@/services/device-location";
 import {reverseGeocodeDeliveryPoint} from "@/services/geoapify";
-import {useAddressStore} from "@/store/address-store";
+import {MAX_SAVED_ADDRESSES, useAddressStore} from "@/store/address-store";
 import {themeColors} from "@/utils/theme-colors";
 
-import {
-    AddressMap,
-    AddressMapRef,
-} from "./components/AddressMap";
+import {AddressMap, AddressMapRef} from "./components/AddressMap";
 import {CenterPin} from "./components/CenterPin";
 import {AddressBottomSheet} from "./components/AddressBottomSheet";
 
@@ -132,6 +129,14 @@ export function DeliveryAddress() {
 
         const result = addAddress(draftAddress);
 
+        if (result.limitReached) {
+            setLocationStatusTone("error");
+            setLocationStatusText(
+                `Можно сохранить не больше ${MAX_SAVED_ADDRESSES} адресов.`
+            );
+            return;
+        }
+
         setLocationStatusTone("default");
         setLocationStatusText(
             result.created
@@ -212,9 +217,7 @@ export function DeliveryAddress() {
                             />
                         </Pressable>
 
-                        <Text style={styles.headerTitle}>
-                            Новый адрес
-                        </Text>
+                        <Text style={styles.headerTitle}>Новый адрес</Text>
 
                         <View style={styles.headerSpacer} />
                     </View>
@@ -244,10 +247,7 @@ export function DeliveryAddress() {
                 </View>
 
                 <AddressBottomSheet
-                    addressText={
-                        draftAddress?.shortAddress ??
-                        ""
-                    }
+                    addressText={draftAddress?.shortAddress ?? ""}
                     locationStatusText={locationStatusText}
                     locationStatusTone={locationStatusTone}
                     onSavePress={handleSaveCurrentAddress}
