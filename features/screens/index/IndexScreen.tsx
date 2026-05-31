@@ -1,4 +1,4 @@
-import {useMemo} from "react";
+import {useCallback, useMemo, useRef} from "react";
 import {StyleSheet, Text, View, Pressable, ScrollView} from "react-native";
 import {Screen} from "@/components/ui/Screen";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
@@ -9,12 +9,15 @@ import {Categories} from "@/features/screens/index/categories/Categories";
 import {Stories} from "@/features/screens/index/stories/Stories";
 import {RestaurantsList} from "@/features/screens/index/restaurants/RestaurantsList";
 import {router} from "expo-router";
-import {Organizations} from "@/mocks/mocks-data";
+import {menus, Organizations} from "@/mocks/mocks-data";
 import {useAddressStore} from "@/store/address-store";
 import {useDeliveryStore} from "@/store/delivery-store";
+import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
+import {MenuCategoriesSheet} from "@/features/screens/menu/MenuCategoriesSheet";
 
 
 export function IndexScreen() {
+    const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
     const deliveryType = useDeliveryStore((state) => state.type);
     const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
     const addresses = useAddressStore((state) => state.addresses);
@@ -35,6 +38,22 @@ export function IndexScreen() {
             null,
         [sourceRestaurantId]
     );
+    const availableCategories = useMemo(
+        () => menus.filter((category) => category.items.length > 0),
+        []
+    );
+
+    const openCategoriesSheet = useCallback(() => {
+        categoriesSheetRef.current?.open();
+    }, []);
+
+    const handleCategorySelect = useCallback((categoryId: string) => {
+        categoriesSheetRef.current?.close();
+        router.push({
+            pathname: "/menu",
+            params: {categoryId},
+        });
+    }, []);
 
     const orderTitle =
         deliveryType === "delivery"
@@ -110,13 +129,13 @@ export function IndexScreen() {
 
                 {/* Search */}
                 <View style={styles.searchWrapper}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Открыть поиск блюд"
-                        style={styles.searchContainer}
-                        onPress={() => router.push("/search")}
-                    >
-                        <View style={styles.searchLeft}>
+                    <View style={styles.searchContainer}>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Открыть поиск блюд"
+                            style={styles.searchLeft}
+                            onPress={() => router.push("/search")}
+                        >
                             <Ionicons
                                 name="search-outline"
                                 size={24}
@@ -126,16 +145,22 @@ export function IndexScreen() {
                             <Text style={styles.searchPlaceholder}>
                                 Поиск блюд и ресторанов
                             </Text>
-                        </View>
+                        </Pressable>
 
-                        <Pressable style={styles.filterButton}>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Открыть категории"
+                            style={styles.filterButton}
+                            onPress={openCategoriesSheet}
+                            hitSlop={8}
+                        >
                             <MaterialCommunityIcons
                                 name="tune-variant"
                                 size={24}
                                 color={themeColors.primary}
                             />
                         </Pressable>
-                    </Pressable>
+                    </View>
                 </View>
 
                 <Categories/>
@@ -145,6 +170,12 @@ export function IndexScreen() {
                 <RestaurantsList/>
 
             </ScrollView>
+
+            <MenuCategoriesSheet
+                ref={categoriesSheetRef}
+                categories={availableCategories}
+                onSelectCategory={handleCategorySelect}
+            />
 
         </Screen>
     );

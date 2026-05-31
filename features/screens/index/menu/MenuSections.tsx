@@ -13,11 +13,11 @@ import {
 } from "@/features/screens/index/menu/constants";
 
 import {chunkArray} from "@/features/screens/index/menu/menu-utils";
-import {ProductCard} from "@/features/screens/index/menu/ProductCard";
+import {DishCard} from "@/features/screens/menu/DishCard";
 
 import type {Category, MenuCategory, MenuItem} from "@/types/products";
 
-import {SHADOW, themeColors} from "@/utils/theme-colors";
+import {themeColors} from "@/utils/theme-colors";
 
 type MenuSectionsProps = {
     categories: MenuCategory[];
@@ -66,15 +66,10 @@ export const MenuSections = memo(function MenuSections({
                         >
                             {row.map((item) =>
                                 itemWidth > 0 ? (
-                                    <ProductCard
+                                    <DishCard
                                         key={item.id}
                                         width={itemWidth}
-                                        id={item.id}
-                                        title={item.name}
-                                        description={item.description}
-                                        weight={item.weight}
-                                        priceFrom={item.price}
-                                        image={item.image}
+                                        item={item}
                                         onPress={() => onProductPress?.(item)}
                                     />
                                 ) : null
@@ -110,8 +105,8 @@ const styles = StyleSheet.create({
         fontFamily: "Point-Bold",
         letterSpacing: 0.8,
         marginTop: 26,
-        marginBottom:8,
-        marginHorizontal:12,
+        marginBottom: 8,
+        marginHorizontal: 14,
     },
 
     productsRow: {
@@ -119,6 +114,6 @@ const styles = StyleSheet.create({
         gap: GAP,
         paddingHorizontal: H_PADDING,
         justifyContent: "center",
-        marginBottom: 24,
+        marginBottom: 8,
     },
 });

@@ -10,6 +10,9 @@ import {
 import {
     AUTO_SCROLL_LOCK_TIMEOUT_MS,
     BOTTOM_REACH_THRESHOLD,
+    CATEGORY_SCROLL_DISTANCE_DURATION_RATIO,
+    CATEGORY_SCROLL_MAX_DURATION_MS,
+    CATEGORY_SCROLL_MIN_DURATION_MS,
     SCROLL_CATEGORY_HAPTIC_THROTTLE_MS,
     SCROLL_TARGET_TOLERANCE,
     SECTION_OFFSET_GAP,
@@ -59,14 +62,20 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
             return;
         }
 
-        const duration = Math.min(820, Math.max(460, Math.abs(distance) * 0.42));
+        const duration = Math.min(
+            CATEGORY_SCROLL_MAX_DURATION_MS,
+            Math.max(
+                CATEGORY_SCROLL_MIN_DURATION_MS,
+                Math.abs(distance) * CATEGORY_SCROLL_DISTANCE_DURATION_RATIO
+            )
+        );
         const startedAt = Date.now();
-        const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+        const easeOutQuad = (t: number) => 1 - (1 - t) * (1 - t);
 
         const tick = () => {
             const elapsed = Date.now() - startedAt;
             const progress = Math.min(elapsed / duration, 1);
-            const eased = easeOutCubic(progress);
+            const eased = easeOutQuad(progress);
             const nextY = fromY + distance * eased;
 
             scrollRef.current?.scrollTo({
