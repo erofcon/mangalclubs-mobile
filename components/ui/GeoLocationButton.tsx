@@ -1,5 +1,5 @@
 import {ActivityIndicator, Pressable, StyleSheet} from "react-native";
-import {FontAwesome} from "@expo/vector-icons";
+import {Ionicons} from "@expo/vector-icons";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
 
 type GeoLocationButtonProps = {
@@ -17,9 +17,13 @@ export function GeoLocationButton({bottom, isLocating, onPress}: GeoLocationButt
             hitSlop={12}
         >
             {isLocating ? (
-                <ActivityIndicator size="small" color={themeColors.text}/>
+                <ActivityIndicator size={18} color={themeColors.text}/>
             ) : (
-                <FontAwesome name="location-arrow" size={18} color={themeColors.text}/>
+                <Ionicons
+                    name="paper-plane-outline"
+                    size={18}
+                    color={themeColors.text}
+                />
             )}
         </Pressable>
     );

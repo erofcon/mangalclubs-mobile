@@ -39,6 +39,9 @@ export type DeliveryAddressSuggestion = {
 };
 
 export type ResolvedDeliveryAddress = {
+    city: string;
+    address: string;
+    house: string;
     shortAddress: string;
     isPrecise: boolean;
 };
@@ -73,9 +76,20 @@ function getLocality(result: GeoapifyGeocodeResult): string {
         result.village?.trim() ||
         result.hamlet?.trim() ||
         result.municipality?.trim() ||
-        result.county?.trim() ||
         ""
     );
+}
+
+function extractStreetFromAddressLine(addressLine?: string): string {
+    if (!addressLine) {
+        return "";
+    }
+
+    return addressLine
+        .trim()
+        .replace(/(?:,\s*)?\d+[a-zа-я0-9\-\/]*$/i, "")
+        .replace(/,\s*$/, "")
+        .trim();
 }
 
 function extractHouseFromAddressLine(addressLine?: string): string {
@@ -95,29 +109,44 @@ function getHouseNumber(result: GeoapifyGeocodeResult): string {
     );
 }
 
+function getStreetName(result: GeoapifyGeocodeResult): string {
+    return (
+        result.street?.trim() ||
+        extractStreetFromAddressLine(result.address_line1) ||
+        ""
+    );
+}
+
 function hasStreetAndHouse(result: GeoapifyGeocodeResult): boolean {
-    return Boolean(result.street?.trim() && getHouseNumber(result));
+    return Boolean(getStreetName(result) && getHouseNumber(result));
 }
 
 function buildShortAddress(result: GeoapifyGeocodeResult): string {
     const locality = getLocality(result);
-    const street = result.street?.trim() ?? "";
+    const street = getStreetName(result);
     const house = getHouseNumber(result);
-    const streetLine = [street, house].filter(Boolean).join(" ").trim();
+    const parts = [locality, street, house].filter(Boolean);
 
-    if (locality && streetLine) {
-        return `${locality}, ${streetLine}`;
-    }
-
-    if (streetLine) {
-        return streetLine;
-    }
-
-    if (locality) {
-        return locality;
+    if (parts.length > 0) {
+        return parts.join(", ");
     }
 
     return result.address_line1?.trim() || result.formatted?.trim() || "";
+}
+
+function buildResolvedAddress(result: GeoapifyGeocodeResult): ResolvedDeliveryAddress {
+    const city = getLocality(result);
+    const address = getStreetName(result);
+    const house = getHouseNumber(result);
+    const shortAddress = [city, address, house].filter(Boolean).join(", ");
+
+    return {
+        city,
+        address,
+        house,
+        shortAddress,
+        isPrecise: hasStreetAndHouse(result),
+    };
 }
 
 function buildSuggestionSubtitle(
@@ -282,16 +311,13 @@ export async function reverseGeocodeDeliveryPoint(
         throw new Error("Geoapify не вернул адрес по координатам.");
     }
 
-    const shortAddress = buildShortAddress(result);
+    const resolvedAddress = buildResolvedAddress(result);
 
-    if (!shortAddress) {
+    if (!resolvedAddress.shortAddress) {
         throw new Error("Не удалось определить адрес по координатам.");
     }
 
-    return {
-        shortAddress,
-        isPrecise: hasStreetAndHouse(result),
-    };
+    return resolvedAddress;
 }
 
 export async function searchDeliveryAddressSuggestions(
@@ -347,7 +373,7 @@ export async function searchDeliveryAddressSuggestions(
         }
 
         const locality = getLocality(result);
-        const street = result.street?.trim() ?? "";
+        const street = getStreetName(result);
         const precise = hasStreetAndHouse(result);
 
         if (!precise && !street && !locality) {

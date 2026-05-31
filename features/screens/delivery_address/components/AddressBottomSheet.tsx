@@ -1,12 +1,7 @@
 import React, {forwardRef, useCallback} from "react";
-import {
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import {Pressable, StyleSheet, Text, View} from "react-native";
 
-import BottomSheetModal, {
+import BottomSheet, {
     BottomSheetFooter,
     BottomSheetView,
     type BottomSheetFooterProps,
@@ -17,14 +12,15 @@ import {themeColors} from "@/utils/theme-colors";
 type Props = {
     addressText: string;
     locationStatusText: string;
+    locationStatusTone?: "default" | "error";
     onSavePress?: () => void;
 };
 
 export const AddressBottomSheet = forwardRef<
-    React.ElementRef<typeof BottomSheetModal>,
+    React.ElementRef<typeof BottomSheet>,
     Props
 >(function AddressBottomSheet(
-    {addressText, locationStatusText, onSavePress},
+    {addressText, locationStatusText, locationStatusTone = "default", onSavePress},
     ref
 ) {
     const renderFooter = useCallback(
@@ -43,7 +39,7 @@ export const AddressBottomSheet = forwardRef<
     );
 
     return (
-        <BottomSheetModal
+        <BottomSheet
             ref={ref}
             snapPoints={["32%"]}
             index={1}
@@ -57,19 +53,28 @@ export const AddressBottomSheet = forwardRef<
             <BottomSheetView style={styles.contentContainer}>
                 <View style={styles.addressContainer}>
                     <Text style={styles.descriptionText}>
-                        Нажмите для ручного ввода адреса
+                        Переместите карту, чтобы уточнить адрес
                     </Text>
 
-                    <Text style={styles.addressText} numberOfLines={2}>
+                    <Text style={styles.addressText} numberOfLines={3}>
                         {addressText}
                     </Text>
                 </View>
 
-                <Text style={styles.searchStatusText} numberOfLines={2}>
-                    {locationStatusText}
-                </Text>
+                {locationStatusText ? (
+                    <Text
+                        style={[
+                            styles.searchStatusText,
+                            locationStatusTone === "error" &&
+                                styles.searchStatusTextError,
+                        ]}
+                        numberOfLines={3}
+                    >
+                        {locationStatusText}
+                    </Text>
+                ) : null}
             </BottomSheetView>
-        </BottomSheetModal>
+        </BottomSheet>
     );
 });
 
@@ -78,7 +83,7 @@ const styles = StyleSheet.create({
         backgroundColor: themeColors.background,
     },
     handle: {
-        backgroundColor: themeColors.text,
+        backgroundColor: themeColors.background,
     },
     contentContainer: {
         flex: 1,
@@ -131,5 +136,8 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         letterSpacing: -0.3,
         paddingHorizontal: 4,
+    },
+    searchStatusTextError: {
+        color: themeColors.notification,
     },
 });

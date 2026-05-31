@@ -1,19 +1,23 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {
-    Animated,
-    Easing,
+    ActivityIndicator,
     Pressable,
     StyleSheet,
     Text,
     View,
 } from "react-native";
 
-import * as Location from "expo-location";
 import {Ionicons} from "@expo/vector-icons";
 import {router} from "expo-router";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 
 import {Screen} from "@/components/ui/Screen";
+import {
+    getCurrentDeviceCoordinates,
+    getHumanLocationError,
+} from "@/services/device-location";
+import {reverseGeocodeDeliveryPoint} from "@/services/geoapify";
+import {useAddressStore} from "@/store/address-store";
 import {themeColors} from "@/utils/theme-colors";
 
 import {
@@ -23,58 +27,119 @@ import {
 import {CenterPin} from "./components/CenterPin";
 import {AddressBottomSheet} from "./components/AddressBottomSheet";
 
-const DEFAULT_ADDRESS_TEXT = "с. Псыгансу, ул. Бекалдиева, дом 16";
+const DEFAULT_STATUS_TEXT =
+    "Переместите карту или нажмите на самолётик, чтобы определить адрес.";
+
+type AddressStatusTone = "default" | "error";
+
+type DraftAddress = {
+    city: string;
+    address: string;
+    house: string;
+    shortAddress: string;
+    isPrecise: boolean;
+    latitude: number;
+    longitude: number;
+    accuracy: number | null;
+};
 
 export function DeliveryAddress() {
     const mapRef = useRef<AddressMapRef>(null);
     const pendingMoveToCurrentLocationRef = useRef(false);
+    const geocodeRequestIdRef = useRef(0);
+
+    const addAddress = useAddressStore((state) => state.addAddress);
 
     const [isLocating, setIsLocating] = useState(false);
-    const [locationStatusText, setLocationStatusText] = useState(
-        "Разрешите доступ к геолокации, чтобы быстро подставить текущий адрес."
-    );
-
-    const spinValue = useRef(new Animated.Value(0)).current;
-    const spinnerAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
-
-    const startSpinner = useCallback(() => {
-        spinValue.setValue(0);
-        spinnerAnimationRef.current?.stop();
-
-        spinnerAnimationRef.current = Animated.loop(
-            Animated.timing(spinValue, {
-                toValue: 1,
-                duration: 850,
-                easing: Easing.linear,
-                useNativeDriver: true,
-            }),
-        );
-
-        spinnerAnimationRef.current.start();
-    }, [spinValue]);
-
-    const stopSpinner = useCallback(() => {
-        spinnerAnimationRef.current?.stop();
-        spinnerAnimationRef.current = null;
-        spinValue.setValue(0);
-    }, [spinValue]);
+    const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+    const [draftAddress, setDraftAddress] = useState<DraftAddress | null>(null);
+    const [locationStatusText, setLocationStatusText] =
+        useState(DEFAULT_STATUS_TEXT);
+    const [locationStatusTone, setLocationStatusTone] =
+        useState<AddressStatusTone>("default");
 
     useEffect(() => {
-        if (isLocating) {
-            startSpinner();
-        } else {
-            stopSpinner();
+        return () => {
+            geocodeRequestIdRef.current += 1;
+        };
+    }, []);
+
+    const resolveAddressForCenter = useCallback(
+        async (
+            coords: {latitude: number; longitude: number},
+            options?: {finishCurrentLocationSearch?: boolean}
+        ) => {
+            const requestId = geocodeRequestIdRef.current + 1;
+            geocodeRequestIdRef.current = requestId;
+
+            setIsResolvingAddress(true);
+            setLocationStatusTone("default");
+            setLocationStatusText("Определяем адрес...");
+
+            try {
+                const resolvedAddress = await reverseGeocodeDeliveryPoint({
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    accuracy: null,
+                });
+
+                if (geocodeRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                setDraftAddress({
+                    ...resolvedAddress,
+                    latitude: coords.latitude,
+                    longitude: coords.longitude,
+                    accuracy: null,
+                });
+                setLocationStatusTone("default");
+                setLocationStatusText("");
+            } catch {
+                if (geocodeRequestIdRef.current !== requestId) {
+                    return;
+                }
+
+                setDraftAddress(null);
+                setLocationStatusTone("error");
+                setLocationStatusText(
+                    "Не удалось определить адрес по этой точке. Проверьте интернет или переместите карту."
+                );
+            } finally {
+                if (geocodeRequestIdRef.current === requestId) {
+                    setIsResolvingAddress(false);
+                }
+
+                if (
+                    geocodeRequestIdRef.current === requestId &&
+                    options?.finishCurrentLocationSearch
+                ) {
+                    setIsLocating(false);
+                }
+            }
+        },
+        []
+    );
+
+    const handleSaveCurrentAddress = useCallback(() => {
+        if (!draftAddress) {
+            setLocationStatusTone("error");
+            setLocationStatusText(
+                "Сначала определите адрес на карте, а потом сохраните его."
+            );
+            return;
         }
 
-        return () => {
-            stopSpinner();
-        };
-    }, [isLocating, startSpinner, stopSpinner]);
+        const result = addAddress(draftAddress);
 
-    const rotate = spinValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: ["0deg", "360deg"],
-    });
+        setLocationStatusTone("default");
+        setLocationStatusText(
+            result.created
+                ? "Адрес сохранён."
+                : "Адрес уже сохранён."
+        );
+        router.back();
+    }, [addAddress, draftAddress]);
 
     const handleCurrentLocation = useCallback(async () => {
         if (isLocating) {
@@ -82,49 +147,47 @@ export function DeliveryAddress() {
         }
 
         setIsLocating(true);
-        setLocationStatusText("Поиск местоположения...");
+        setLocationStatusTone("default");
+        setLocationStatusText("Определяем текущее местоположение...");
 
         try {
-            const {status} = await Location.requestForegroundPermissionsAsync();
+            const coords = await getCurrentDeviceCoordinates();
 
-            if (status !== "granted") {
-                setLocationStatusText("Доступ к геолокации не разрешён.");
+            if (!mapRef.current) {
+                setLocationStatusTone("error");
+                setLocationStatusText(
+                    "Карта ещё загружается. Попробуйте через пару секунд."
+                );
+                setIsLocating(false);
                 return;
             }
 
-            let location = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.BestForNavigation,
-                mayShowUserSettingsDialog: true,
-            });
-
-            if (!location) {
-                const lastKnown = await Location.getLastKnownPositionAsync();
-                if (lastKnown) {
-                    location = lastKnown;
-                    setLocationStatusText("Используем последнее известное местоположение.");
-                }
-            }
-
-            const latitude = location.coords.latitude;
-            const longitude = location.coords.longitude;
-
             pendingMoveToCurrentLocationRef.current = true;
-            mapRef.current?.moveTo(latitude, longitude);
-            setLocationStatusText("Ищем точку на карте...");
-        } catch {
+            mapRef.current.moveTo(coords.latitude, coords.longitude);
+            setLocationStatusText("Определяем адрес...");
+        } catch (error) {
             pendingMoveToCurrentLocationRef.current = false;
-            setLocationStatusText("Не удалось определить местоположение.");
+            setLocationStatusTone("error");
+            setLocationStatusText(getHumanLocationError(error));
             setIsLocating(false);
         }
     }, [isLocating]);
 
-    const handleCenterChanged = useCallback(() => {
-        if (pendingMoveToCurrentLocationRef.current) {
+    const handleCenterChanged = useCallback(
+        (coords: {latitude: number; longitude: number}) => {
+            const isCurrentLocationSearch = pendingMoveToCurrentLocationRef.current;
             pendingMoveToCurrentLocationRef.current = false;
-            setIsLocating(false);
-            setLocationStatusText("Текущее местоположение найдено.");
-        }
-    }, []);
+
+            if (!isCurrentLocationSearch && isLocating) {
+                setIsLocating(false);
+            }
+
+            void resolveAddressForCenter(coords, {
+                finishCurrentLocationSearch: isCurrentLocationSearch,
+            });
+        },
+        [isLocating, resolveAddressForCenter]
+    );
 
     return (
         <Screen>
@@ -159,28 +222,35 @@ export function DeliveryAddress() {
                     <Pressable
                         style={[
                             styles.locationButton,
-                            isLocating && styles.locationButtonActive,
+                            (isLocating || isResolvingAddress) &&
+                                styles.locationButtonActive,
                         ]}
                         onPress={handleCurrentLocation}
-                        disabled={isLocating}
+                        disabled={isLocating || isResolvingAddress}
                     >
-                        <Animated.View
-                            style={{
-                                transform: [{rotate}],
-                            }}
-                        >
-                            <Ionicons
-                                name="locate"
+                        {isLocating || isResolvingAddress ? (
+                            <ActivityIndicator
                                 size={22}
                                 color={themeColors.text}
                             />
-                        </Animated.View>
+                        ) : (
+                            <Ionicons
+                                name="paper-plane-outline"
+                                size={22}
+                                color={themeColors.text}
+                            />
+                        )}
                     </Pressable>
                 </View>
 
                 <AddressBottomSheet
-                    addressText={DEFAULT_ADDRESS_TEXT}
+                    addressText={
+                        draftAddress?.shortAddress ??
+                        ""
+                    }
                     locationStatusText={locationStatusText}
+                    locationStatusTone={locationStatusTone}
+                    onSavePress={handleSaveCurrentAddress}
                 />
             </GestureHandlerRootView>
         </Screen>

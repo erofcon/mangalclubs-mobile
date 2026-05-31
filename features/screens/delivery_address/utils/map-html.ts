@@ -19,37 +19,6 @@ html, body, #map {
     background: #ffffff;
 }
 
-#center-pin {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 28px;
-    height: 28px;
-    transform: translate(-50%, -50%);
-    z-index: 999;
-    pointer-events: none;
-}
-
-.pin-ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background: rgba(229, 72, 59, 0.18);
-    border: 4px solid rgba(229, 72, 59, 0.22);
-    box-sizing: border-box;
-}
-
-.pin-dot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: #E5483B;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 2px 8px rgba(229, 72, 59, 0.35);
-}
 </style>
 
 <script src="https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU"></script>
@@ -58,11 +27,6 @@ html, body, #map {
 <body>
 
 <div id="map"></div>
-
-<div id="center-pin">
-    <div class="pin-ring"></div>
-    <div class="pin-dot"></div>
-</div>
 
 <script>
 let map;
