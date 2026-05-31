@@ -18,6 +18,7 @@ type ProductCardProps = {
     weight?: string;
     priceFrom: number;
     image?: ImageSourcePropType;
+    onPress?: () => void;
 };
 
 export const ProductCard = memo(function ProductCard({
@@ -28,6 +29,7 @@ export const ProductCard = memo(function ProductCard({
                                                          priceFrom,
                                                          weight,
                                                          image,
+                                                         onPress,
                                                      }: ProductCardProps) {
     return (
         <Pressable
@@ -38,8 +40,7 @@ export const ProductCard = memo(function ProductCard({
                 styles.card,
                 pressed && styles.previewPressed,
             ]}
-            onPress={() => {
-            }}
+            onPress={onPress}
             hitSlop={8}
         >
             <View style={styles.content}>

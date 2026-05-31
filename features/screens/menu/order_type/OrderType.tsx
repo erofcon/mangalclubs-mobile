@@ -1,5 +1,7 @@
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {StyleSheet, Text, View} from "react-native";
+import {router} from "expo-router";
+import {useMemo} from "react";
+import {Pressable, StyleSheet, Text, View} from "react-native";
 import Animated, {
     Extrapolation,
     interpolate,
@@ -7,6 +9,9 @@ import Animated, {
     useAnimatedStyle,
 } from "react-native-reanimated";
 
+import {Organizations} from "@/mocks/mocks-data";
+import {useAddressStore} from "@/store/address-store";
+import {useDeliveryStore, type DeliveryType} from "@/store/delivery-store";
 import {themeColors} from "@/utils/theme-colors";
 
 const HEADER_COLLAPSE_DISTANCE = 270;
@@ -16,6 +21,46 @@ type Props = {
 };
 
 export function OrderType({scrollY}: Props) {
+    const deliveryType = useDeliveryStore((state) => state.type);
+    const setDeliveryType = useDeliveryStore((state) => state.setType);
+    const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
+    const addresses = useAddressStore((state) => state.addresses);
+    const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
+
+    const selectedAddress = useMemo(
+        () =>
+            addresses.find((address) => address.id === selectedAddressId) ??
+            addresses[0] ??
+            null,
+        [addresses, selectedAddressId]
+    );
+
+    const sourceRestaurant = useMemo(
+        () =>
+            Organizations.find((organization) => organization.id === sourceRestaurantId) ??
+            Organizations[0] ??
+            null,
+        [sourceRestaurantId]
+    );
+
+    const orderTargetText =
+        deliveryType === "delivery"
+            ? selectedAddress?.shortAddress ?? "Указать адрес доставки"
+            : deliveryType === "takeaway"
+                ? sourceRestaurant?.name ?? "Выберите ресторан"
+                : "Выберите способ заказа";
+
+    const handleTypePress = (type: DeliveryType) => {
+        setDeliveryType(type);
+    };
+
+    const openOrderTypeScreen = () => {
+        router.push({
+            pathname: "/order_type",
+            params: deliveryType ? {type: deliveryType} : undefined,
+        });
+    };
+
     const segmentClipAnimatedStyle = useAnimatedStyle(() => {
         const height = interpolate(
             scrollY.value,
@@ -64,24 +109,46 @@ export function OrderType({scrollY}: Props) {
                         ]}
                     >
                         <View style={styles.segment}>
-                            <View style={styles.segmentActive}>
-                                <Text style={styles.segmentActiveText}>
+                            <Pressable
+                                onPress={() => handleTypePress("delivery")}
+                                style={[
+                                    styles.segmentButton,
+                                    deliveryType === "delivery" && styles.segmentActive,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.segmentText,
+                                        deliveryType === "delivery" && styles.segmentActiveText,
+                                    ]}
+                                >
                                     Доставка
                                 </Text>
-                            </View>
+                            </Pressable>
 
-                            <View style={styles.segmentInactive}>
-                                <Text style={styles.segmentText}>
+                            <Pressable
+                                onPress={() => handleTypePress("takeaway")}
+                                style={[
+                                    styles.segmentButton,
+                                    deliveryType === "takeaway" && styles.segmentActive,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.segmentText,
+                                        deliveryType === "takeaway" && styles.segmentActiveText,
+                                    ]}
+                                >
                                     Навынос
                                 </Text>
-                            </View>
+                            </Pressable>
                         </View>
                     </Animated.View>
                 </Animated.View>
 
-                <View style={styles.addressRow}>
-                    <Text style={styles.addressText}>
-                        Указать адрес доставки
+                <Pressable style={styles.addressRow} onPress={openOrderTypeScreen}>
+                    <Text style={styles.addressText} numberOfLines={1}>
+                        {orderTargetText}
                     </Text>
 
                     <MaterialCommunityIcons
@@ -89,7 +156,7 @@ export function OrderType({scrollY}: Props) {
                         size={22}
                         color={themeColors.text}
                     />
-                </View>
+                </Pressable>
             </View>
         </Animated.View>
     );
@@ -129,25 +196,15 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255,255,255,0.08)",
     },
 
+    segmentButton: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+    },
+
     segmentActive: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 10,
         backgroundColor: "#F1F1F1",
-    },
-
-    segmentInactive: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 10,
-    },
-
-    segmentActiveText: {
-        color: "#111",
-        fontSize: 14,
-        fontFamily: "Point-SemiBold",
     },
 
     segmentText: {
@@ -157,15 +214,23 @@ const styles = StyleSheet.create({
         opacity: 0.82,
     },
 
+    segmentActiveText: {
+        color: "#111",
+        opacity: 1,
+    },
+
     addressRow: {
         minHeight: 46,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: 10,
         paddingHorizontal: 10,
     },
 
     addressText: {
+        flex: 1,
+        minWidth: 0,
         color: themeColors.text,
         fontSize: 15,
         fontFamily: "Point-SemiBold",

@@ -23,6 +23,7 @@ type MenuSectionsProps = {
     categories: MenuCategory[];
     itemsByCategory: Record<string, MenuItem[]>;
     itemWidth: number;
+    onProductPress?: (item: MenuItem) => void;
     onCategoryLayout: (
         categoryId: Category["id"],
         event: LayoutChangeEvent
@@ -33,6 +34,7 @@ export const MenuSections = memo(function MenuSections({
                                                            categories,
                                                            itemsByCategory,
                                                            itemWidth,
+                                                           onProductPress,
                                                            onCategoryLayout,
                                                        }: MenuSectionsProps) {
     const renderCategorySection = useCallback(
@@ -73,6 +75,7 @@ export const MenuSections = memo(function MenuSections({
                                         weight={item.weight}
                                         priceFrom={item.price}
                                         image={item.image}
+                                        onPress={() => onProductPress?.(item)}
                                     />
                                 ) : null
                             )}
@@ -93,7 +96,7 @@ export const MenuSections = memo(function MenuSections({
                 </View>
             );
         },
-        [itemWidth, itemsByCategory, onCategoryLayout]
+        [itemWidth, itemsByCategory, onCategoryLayout, onProductPress]
     );
 
     return <>{categories.map(renderCategorySection)}</>;

@@ -23,21 +23,16 @@ import {
     useAddressStore,
     type SavedAddress,
 } from "@/store/address-store";
+import {
+    MANGAL_CLUBS_RESTAURANT_ID,
+    useDeliveryStore,
+    type DeliveryScheduleDay,
+    type DeliveryTimeSlot,
+    type DeliveryType,
+} from "@/store/delivery-store";
+import {Organizations} from "@/mocks/mocks-data";
+import type {Coordinates, Organization} from "@/types/organization";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
-
-type OrderType = "delivery" | "takeaway";
-type DeliveryMode = "asap" | "scheduled";
-type ScheduleDay = "today" | "tomorrow";
-
-type ScheduledTime = {
-    day: ScheduleDay;
-    startMinutes: number;
-};
-
-type ScheduleState = {
-    mode: DeliveryMode;
-    selectedTime: ScheduledTime | null;
-};
 
 type TakeawayRestaurant = {
     id: string;
@@ -48,24 +43,10 @@ type TakeawayRestaurant = {
     image: ImageSourcePropType;
 };
 
-const takeawayRestaurants: TakeawayRestaurant[] = [
-    {
-        id: "fazenda",
-        title: "Аврора и Бармалина",
-        address: "ул. Садовническая, д. 82, стр. 2 (БЦ «Аврора Бизнес Парк»)",
-        hours: "пн-пт — с 07:45 до 00:00\nсб-вс — с 10:00 до 00:00",
-        distance: "1438.60 км",
-        image: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
-    },
-    {
-        id: "mangal-clubs",
-        title: "Жажда крови",
-        address: "Лесная, д. 9",
-        hours: "пн-чт — с 12:00 до 00:00\nпт-сб — с 12:00 до 01:00\nвс — с 12:00 до 00:00",
-        distance: "1444.40 км",
-        image: require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
-    },
-];
+const restaurantImages: Record<string, ImageSourcePropType> = {
+    fazenda: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
+    "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
+};
 
 const SLOT_START = 9 * 60 + 15;
 const SLOT_END = 23 * 60 + 45;
@@ -93,7 +74,7 @@ function formatSlotRange(startMinutes: number): string {
     return `${formatTime(startMinutes)} - ${formatTime(startMinutes + SLOT_STEP)}`;
 }
 
-function getDateForDay(baseDate: Date, day: ScheduleDay): Date {
+function getDateForDay(baseDate: Date, day: DeliveryScheduleDay): Date {
     const result = new Date(baseDate);
     result.setHours(0, 0, 0, 0);
 
@@ -110,14 +91,14 @@ function getStartMinutesForToday(now: Date): number {
     return Math.max(SLOT_START, roundedUp);
 }
 
-function getSlotsForDay(now: Date, day: ScheduleDay): ScheduledTime[] {
+function getSlotsForDay(now: Date, day: DeliveryScheduleDay): DeliveryTimeSlot[] {
     const startMinutes = day === "today" ? getStartMinutesForToday(now) : SLOT_START;
 
     if (startMinutes > SLOT_END) {
         return [];
     }
 
-    const slots: ScheduledTime[] = [];
+    const slots: DeliveryTimeSlot[] = [];
 
     for (let minutes = startMinutes; minutes <= SLOT_END; minutes += SLOT_STEP) {
         slots.push({day, startMinutes: minutes});
@@ -126,7 +107,7 @@ function getSlotsForDay(now: Date, day: ScheduleDay): ScheduledTime[] {
     return slots;
 }
 
-function getDefaultScheduledTime(now: Date): ScheduledTime | null {
+function getDefaultScheduledTime(now: Date): DeliveryTimeSlot | null {
     const todaySlots = getSlotsForDay(now, "today");
     if (todaySlots.length > 0) {
         return todaySlots[0] ?? null;
@@ -136,42 +117,58 @@ function getDefaultScheduledTime(now: Date): ScheduledTime | null {
     return tomorrowSlots[0] ?? null;
 }
 
-function formatScheduledLabel(selection: ScheduledTime, now: Date): string {
+function formatScheduledLabel(selection: DeliveryTimeSlot, now: Date): string {
     const date = getDateForDay(now, selection.day);
     return `${shortDateFormatter.format(date)}, в ${formatSlotRange(selection.startMinutes)}`;
 }
 
-function formatDayLabel(day: ScheduleDay, now: Date): string {
+function formatDayLabel(day: DeliveryScheduleDay, now: Date): string {
     const date = getDateForDay(now, day);
     return `${day === "today" ? "Сегодня" : "Завтра"}, ${longDateFormatter.format(date)}`;
 }
 
-function emptySchedule(): ScheduleState {
-    return {mode: "asap", selectedTime: null};
+function formatDistanceKm(from: Coordinates, to: Coordinates): string {
+    const earthRadiusKm = 6371;
+    const dLat = ((to.latitude - from.latitude) * Math.PI) / 180;
+    const dLng = ((to.longitude - from.longitude) * Math.PI) / 180;
+    const lat1 = (from.latitude * Math.PI) / 180;
+    const lat2 = (to.latitude * Math.PI) / 180;
+
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.sin(dLng / 2) *
+            Math.sin(dLng / 2) *
+            Math.cos(lat1) *
+            Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return `${(earthRadiusKm * c).toFixed(2)} км`;
 }
 
 export function OrderTypeScreen() {
-    const params = useLocalSearchParams<{type?: OrderType}>();
-    const initialTab: OrderType = params.type === "takeaway" ? "takeaway" : "delivery";
+    const params = useLocalSearchParams<{type?: DeliveryType}>();
     const now = new Date();
 
-    const [activeTab, setActiveTab] = useState<OrderType>(initialTab);
-    const [orderSchedule, setOrderSchedule] = useState<ScheduleState>(() => emptySchedule());
-    const [selectedTakeawayRestaurantId, setSelectedTakeawayRestaurantId] =
-        useState<string>(takeawayRestaurants[0]?.id ?? "");
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
     const [addressToDelete, setAddressToDelete] = useState<SavedAddress | null>(null);
-    const [sheetDay, setSheetDay] = useState<ScheduleDay>("today");
-    const [sheetDraftTime, setSheetDraftTime] = useState<ScheduledTime | null>(null);
+    const [sheetDay, setSheetDay] = useState<DeliveryScheduleDay>("today");
+    const [sheetDraftTime, setSheetDraftTime] = useState<DeliveryTimeSlot | null>(null);
     const sheetRef = useRef<AppBottomSheetRef>(null);
 
     const addresses = useAddressStore((state) => state.addresses);
     const deleteAddress = useAddressStore((state) => state.deleteAddress);
     const selectAddress = useAddressStore((state) => state.selectAddress);
+    const activeTab = useDeliveryStore((state) => state.type);
+    const setActiveTab = useDeliveryStore((state) => state.setType);
+    const orderSchedule = useDeliveryStore((state) => state.deliveryTime);
+    const setOrderSchedule = useDeliveryStore((state) => state.setDeliveryTime);
+    const selectedTakeawayRestaurantId = useDeliveryStore((state) => state.takeawayRestaurantId);
+    const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
+    const setTakeawayRestaurantId = useDeliveryStore((state) => state.setTakeawayRestaurantId);
 
     const canAddMoreAddresses = addresses.length < MAX_SAVED_ADDRESSES;
     const hasSavedAddresses = addresses.length > 0;
-    const showOrderPanel = activeTab === "takeaway" || hasSavedAddresses;
+    const visibleTab = activeTab ?? "delivery";
+    const showOrderPanel = visibleTab === "takeaway" || hasSavedAddresses;
     const bottomPadding = showOrderPanel ? 260 : 132;
 
     const currentSchedule = orderSchedule;
@@ -179,6 +176,31 @@ export function OrderTypeScreen() {
         currentSchedule.mode === "scheduled" && currentSchedule.selectedTime
             ? formatScheduledLabel(currentSchedule.selectedTime, now)
             : null;
+
+    const selectedAddress =
+        addresses.find((item) => item.id === selectedAddressId) ??
+        addresses[0] ??
+        null;
+
+    const takeawayRestaurants = useMemo<TakeawayRestaurant[]>(
+        () =>
+            Organizations.map((organization: Organization) => ({
+                id: organization.id,
+                title: organization.name,
+                address: `${organization.city}, ${organization.address}`,
+                hours: organization.schedule,
+                distance: selectedAddress
+                    ? formatDistanceKm(selectedAddress, organization.coordinates)
+                    : "—",
+                image: restaurantImages[organization.id] ?? restaurantImages.fazenda,
+            })),
+        [selectedAddress]
+    );
+
+    const deliveryRestaurant =
+        Organizations.find((organization) => organization.id === MANGAL_CLUBS_RESTAURANT_ID) ??
+        Organizations[0] ??
+        null;
 
     const scheduleSlots = useMemo(
         () => ({
@@ -191,6 +213,17 @@ export function OrderTypeScreen() {
     const selectedTakeawayRestaurant =
         takeawayRestaurants.find((restaurant) => restaurant.id === selectedTakeawayRestaurantId) ??
         takeawayRestaurants[0];
+
+    const sourceRestaurantTitle =
+        sourceRestaurantId === MANGAL_CLUBS_RESTAURANT_ID
+            ? deliveryRestaurant?.name ?? "Mangal Club"
+            : selectedTakeawayRestaurant?.title ?? Organizations[0]?.name ?? "Ресторан";
+
+    useEffect(() => {
+        if (params.type === "delivery" || params.type === "takeaway") {
+            setActiveTab(params.type);
+        }
+    }, [params.type, setActiveTab]);
 
     useEffect(() => {
         if (addresses.length === 0) {
@@ -211,14 +244,28 @@ export function OrderTypeScreen() {
     }, [addresses, selectAddress, selectedAddressId]);
 
     useEffect(() => {
+        if (activeTab !== "takeaway") {
+            return;
+        }
+
+        if (
+            selectedTakeawayRestaurantId &&
+            takeawayRestaurants.some((restaurant) => restaurant.id === selectedTakeawayRestaurantId)
+        ) {
+            return;
+        }
+
+        const firstTakeawayRestaurant = takeawayRestaurants[0];
+        if (firstTakeawayRestaurant) {
+            setTakeawayRestaurantId(firstTakeawayRestaurant.id);
+        }
+    }, [activeTab, selectedTakeawayRestaurantId, setTakeawayRestaurantId, takeawayRestaurants]);
+
+    useEffect(() => {
         if (addressToDelete && !addresses.some((item) => item.id === addressToDelete.id)) {
             setAddressToDelete(null);
         }
     }, [addresses, addressToDelete]);
-
-    const setCurrentSchedule = (updater: (prev: ScheduleState) => ScheduleState) => {
-        setOrderSchedule(updater);
-    };
 
     const openSheet = () => {
         const selectedTime =
@@ -238,7 +285,7 @@ export function OrderTypeScreen() {
         sheetRef.current?.open();
     };
 
-    const handleDayPress = (day: ScheduleDay) => {
+    const handleDayPress = (day: DeliveryScheduleDay) => {
         const daySlots = scheduleSlots[day];
         if (daySlots.length === 0) {
             return;
@@ -251,9 +298,9 @@ export function OrderTypeScreen() {
         });
     };
 
-    const handleSlotPress = (slot: ScheduledTime) => {
+    const handleSlotPress = (slot: DeliveryTimeSlot) => {
         setSheetDraftTime(slot);
-        setCurrentSchedule(() => ({
+        setOrderSchedule(() => ({
             mode: "scheduled",
             selectedTime: slot,
         }));
@@ -261,6 +308,11 @@ export function OrderTypeScreen() {
 
     const handleSaveSheet = () => {
         sheetRef.current?.close();
+    };
+
+    const handleContinue = () => {
+        setActiveTab(visibleTab);
+        router.back();
     };
 
     const handleConfirmDelete = () => {
@@ -305,7 +357,7 @@ export function OrderTypeScreen() {
 
         return (
             <Pressable
-                onPress={() => setSelectedTakeawayRestaurantId(item.id)}
+                onPress={() => setTakeawayRestaurantId(item.id)}
                 style={({pressed}) => [
                     styles.restaurantCard,
                     isSelected && styles.restaurantCardSelected,
@@ -341,13 +393,13 @@ export function OrderTypeScreen() {
     const renderOrderPanel = () => (
         <View style={styles.panel}>
             <Text style={styles.panelTitle}>
-                {activeTab === "takeaway" ? "Время самовывоза" : "Время доставки"}
+                {visibleTab === "takeaway" ? "Время самовывоза" : "Время доставки"}
             </Text>
 
             <View style={styles.modeList}>
                 <Pressable
                     onPress={() => {
-                        setCurrentSchedule((prev) => ({...prev, mode: "asap"}));
+                        setOrderSchedule((prev) => ({...prev, mode: "asap"}));
                     }}
                     style={styles.modeRow}
                 >
@@ -377,14 +429,10 @@ export function OrderTypeScreen() {
 
             <View style={styles.sourceBlock}>
                 <Text style={styles.sourceLabel}>Из ресторана</Text>
-                <Text style={styles.sourceTitle}>
-                    {activeTab === "takeaway"
-                        ? selectedTakeawayRestaurant?.title ?? "Доставка Покровка"
-                        : "Доставка Покровка"}
-                </Text>
+                <Text style={styles.sourceTitle}>{sourceRestaurantTitle}</Text>
             </View>
 
-            <Pressable style={styles.primaryButton}>
+            <Pressable style={styles.primaryButton} onPress={handleContinue}>
                 <Text style={styles.primaryButtonText}>Продолжить</Text>
             </Pressable>
         </View>
@@ -451,14 +499,14 @@ export function OrderTypeScreen() {
                 <View style={styles.content}>
                     <View style={styles.topText}>
                         <Text style={styles.title}>
-                            {activeTab === "delivery" ? "Сохранённые адреса" : "Выберите ресторан"}
+                            {visibleTab === "delivery" ? "Сохранённые адреса" : "Выберите ресторан"}
                         </Text>
                         <Text style={styles.subtitle}>
-                            {activeTab === "delivery" ? "Выберите адрес для доставки" : "Где вы хотите забрать заказ"}
+                            {visibleTab === "delivery" ? "Выберите адрес для доставки" : "Где вы хотите забрать заказ"}
                         </Text>
                     </View>
 
-                    {activeTab === "delivery" ? (
+                    {visibleTab === "delivery" ? (
                         <FlatList
                             data={addresses}
                             keyExtractor={(item) => item.id}
@@ -519,7 +567,7 @@ export function OrderTypeScreen() {
 
                 <AppBottomSheetModal
                     ref={sheetRef}
-                    title={activeTab === "takeaway" ? "Время самовывоза" : "Время доставки"}
+                    title={visibleTab === "takeaway" ? "Время самовывоза" : "Время доставки"}
                     scrollable
                     snapPoints={["82%"]}
                     enableDynamicSizing={false}
@@ -532,7 +580,7 @@ export function OrderTypeScreen() {
                 >
                     <View style={styles.sheetContent}>
                         <View style={styles.dayTabs}>
-                            {(["today", "tomorrow"] as ScheduleDay[]).map((day) => {
+                            {(["today", "tomorrow"] as DeliveryScheduleDay[]).map((day) => {
                                 const slots = scheduleSlots[day];
                                 const active = day === sheetDay;
 

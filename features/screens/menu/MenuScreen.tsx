@@ -25,12 +25,14 @@ import {ANDROID_DECELERATION_RATE} from "@/features/screens/index/menu/constants
 import {CategoriesGrid} from "@/features/screens/index/menu/CategoriesGrid";
 import {themeColors} from "@/utils/theme-colors";
 import {MenuSections} from "@/features/screens/index/menu/MenuSections";
+import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
 
 export function MenuScreen() {
     const insets = useSafeAreaInsets();
     const [containerWidth, setContainerWidth] = useState(0);
+    const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
 
     const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
@@ -137,10 +139,16 @@ export function MenuScreen() {
                                 categories={availableCategories}
                                 itemsByCategory={itemsByCategory}
                                 itemWidth={itemWidth}
+                                onProductPress={setSelectedDish}
                                 onCategoryLayout={handleCategoryLayout}
                             />
                         </View>
                     </Animated.ScrollView>
+
+                    <DishDetailsModal
+                        item={selectedDish}
+                        onDismiss={() => setSelectedDish(null)}
+                    />
                 </View>
             </Screen>
         </>

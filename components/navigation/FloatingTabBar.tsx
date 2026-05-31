@@ -4,6 +4,7 @@ import {Pressable, StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {themeColors} from "@/utils/theme-colors";
+import {getCartItemsCount, useCartStore} from "@/store/cart-store";
 
 const TAB_META: Record<
     string,
@@ -42,6 +43,8 @@ const TAB_META: Record<
 
 export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarProps) {
     const insets = useSafeAreaInsets();
+    const cartItems = useCartStore((store) => store.items);
+    const cartItemsCount = getCartItemsCount(cartItems);
 
     return (
         <View
@@ -95,11 +98,21 @@ export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarPro
                             onLongPress={onLongPress}
                             style={styles.item}
                         >
-                            <MaterialCommunityIcons
-                                name={iconName}
-                                size={22}
-                                color={focused ? themeColors.primary : themeColors.textSecondary}
-                            />
+                            <View>
+                                <MaterialCommunityIcons
+                                    name={iconName}
+                                    size={22}
+                                    color={focused ? themeColors.primary : themeColors.textSecondary}
+                                />
+
+                                {route.name === "cart" && cartItemsCount > 0 ? (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText} numberOfLines={1}>
+                                            {cartItemsCount > 99 ? "99+" : cartItemsCount}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </View>
 
                             <Text
                                 numberOfLines={1}
@@ -156,5 +169,27 @@ const styles = StyleSheet.create({
     activeLabel: {
         color: themeColors.primary,
         fontFamily: "Point-SemiBold",
+    },
+
+    badge: {
+        position: "absolute",
+        top: -8,
+        right: -12,
+        minWidth: 18,
+        height: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 5,
+        borderRadius: 9,
+        backgroundColor: themeColors.notification,
+        borderWidth: 1,
+        borderColor: "#050505",
+    },
+
+    badgeText: {
+        color: themeColors.text,
+        fontSize: 10,
+        lineHeight: 12,
+        fontFamily: "Point-Bold",
     },
 });

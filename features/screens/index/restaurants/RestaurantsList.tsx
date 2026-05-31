@@ -1,6 +1,8 @@
 import {ImageSourcePropType, Pressable, StyleSheet, Text, View} from "react-native";
 import {Image} from "expo-image";
 
+import {Organizations} from "@/mocks/mocks-data";
+import type {Organization} from "@/types/organization";
 import {themeColors} from "@/utils/theme-colors";
 import React from "react";
 
@@ -12,22 +14,18 @@ type Restaurant = {
     image: ImageSourcePropType;
 };
 
-const restaurants: Restaurant[] = [
-    {
-        id: "fazenda",
-        title: "Fazenda",
-        address: "г. Алматы, ул. Розыбакиева, 263, 3 этаж",
-        hours: "08:00-02:00",
-        image: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
-    },
-    {
-        id: "mangal-clubs",
-        title: "Mangal Clubs",
-        address: "г. Алматы, пр-кт Аль-Фараби, 140а/3",
-        hours: "06:00-02:00",
-        image: require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
-    },
-];
+const restaurantImages: Record<string, ImageSourcePropType> = {
+    fazenda: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
+    "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
+};
+
+const restaurants: Restaurant[] = Organizations.map((organization: Organization) => ({
+    id: organization.id,
+    title: organization.name,
+    address: `${organization.city}, ${organization.address}`,
+    hours: organization.schedule,
+    image: restaurantImages[organization.id] ?? restaurantImages.fazenda,
+}));
 
 export function RestaurantsList() {
     return (

@@ -118,6 +118,7 @@ export const categories: Category[] = [
     },
 ];
 
+
 export const menus: MenuCategory[] = [
     {
         id: categories[0].id,
@@ -273,7 +274,6 @@ export const menus: MenuCategory[] = [
         ],
     },
 ];
-
 
 
 export const Organizations: Organization[] = [

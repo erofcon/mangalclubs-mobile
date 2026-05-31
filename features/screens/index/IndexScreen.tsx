@@ -1,3 +1,4 @@
+import {useMemo} from "react";
 import {StyleSheet, Text, View, Pressable, ScrollView} from "react-native";
 import {Screen} from "@/components/ui/Screen";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
@@ -8,9 +9,45 @@ import {Categories} from "@/features/screens/index/categories/Categories";
 import {Stories} from "@/features/screens/index/stories/Stories";
 import {RestaurantsList} from "@/features/screens/index/restaurants/RestaurantsList";
 import {router} from "expo-router";
+import {Organizations} from "@/mocks/mocks-data";
+import {useAddressStore} from "@/store/address-store";
+import {useDeliveryStore} from "@/store/delivery-store";
 
 
 export function IndexScreen() {
+    const deliveryType = useDeliveryStore((state) => state.type);
+    const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
+    const addresses = useAddressStore((state) => state.addresses);
+    const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
+
+    const selectedAddress = useMemo(
+        () =>
+            addresses.find((address) => address.id === selectedAddressId) ??
+            addresses[0] ??
+            null,
+        [addresses, selectedAddressId]
+    );
+
+    const sourceRestaurant = useMemo(
+        () =>
+            Organizations.find((organization) => organization.id === sourceRestaurantId) ??
+            Organizations[0] ??
+            null,
+        [sourceRestaurantId]
+    );
+
+    const orderTitle =
+        deliveryType === "delivery"
+            ? selectedAddress?.shortAddress ?? "Указать адрес доставки"
+            : deliveryType === "takeaway"
+                ? sourceRestaurant?.name ?? "Выберите ресторан"
+                : "Выберите способ заказа";
+    const orderTypeLabel =
+        deliveryType === "delivery"
+            ? "Доставка"
+            : deliveryType === "takeaway"
+                ? "Навынос"
+                : "Способ заказа";
 
     return (
         <Screen withTopInset>
@@ -26,9 +63,7 @@ export function IndexScreen() {
                                onPress={() =>
                                    router.push({
                                        pathname: "/order_type",
-                                       params: {
-                                           type: "delivery",
-                                       },
+                                       params: deliveryType ? {type: deliveryType} : undefined,
                                    })
                                }
                     >
@@ -48,7 +83,7 @@ export function IndexScreen() {
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                 >
-                                    г. Грозный ул. Светлая 124
+                                    {orderTitle}
                                 </Text>
 
                                 <MaterialCommunityIcons
@@ -59,7 +94,7 @@ export function IndexScreen() {
                             </View>
 
                             <Text style={styles.deliveryText}>
-                                Доставка
+                                {orderTypeLabel}
                             </Text>
                         </View>
                     </Pressable>
