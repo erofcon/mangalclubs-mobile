@@ -25,8 +25,8 @@ type CategoriesGridProps = {
 const clamp = (v: number, min: number, max: number) =>
     Math.max(min, Math.min(v, max));
 
-const CONTENT_HORIZONTAL_PADDING = 16;
-const CHIP_GAP = 20;
+const CONTENT_HORIZONTAL_PADDING = 8;
+const CHIP_GAP = 8;
 const REVEAL_EDGE_PADDING = 24;
 
 export function CategoriesGrid({
@@ -275,7 +275,10 @@ export function CategoriesGrid({
                                 onPress={() =>
                                     handlePress(c.id)
                                 }
-                                style={styles.chip}
+                                style={[
+                                    styles.chip,
+                                    active && styles.chipActive,
+                                ]}
                             >
                                 <Text
                                     style={[
@@ -305,7 +308,7 @@ export function CategoriesGrid({
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 8,
+        paddingTop: 6,
         flexDirection: "row",
         alignItems: "center",
     },
@@ -315,18 +318,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 6,
         paddingLeft: 12,
-        paddingRight: 8,
+        paddingRight: 6,
     },
 
     iconButton: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
+        width: 38,
+        height: 38,
+        borderRadius: 13,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: themeColors.card,
+        backgroundColor: "#151411",
         borderWidth: 1,
-        borderColor: themeColors.cardBorder,
+        borderColor: "rgba(255,255,255,0.08)",
     },
 
     scrollArea: {
@@ -340,17 +343,22 @@ const styles = StyleSheet.create({
     },
 
     chip: {
-        height: 42,
+        height: 38,
         justifyContent: "center",
         alignItems: "center",
         marginRight: CHIP_GAP,
         position: "relative",
-        paddingBottom: 8,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.07)",
+        backgroundColor: "#12110f",
     },
 
     text: {
         color: themeColors.text,
-        fontSize: 15,
+        fontSize: 14,
+        lineHeight: 17,
         fontFamily: "Point-Regular",
         opacity: 0.7,
     },
@@ -358,19 +366,25 @@ const styles = StyleSheet.create({
     textActive: {
         opacity: 1,
         fontFamily: "Point-SemiBold",
+        color: themeColors.textOnPrimary,
+    },
+
+    chipActive: {
+        borderColor: themeColors.primary,
+        backgroundColor: themeColors.primary,
     },
 
     underline: {
         position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 2,
+        bottom: 5,
+        left: 12,
+        right: 12,
+        height: 0,
         borderRadius: 999,
         backgroundColor: "transparent",
     },
 
     underlineActive: {
-        backgroundColor: themeColors.text,
+        backgroundColor: "transparent",
     },
 });

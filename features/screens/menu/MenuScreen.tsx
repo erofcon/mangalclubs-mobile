@@ -12,12 +12,16 @@ import {
     NativeSyntheticEvent,
     Platform,
     StyleSheet,
+    Text,
     View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import Animated, {
     runOnJS,
     useAnimatedScrollHandler,
+    useAnimatedStyle,
     useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import {menus} from "@/mocks/mocks-data";
 import type {MenuItem} from "@/types/products";
@@ -29,6 +33,7 @@ import {MenuSections} from "@/features/screens/index/menu/MenuSections";
 import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {MenuCategoriesSheet} from "@/features/screens/menu/MenuCategoriesSheet";
+import {useCartStore} from "@/store/cart-store";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
 
@@ -37,8 +42,11 @@ export function MenuScreen() {
     const params = useLocalSearchParams<{categoryId?: string}>();
     const [containerWidth, setContainerWidth] = useState(0);
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+    const [toastMessage, setToastMessage] = useState("");
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
+    const addItemToCart = useCartStore((state) => state.addItem);
 
     const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
         setContainerWidth(event.nativeEvent.layout.width);
@@ -56,6 +64,7 @@ export function MenuScreen() {
     }, [availableCategories]);
 
     const scrollY = useSharedValue(0);
+    const toastProgress = useSharedValue(0);
 
     const {
         activeCategoryId,
@@ -88,6 +97,11 @@ export function MenuScreen() {
         },
     });
 
+    const toastAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: toastProgress.value,
+        transform: [{translateY: (1 - toastProgress.value) * 12}],
+    }));
+
     const handleSearchPress = useCallback(() => {
         router.push("/search");
     }, []);
@@ -103,6 +117,38 @@ export function MenuScreen() {
         },
         [scrollToCategory],
     );
+
+    const showAddedToast = useCallback((item: MenuItem) => {
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+        }
+
+        setToastMessage(`Добавлено: ${item.name}`);
+        toastProgress.value = withTiming(1, {duration: 160});
+
+        toastTimerRef.current = setTimeout(() => {
+            toastProgress.value = withTiming(0, {duration: 180});
+
+            toastTimerRef.current = setTimeout(() => {
+                setToastMessage("");
+            }, 200);
+        }, 1700);
+    }, [toastProgress]);
+
+    const handleProductAdd = useCallback((item: MenuItem) => {
+        addItemToCart(item);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+        });
+        showAddedToast(item);
+    }, [addItemToCart, showAddedToast]);
+
+    useEffect(() => {
+        return () => {
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const categoryId = params.categoryId;
@@ -176,10 +222,30 @@ export function MenuScreen() {
                                 itemsByCategory={itemsByCategory}
                                 itemWidth={itemWidth}
                                 onProductPress={setSelectedDish}
+                                onProductAdd={handleProductAdd}
                                 onCategoryLayout={handleCategoryLayout}
                             />
                         </View>
                     </Animated.ScrollView>
+
+                    {toastMessage ? (
+                        <Animated.View
+                            pointerEvents="none"
+                            style={[
+                                styles.toast,
+                                {bottom: insets.bottom + 92},
+                                toastAnimatedStyle,
+                            ]}
+                        >
+                            <View style={styles.toastIcon}>
+                                <Text style={styles.toastIconText}>+</Text>
+                            </View>
+
+                            <Text style={styles.toastText} numberOfLines={1}>
+                                {toastMessage}
+                            </Text>
+                        </Animated.View>
+                    ) : null}
 
                     <DishDetailsModal
                         item={selectedDish}
@@ -209,9 +275,9 @@ const styles = StyleSheet.create({
     stickyHeader: {
         zIndex: 999,
         elevation: 999,
-        marginTop: -34,
-        borderTopLeftRadius: 54,
-        borderTopRightRadius: 54,
+        marginTop: -40,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
         backgroundColor: themeColors.background,
         overflow: "hidden",
     },
@@ -219,7 +285,7 @@ const styles = StyleSheet.create({
         zIndex: 999,
         elevation: 999,
         paddingHorizontal: 0,
-        paddingBottom: 18,
+        paddingBottom: 14,
         backgroundColor: themeColors.background,
     },
     sectionsBlock: {
@@ -227,5 +293,44 @@ const styles = StyleSheet.create({
         zIndex: 0,
         elevation: 0,
         backgroundColor: themeColors.background,
+    },
+    toast: {
+        position: "absolute",
+        left: 16,
+        right: 16,
+        minHeight: 48,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+        backgroundColor: "rgba(18,18,16,0.96)",
+        zIndex: 1000,
+        elevation: 1000,
+    },
+    toastIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.primary,
+    },
+    toastIconText: {
+        color: themeColors.textOnPrimary,
+        fontSize: 18,
+        lineHeight: 21,
+        fontFamily: "Point-Bold",
+    },
+    toastText: {
+        flex: 1,
+        minWidth: 0,
+        color: themeColors.text,
+        fontSize: 14,
+        lineHeight: 18,
+        fontFamily: "Point-SemiBold",
     },
 });

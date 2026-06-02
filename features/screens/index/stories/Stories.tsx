@@ -408,7 +408,7 @@ export function Stories() {
             <Text style={styles.storiesTitle}
                   numberOfLines={1}
             >
-                Истории
+                Mangal Clubs в деталях
             </Text>
 
             <View style={styles.section}>
@@ -620,13 +620,15 @@ function StoryPreview({
 const styles = StyleSheet.create({
     storiesTitle: {
         color: themeColors.text,
-        fontSize: 16,
+        fontSize: 20,
+        lineHeight: 24,
         fontFamily: "Point-Bold",
         paddingHorizontal: 12,
     },
 
     section: {
-        paddingVertical: 14,
+        paddingTop: 13,
+        paddingBottom: 18,
         paddingHorizontal: 12,
     },
     listContent: {

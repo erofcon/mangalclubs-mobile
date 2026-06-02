@@ -1,36 +1,92 @@
-import {StyleSheet, Text, View} from "react-native";
-import Feather from "@expo/vector-icons/Feather";
+import {Pressable, StyleSheet, Text, View} from "react-native";
 import {themeColors} from "@/utils/theme-colors";
+import {router} from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import {useCallback, useRef} from "react";
+import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 
 
 export function SearchBanner() {
+
+    const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
+
+
+    const openCategoriesSheet = useCallback(() => {
+        categoriesSheetRef.current?.open();
+    }, []);
+
     return (
-        <View style={styles.searchContainer}>
-            <Feather name="search" size={22} color={themeColors.text}/>
-            <Text style={styles.searchText}>Найти блюда</Text>
+        <View style={styles.searchPanel}>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Открыть поиск блюд и ресторанов"
+                style={styles.searchLeft}
+                onPress={() => router.push("/search")}
+            >
+                <Ionicons
+                    name="search-outline"
+                    size={23}
+                    color={themeColors.textSecondary}
+                />
+
+                <Text style={styles.searchPlaceholder} numberOfLines={1}>
+                    Найти стейк, шашлык или салат
+                </Text>
+            </Pressable>
+
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Открыть категории"
+                style={styles.filterButton}
+                onPress={openCategoriesSheet}
+                hitSlop={8}
+            >
+                <MaterialCommunityIcons
+                    name="tune-variant"
+                    size={23}
+                    color={themeColors.primary}
+                />
+            </Pressable>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
-
-
-    // Search
-    searchContainer: {
+    searchPanel: {
+        height: 54,
+        marginHorizontal: 12,
+        marginBottom: 22,
+        borderRadius: 18,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        marginHorizontal: 12,
-        paddingVertical: 12,
-        borderRadius: 12,
-        marginTop: 22,
-        backgroundColor: themeColors.card,
+        justifyContent: "space-between",
+        paddingLeft: 16,
+        paddingRight: 8,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#11110f",
     },
-    searchText: {
-        color: themeColors.text,
-        fontFamily: "Point-SemiBold",
-        fontSize: 16,
-        letterSpacing: 0.8,
+    searchLeft: {
+        flex: 1,
+        minWidth: 0,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    searchPlaceholder: {
+        flex: 1,
+        color: themeColors.textSecondary,
+        fontSize: 15,
+        lineHeight: 18,
+        fontFamily: "Point-Regular",
+    },
+    filterButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(236,172,24,0.10)",
     },
 })

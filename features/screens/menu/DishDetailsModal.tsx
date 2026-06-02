@@ -195,18 +195,18 @@ function NutritionCell({
 
 const styles = StyleSheet.create({
     sheetBackground: {
-        backgroundColor: themeColors.background,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        backgroundColor: "#070808",
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
     },
 
     content: {
-        backgroundColor: themeColors.background,
+        backgroundColor: "#070808",
     },
 
     imageWrap: {
         width: "100%",
-        backgroundColor: themeColors.card,
+        backgroundColor: "#121210",
     },
 
     image: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
         right: 12,
         width: 42,
         height: 42,
-        borderRadius: 9,
+        borderRadius: 15,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(7, 8, 8, 0.86)",
@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
     },
 
     details: {
-        paddingHorizontal: 15,
-        paddingTop: 18,
+        paddingHorizontal: 14,
+        paddingTop: 20,
     },
 
     eyebrow: {
@@ -242,20 +242,19 @@ const styles = StyleSheet.create({
     },
 
     title: {
-        marginTop: 18,
+        marginTop: 12,
         color: themeColors.text,
-        fontSize: 27,
-        lineHeight: 32,
-        textAlign: "center",
+        fontSize: 26,
+        lineHeight: 31,
         fontFamily: "Point-SemiBold",
     },
 
     description: {
-        marginTop: 18,
+        marginTop: 14,
         color: themeColors.textSecondary,
         fontSize: 15,
-        lineHeight: 20,
-        fontFamily: "Point-SemiBold",
+        lineHeight: 21,
+        fontFamily: "Point-Regular",
     },
 
     sectionTitle: {
@@ -271,8 +270,9 @@ const styles = StyleSheet.create({
         flexWrap: "wrap",
         overflow: "hidden",
         borderWidth: 1,
-        borderRadius: 7,
-        borderColor: themeColors.cardBorder,
+        borderRadius: 18,
+        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "#11110f",
     },
 
     nutritionCell: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         borderRightWidth: 1,
         borderBottomWidth: 1,
-        borderColor: themeColors.cardBorder,
+        borderColor: "rgba(255,255,255,0.08)",
     },
 
     nutritionLabel: {
@@ -304,9 +304,9 @@ const styles = StyleSheet.create({
         gap: 14,
         paddingTop: 12,
         paddingHorizontal: 15,
-        backgroundColor: themeColors.background,
+        backgroundColor: "#070808",
         borderTopWidth: 1,
-        borderTopColor: themeColors.cardBorder,
+        borderTopColor: "rgba(255,255,255,0.08)",
     },
 
     quantityControl: {
@@ -316,10 +316,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: 12,
-        borderRadius: 7,
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: themeColors.border,
-        backgroundColor: themeColors.background,
+        borderColor: "rgba(255,255,255,0.10)",
+        backgroundColor: "#11110f",
     },
 
     quantityButton: {
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 14,
-        borderRadius: 6,
+        borderRadius: 16,
         backgroundColor: themeColors.primary,
     },
 

@@ -1,5 +1,6 @@
 import {memo} from "react";
 import {Image, Pressable, StyleSheet, Text, View} from "react-native";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import type {MenuItem} from "@/types/products";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
@@ -8,16 +9,18 @@ type DishCardProps = {
     item: MenuItem;
     width: number;
     onPress?: () => void;
+    onAddPress?: () => void;
 };
 
 function formatDishPrice(item: MenuItem) {
-    return `${item.weight ?? ""}${item.weight ? " / " : ""}${item.price.toLocaleString("ru-RU")} ₽`;
+    return `${item.price.toLocaleString("ru-RU")} ₽`;
 }
 
 export const DishCard = memo(function DishCard({
     item,
     width,
     onPress,
+    onAddPress,
 }: DishCardProps) {
     return (
         <Pressable
@@ -35,6 +38,12 @@ export const DishCard = memo(function DishCard({
                 {item.image ? (
                     <Image source={item.image} style={styles.image} resizeMode="cover" />
                 ) : null}
+
+                <View style={styles.pricePill}>
+                    <Text style={styles.priceText} numberOfLines={1}>
+                        {formatDishPrice(item)}
+                    </Text>
+                </View>
             </View>
 
             <View style={styles.cardBody}>
@@ -42,10 +51,32 @@ export const DishCard = memo(function DishCard({
                     {item.name}
                 </Text>
 
-                <View style={styles.pricePill}>
-                    <Text style={styles.priceText} numberOfLines={1}>
-                        {formatDishPrice(item)}
-                    </Text>
+                <View style={styles.metaRow}>
+                    {item.weight ? (
+                        <Text style={styles.weightText} numberOfLines={1}>
+                            {item.weight}
+                        </Text>
+                    ) : null}
+
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Добавить ${item.name} в корзину`}
+                        hitSlop={8}
+                        style={({pressed}) => [
+                            styles.addButton,
+                            pressed && styles.addButtonPressed,
+                        ]}
+                        onPress={(event) => {
+                            event.stopPropagation();
+                            onAddPress?.();
+                        }}
+                    >
+                        <MaterialCommunityIcons
+                            name="plus"
+                            size={18}
+                            color={themeColors.textOnPrimary}
+                        />
+                    </Pressable>
                 </View>
             </View>
         </Pressable>
@@ -54,12 +85,12 @@ export const DishCard = memo(function DishCard({
 
 const styles = StyleSheet.create({
     card: {
-        minHeight: 168,
+        minHeight: 202,
         overflow: "hidden",
-        borderRadius: 18,
-        backgroundColor: themeColors.card,
+        borderRadius: 20,
+        backgroundColor: "#121210",
         borderWidth: 1,
-        borderColor: themeColors.cardBorder,
+        borderColor: "rgba(255,255,255,0.08)",
         ...SHADOW,
     },
 
@@ -69,11 +100,12 @@ const styles = StyleSheet.create({
     },
 
     imageWrap: {
-        height: 104,
+        height: 122,
         overflow: "hidden",
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        backgroundColor: themeColors.cardSecondary,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        backgroundColor: "#1a1815",
+        position: "relative",
     },
 
     image: {
@@ -83,33 +115,66 @@ const styles = StyleSheet.create({
 
     cardBody: {
         flex: 1,
-        paddingTop: 8,
+        paddingHorizontal: 10,
+        paddingTop: 10,
+        paddingBottom: 10,
     },
 
     cardTitle: {
-        minHeight: 38,
-        paddingHorizontal: 8,
         color: themeColors.text,
-        fontSize: 14,
-        lineHeight: 17,
+        fontSize: 15,
+        lineHeight: 19,
         fontFamily: "Point-Bold",
     },
 
     pricePill: {
-        alignSelf: "flex-start",
+        position: "absolute",
+        left: 8,
+        bottom: 8,
         maxWidth: "100%",
-        marginTop: 7,
-        marginLeft: 6,
-        marginRight: 6,
-        paddingHorizontal: 9,
-        paddingVertical: 7,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: themeColors.background,
+        backgroundColor: "rgba(7,8,8,0.76)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.12)",
     },
 
     priceText: {
         color: themeColors.text,
-        fontSize: 13,
+        fontSize: 12,
+        lineHeight: 15,
+        fontFamily: "Point-Bold",
+    },
+
+    metaRow: {
+        marginTop: 10,
+        minHeight: 28,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+    },
+
+    weightText: {
+        flex: 1,
+        color: themeColors.textSecondary,
+        fontSize: 12,
+        lineHeight: 15,
         fontFamily: "Point-Regular",
+    },
+
+    addButton: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.primary,
+    },
+
+    addButtonPressed: {
+        opacity: 0.82,
+        transform: [{scale: 0.94}],
     },
 });

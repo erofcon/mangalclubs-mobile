@@ -24,6 +24,7 @@ type MenuSectionsProps = {
     itemsByCategory: Record<string, MenuItem[]>;
     itemWidth: number;
     onProductPress?: (item: MenuItem) => void;
+    onProductAdd?: (item: MenuItem) => void;
     onCategoryLayout: (
         categoryId: Category["id"],
         event: LayoutChangeEvent
@@ -35,6 +36,7 @@ export const MenuSections = memo(function MenuSections({
                                                            itemsByCategory,
                                                            itemWidth,
                                                            onProductPress,
+                                                           onProductAdd,
                                                            onCategoryLayout,
                                                        }: MenuSectionsProps) {
     const renderCategorySection = useCallback(
@@ -71,6 +73,7 @@ export const MenuSections = memo(function MenuSections({
                                         width={itemWidth}
                                         item={item}
                                         onPress={() => onProductPress?.(item)}
+                                        onAddPress={() => onProductAdd?.(item)}
                                     />
                                 ) : null
                             )}
@@ -91,7 +94,7 @@ export const MenuSections = memo(function MenuSections({
                 </View>
             );
         },
-        [itemWidth, itemsByCategory, onCategoryLayout, onProductPress]
+        [itemWidth, itemsByCategory, onCategoryLayout, onProductAdd, onProductPress]
     );
 
     return <>{categories.map(renderCategorySection)}</>;
@@ -101,12 +104,12 @@ const styles = StyleSheet.create({
 
     sectionTitle: {
         color: themeColors.text,
-        fontSize: 18,
+        fontSize: 22,
+        lineHeight: 27,
         fontFamily: "Point-Bold",
-        letterSpacing: 0.8,
-        marginTop: 26,
-        marginBottom: 8,
-        marginHorizontal: 14,
+        marginTop: 24,
+        marginBottom: 12,
+        marginHorizontal: 12,
     },
 
     productsRow: {
@@ -114,6 +117,6 @@ const styles = StyleSheet.create({
         gap: GAP,
         paddingHorizontal: H_PADDING,
         justifyContent: "center",
-        marginBottom: 8,
+        marginBottom: 10,
     },
 });

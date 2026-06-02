@@ -164,18 +164,18 @@ export function OrderType({scrollY}: Props) {
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 24,
-        paddingTop: 26,
+        paddingHorizontal: 12,
+        paddingTop: 18,
         paddingBottom: 10,
         backgroundColor: themeColors.background,
     },
 
     card: {
-        padding: 8,
-        borderRadius: 22,
-        backgroundColor: themeColors.card,
+        padding: 7,
+        borderRadius: 20,
+        backgroundColor: "#11110f",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: "rgba(255,255,255,0.08)",
     },
 
     segmentClip: {
@@ -191,9 +191,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         padding: 4,
         borderRadius: 14,
-        backgroundColor: themeColors.cardSecondary,
+        backgroundColor: "#181713",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: "rgba(255,255,255,0.07)",
     },
 
     segmentButton: {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     },
 
     segmentActive: {
-        backgroundColor: "#F1F1F1",
+        backgroundColor: themeColors.primary,
     },
 
     segmentText: {
@@ -215,24 +215,25 @@ const styles = StyleSheet.create({
     },
 
     segmentActiveText: {
-        color: "#111",
+        color: themeColors.textOnPrimary,
         opacity: 1,
     },
 
     addressRow: {
-        minHeight: 46,
+        minHeight: 48,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 10,
-        paddingHorizontal: 10,
+        paddingHorizontal: 11,
     },
 
     addressText: {
         flex: 1,
         minWidth: 0,
         color: themeColors.text,
-        fontSize: 15,
+        fontSize: 14,
+        lineHeight: 18,
         fontFamily: "Point-SemiBold",
     },
 });

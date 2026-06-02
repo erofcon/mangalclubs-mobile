@@ -1,5 +1,6 @@
 import {ImageSourcePropType, Pressable, StyleSheet, Text, View} from "react-native";
 import {Image} from "expo-image";
+import {LinearGradient} from "expo-linear-gradient";
 
 import {Organizations} from "@/mocks/mocks-data";
 import type {Organization} from "@/types/organization";
@@ -54,16 +55,27 @@ export function RestaurantsList() {
                             cachePolicy="memory-disk"
                         />
 
-                        <View style={styles.imageOverlay} pointerEvents="none" />
+                        <LinearGradient
+                            pointerEvents="none"
+                            colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.78)"]}
+                            style={styles.imageOverlay}
+                        />
+
+                        <View style={styles.restaurantPill}>
+                            <View style={styles.restaurantDot}/>
+                            <Text style={styles.restaurantPillText}>Открыто</Text>
+                        </View>
                     </View>
 
-                    <Text style={styles.title} numberOfLines={1}>
-                        {restaurant.title}
-                    </Text>
+                    <View style={styles.cardBody}>
+                        <Text style={styles.title} numberOfLines={1}>
+                            {restaurant.title}
+                        </Text>
 
-                    <Text style={styles.meta} numberOfLines={1}>
-                        {restaurant.address} · {restaurant.hours}
-                    </Text>
+                        <Text style={styles.meta} numberOfLines={2}>
+                            {restaurant.address} · {restaurant.hours}
+                        </Text>
+                    </View>
                 </Pressable>
             ))}
         </View>
@@ -73,19 +85,26 @@ export function RestaurantsList() {
 const styles = StyleSheet.create({
     section: {
         paddingHorizontal: 12,
-        paddingTop: 8,
+        paddingTop: 12,
         paddingBottom: 28,
-        gap: 26,
+        gap: 14,
     },
     restaurantsTitle: {
         color: themeColors.text,
-        fontSize: 16,
+        fontSize: 20,
+        lineHeight: 24,
         fontFamily: "Point-Bold",
+        marginBottom: 2,
     },
 
 
     card: {
         width: "100%",
+        overflow: "hidden",
+        borderRadius: 22,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "#121210",
     },
 
     cardPressed: {
@@ -94,29 +113,28 @@ const styles = StyleSheet.create({
     },
 
     title: {
-        marginTop: 8,
         color: themeColors.text,
-        fontSize: 16,
-        lineHeight: 26,
+        fontSize: 18,
+        lineHeight: 22,
         fontFamily: "Point-Bold",
         textTransform: "uppercase",
-        letterSpacing:0.5
+        letterSpacing: 0.5,
     },
 
     meta: {
-        marginTop: 1,
-        color: themeColors.text,
-        fontSize: 12,
-        lineHeight: 16,
+        marginTop: 6,
+        color: themeColors.textSecondary,
+        fontSize: 13,
+        lineHeight: 18,
         fontFamily: "Point-Regular",
     },
 
     imageWrap: {
         width: "100%",
-        aspectRatio: 1.9,
-        borderRadius: 8,
+        aspectRatio: 1.72,
         overflow: "hidden",
         backgroundColor: themeColors.card,
+        position: "relative",
     },
 
     image: {
@@ -126,6 +144,40 @@ const styles = StyleSheet.create({
 
     imageOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0, 0, 0, 0.30)",
+    },
+
+    restaurantPill: {
+        position: "absolute",
+        left: 12,
+        top: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 7,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 999,
+        backgroundColor: "rgba(7,8,8,0.64)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.12)",
+    },
+
+    restaurantDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 999,
+        backgroundColor: themeColors.success,
+    },
+
+    restaurantPillText: {
+        color: themeColors.text,
+        fontSize: 12,
+        lineHeight: 14,
+        fontFamily: "Point-SemiBold",
+    },
+
+    cardBody: {
+        paddingHorizontal: 14,
+        paddingTop: 12,
+        paddingBottom: 15,
     },
 });
