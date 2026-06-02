@@ -25,6 +25,7 @@ import {Header} from "@/features/screens/index/header/Header";
 import {Hero} from "@/features/screens/index/hero/Hero";
 import {QuickActions} from "@/features/screens/index/hero/QuickActions";
 import {ListOfDay} from "@/features/screens/index/list_of_day/ListOfDay";
+import {SearchBanner} from "@/features/screens/index/search/SearchBanner";
 
 
 export function IndexScreen() {
@@ -47,22 +48,23 @@ export function IndexScreen() {
 
 
     return (
-        <Screen withTopInset style={styles.screen}>
+        <Screen withTopInset>
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
-                stickyHeaderIndices={[0]}
             >
-                <Header/>
-                <Hero/>
+                <View style={{ flex: 1 }}>
+                    <Hero />
 
-                <QuickActions/>
-
-
-                <Stories/>
-
+                    <View style={styles.headerOverlay}>
+                        <Header />
+                    </View>
+                </View>
+                <SearchBanner/>
 
                 <Categories/>
+
+                <Stories/>
 
                 <ListOfDay/>
 
@@ -79,11 +81,14 @@ export function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        backgroundColor: "#070808",
-    },
     content: {
         paddingBottom: 76,
     },
-
+    headerOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+    }
 });

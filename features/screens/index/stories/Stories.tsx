@@ -108,11 +108,10 @@ export function Stories() {
         gestureAxis.value = 0;
         stripX.value = 0;
         dragY.value = 0;
-    }, [dragY, stripX]);
+    }, [dragY, gestureAxis, stripX]);
 
     const openStory = useCallback((index: number) => {
-        Haptics.selectionAsync().catch(() => {
-        });
+        Haptics.selectionAsync().catch(() => {});
         resetSlideState();
         activeStoryIndexValue.value = index;
         stripX.value = -index * width;
@@ -405,12 +404,6 @@ export function Stories() {
 
     return (
         <>
-            <Text style={styles.storiesTitle}
-                  numberOfLines={1}
-            >
-                Mangal Clubs в деталях
-            </Text>
-
             <View style={styles.section}>
                 <FlatList
                     horizontal
@@ -423,6 +416,7 @@ export function Stories() {
                             story={item}
                             index={index}
                             onPress={() => openStory(index)}
+                            bannerWidth={Math.min(width * 0.82, 340)}
                         />
                     )}
                 />
@@ -437,8 +431,8 @@ export function Stories() {
                 onRequestClose={close}
             >
                 <GestureHandlerRootView style={styles.modal}>
-                    <Animated.View style={[styles.backdrop, backdropAnimatedStyle]}/>
-                    <PreloadedStoryImages/>
+                    <Animated.View style={[styles.backdrop, backdropAnimatedStyle]} />
+                    <PreloadedStoryImages />
 
                     {activeStory && activeSlide && (
                         <GestureDetector gesture={storyGesture}>
@@ -500,7 +494,7 @@ export function Stories() {
                                             hitSlop={12}
                                             style={styles.closeButton}
                                         >
-                                            <Feather name="x" size={26} color="#fff"/>
+                                            <Feather name="x" size={26} color="#fff" />
                                         </Pressable>
                                     </View>
                                 </View>
@@ -583,10 +577,12 @@ function StoryPreview({
                           story,
                           index,
                           onPress,
+                          bannerWidth,
                       }: {
     story: Story;
     index: number;
     onPress: () => void;
+    bannerWidth: number;
 }) {
     return (
         <Pressable
@@ -595,24 +591,28 @@ function StoryPreview({
                 styles.preview,
                 index === 0 && styles.firstPreview,
                 pressed && styles.previewPressed,
+                {width: bannerWidth},
             ]}
         >
-            <View style={styles.previewImageFrame}>
+            <View style={[styles.banner, {width: bannerWidth}]}>
                 <Image
                     source={resolveStoryImage(story.previewImage)}
-                    style={styles.previewImage}
+                    style={styles.bannerImage}
                     contentFit="cover"
-                    transition={150}
+                    transition={180}
                     cachePolicy="memory-disk"
                 />
 
-                {/* Затемнение */}
-                <View style={styles.previewDarken} />
-            </View>
+                <View style={styles.bannerOverlay} />
 
-            <Text style={styles.previewTitle} numberOfLines={2}>
-                {story.title}
-            </Text>
+                <View style={styles.bannerContent}>
+                    <View style={styles.bannerBottomRow}>
+                        <Text style={styles.bannerTitle} numberOfLines={2}>
+                            {story.title}
+                        </Text>
+                    </View>
+                </View>
+            </View>
         </Pressable>
     );
 }
@@ -634,8 +634,8 @@ const styles = StyleSheet.create({
     listContent: {
         paddingHorizontal: 0,
     },
+
     preview: {
-        width: 115,
         marginRight: 12,
         alignItems: "center",
     },
@@ -643,46 +643,80 @@ const styles = StyleSheet.create({
         marginLeft: 0,
     },
     previewPressed: {
-        opacity: 0.82,
-        transform: [{scale: 0.98}],
+        opacity: 0.9,
+        transform: [{scale: 0.985}],
     },
-    previewImageFrame: {
-        width: 115,
-        height: 144,
-        padding: 2,
-        borderRadius: 18,
+
+    banner: {
+        height: 200,
+        borderRadius: 24,
+        overflow: "hidden",
+        backgroundColor: themeColors.card,
         borderWidth: 1.5,
         borderColor: themeColors.cardBorder,
-        backgroundColor: themeColors.card,
-        overflow: "hidden",
         ...SHADOW,
     },
-    previewImage: {
+    bannerImage: {
+        ...StyleSheet.absoluteFillObject,
         width: "100%",
         height: "100%",
-        borderRadius: 14,
-        backgroundColor: themeColors.card,
     },
-    previewDarken: {
+    bannerOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0,0,0,0.28)",
+        backgroundColor: "rgba(0,0,0,0.30)",
     },
-    previewTextWrap: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: 8,
-        paddingVertical: 8,
+    bannerContent: {
+        flex: 1,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        justifyContent: "flex-end",
     },
-    previewTitle: {
-        marginTop: 8,
-        color: themeColors.text,
-        fontFamily: "Point-Regular",
-        fontSize: 14,
-        lineHeight: 19,
-        textAlign: "center",
+    bannerTopRow: {
+        flexDirection: "row",
+        justifyContent: "flex-start",
+        alignItems: "center",
     },
+    bannerPill: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.18)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.22)",
+    },
+    bannerPillText: {
+        color: "#fff",
+        fontFamily: "Point-SemiBold",
+        fontSize: 12,
+        lineHeight: 14,
+    },
+    bannerBottomRow: {
+        flexDirection: "row",
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    bannerTitle: {
+        flex: 1,
+        color: "#fff",
+        fontFamily: "Point-Bold",
+        fontSize: 18,
+        lineHeight: 22,
+        textShadowColor: "rgba(0,0,0,0.45)",
+        textShadowOffset: {width: 0, height: 1},
+        textShadowRadius: 4,
+    },
+    bannerAction: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255,255,255,0.18)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.20)",
+    },
+
     modal: {
         flex: 1,
         backgroundColor: "#000",

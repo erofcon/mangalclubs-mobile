@@ -85,16 +85,14 @@ export function RestaurantsList() {
 const styles = StyleSheet.create({
     section: {
         paddingHorizontal: 12,
-        paddingTop: 12,
         paddingBottom: 28,
         gap: 14,
     },
     restaurantsTitle: {
         color: themeColors.text,
-        fontSize: 20,
-        lineHeight: 24,
+        fontSize: 16,
         fontFamily: "Point-Bold",
-        marginBottom: 2,
+
     },
 
 

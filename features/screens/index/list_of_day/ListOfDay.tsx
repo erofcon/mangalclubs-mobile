@@ -1,14 +1,39 @@
 import {MaterialCommunityIcons} from "@expo/vector-icons";
-import {View, Text, Pressable, ScrollView, StyleSheet} from "react-native";
-import {Image} from "expo-image";
 import {router} from "expo-router";
-import {LinearGradient} from "expo-linear-gradient";
-import {useMemo} from "react";
-import {menus} from "@/mocks/mocks-data";
-import {SHADOW, themeColors} from "@/utils/theme-colors";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
+} from "react-native";
+import * as Haptics from "expo-haptics";
+import Animated, {
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 
+import {DishCard} from "@/features/screens/menu/DishCard";
+import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
+import {menus} from "@/mocks/mocks-data";
+import type {MenuItem} from "@/types/products";
+import {useCartStore} from "@/store/cart-store";
+import {themeColors} from "@/utils/theme-colors";
 
 export function ListOfDay() {
+    const {width} = useWindowDimensions();
+    const addItemToCart = useCartStore((state) => state.addItem);
+
+    const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+    const [toastMessage, setToastMessage] = useState("");
+
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const toastProgress = useSharedValue(0);
+
     const availableCategories = useMemo(
         () => menus.filter((category) => category.items.length > 0),
         []
@@ -23,24 +48,67 @@ export function ListOfDay() {
                         categoryTitle: category.title,
                     }))
                 )
-                .slice(0, 3),
+                .slice(0, 6),
         [availableCategories]
     );
 
-    return (
+    const cardWidth = useMemo(() => Math.min(190, width * 0.42), [width]);
 
-        <View style={styles.featuredSection}>
+    const toastAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: toastProgress.value,
+        transform: [{translateY: (1 - toastProgress.value) * 12}],
+    }));
+
+    const showAddedToast = useCallback(
+        (item: MenuItem) => {
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+            }
+
+            setToastMessage(`Добавлено: ${item.name}`);
+            toastProgress.value = withTiming(1, {duration: 160});
+
+            toastTimerRef.current = setTimeout(() => {
+                toastProgress.value = withTiming(0, {duration: 180});
+
+                toastTimerRef.current = setTimeout(() => {
+                    setToastMessage("");
+                }, 200);
+            }, 1700);
+        },
+        [toastProgress]
+    );
+
+    const handleProductAdd = useCallback(
+        (item: MenuItem) => {
+            addItemToCart(item);
+
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+            });
+
+            showAddedToast(item);
+        },
+        [addItemToCart, showAddedToast]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+            }
+        };
+    }, []);
+
+    return (
+        <View>
             <View style={styles.sectionHeader}>
-                <View>
-                    <Text style={styles.sectionEyebrow}>Выбор кухни</Text>
-                    <Text style={styles.sectionTitle}>Попробуйте сегодня</Text>
-                </View>
+                <Text style={styles.sectionTitle}>Популярные блюда</Text>
 
                 <Pressable
                     style={styles.sectionLink}
                     onPress={() => router.push("/menu")}
                 >
-                    <Text style={styles.sectionLinkText}>Все меню</Text>
+                    <Text style={styles.sectionLinkText}>Смотреть все</Text>
                     <MaterialCommunityIcons
                         name="chevron-right"
                         size={18}
@@ -55,51 +123,41 @@ export function ListOfDay() {
                 contentContainerStyle={styles.featuredList}
             >
                 {featuredItems.map((item) => (
-                    <Pressable
-                        key={item.id}
-                        style={({pressed}) => [
-                            styles.featuredCard,
-                            pressed && styles.pressed,
-                        ]}
-                        onPress={() => router.push("/menu")}
-                    >
-                        <Image
-                            source={item.image}
-                            style={styles.featuredImage}
-                            contentFit="cover"
-                            transition={180}
-                            cachePolicy="memory-disk"
+                    <View key={item.id} style={{marginRight: 12}}>
+                        <DishCard
+                            item={item}
+                            width={cardWidth}
+                            onPress={() => setSelectedDish(item)}
+                            onAddPress={() => handleProductAdd(item)}
                         />
-
-                        <LinearGradient
-                            pointerEvents="none"
-                            colors={["rgba(9,9,8,0)", "rgba(9,9,8,0.92)"]}
-                            style={styles.featuredOverlay}
-                        />
-
-                        <View style={styles.featuredMeta}>
-                            <Text style={styles.featuredCategory} numberOfLines={1}>
-                                {item.categoryTitle}
-                            </Text>
-                            <Text style={styles.featuredTitle} numberOfLines={2}>
-                                {item.name}
-                            </Text>
-                            <Text style={styles.featuredPrice} numberOfLines={1}>
-                                {item.price.toLocaleString("ru-RU")} ₽
-                            </Text>
-                        </View>
-                    </Pressable>
+                    </View>
                 ))}
             </ScrollView>
+
+            {toastMessage ? (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[styles.toast, toastAnimatedStyle]}
+                >
+                    <View style={styles.toastIcon}>
+                        <Text style={styles.toastIconText}>+</Text>
+                    </View>
+
+                    <Text style={styles.toastText} numberOfLines={1}>
+                        {toastMessage}
+                    </Text>
+                </Animated.View>
+            ) : null}
+
+            <DishDetailsModal
+                item={selectedDish}
+                onDismiss={() => setSelectedDish(null)}
+            />
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
-
-    featuredSection: {
-        marginBottom: 8,
-    },
     sectionHeader: {
         paddingHorizontal: 12,
         marginBottom: 13,
@@ -108,82 +166,71 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         gap: 16,
     },
-    sectionEyebrow: {
-        color: themeColors.primary,
-        fontSize: 12,
-        lineHeight: 14,
-        fontFamily: "Point-SemiBold",
-        textTransform: "uppercase",
-    },
+
     sectionTitle: {
-        marginTop: 3,
         color: themeColors.text,
-        fontSize: 20,
-        lineHeight: 24,
+        fontSize: 16,
         fontFamily: "Point-Bold",
     },
+
     sectionLink: {
         flexDirection: "row",
         alignItems: "center",
         paddingBottom: 2,
     },
+
     sectionLinkText: {
         color: themeColors.primary,
-        fontSize: 13,
-        lineHeight: 16,
+        fontSize: 12,
         fontFamily: "Point-Bold",
     },
+
     featuredList: {
         paddingHorizontal: 12,
         paddingBottom: 16,
     },
-    featuredCard: {
-        width: 188,
-        height: 236,
-        marginRight: 12,
-        borderRadius: 22,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.09)",
-        backgroundColor: "#141311",
-        ...SHADOW,
-    },
-    featuredImage: {
-        width: "100%",
-        height: "100%",
-    },
-    featuredOverlay: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    featuredMeta: {
+
+    toast: {
         position: "absolute",
-        left: 13,
-        right: 13,
-        bottom: 13,
+        left: 16,
+        right: 16,
+        bottom: 12,
+        minHeight: 48,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+        backgroundColor: "rgba(18,18,16,0.96)",
+        zIndex: 1000,
+        elevation: 1000,
     },
-    featuredCategory: {
-        color: themeColors.primary,
-        fontSize: 11,
-        lineHeight: 14,
-        fontFamily: "Point-SemiBold",
+
+    toastIcon: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.primary,
     },
-    featuredTitle: {
-        marginTop: 4,
-        minHeight: 42,
-        color: themeColors.text,
-        fontSize: 16,
-        lineHeight: 20,
+
+    toastIconText: {
+        color: themeColors.textOnPrimary,
+        fontSize: 18,
+        lineHeight: 21,
         fontFamily: "Point-Bold",
     },
-    featuredPrice: {
-        marginTop: 8,
-        color: "rgba(255,255,255,0.74)",
-        fontSize: 13,
-        lineHeight: 16,
+
+    toastText: {
+        flex: 1,
+        minWidth: 0,
+        color: themeColors.text,
+        fontSize: 14,
+        lineHeight: 18,
         fontFamily: "Point-SemiBold",
     },
-    pressed: {
-        opacity: 0.86,
-        transform: [{scale: 0.985}],
-    },
-})
+});

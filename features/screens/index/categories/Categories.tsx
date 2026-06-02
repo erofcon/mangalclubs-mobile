@@ -1,239 +1,106 @@
 import React from "react";
-import {
-    ImageSourcePropType,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
-import {Image} from "expo-image";
-import {LinearGradient} from "expo-linear-gradient";
-import {router} from "expo-router";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
+import { Pressable, StyleSheet, Text, View, Dimensions } from "react-native";
+import { router } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { themeColors } from "@/utils/theme-colors";
 
-import {SHADOW, themeColors} from "@/utils/theme-colors";
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const PADDING = 24;
+const GAP = 10;
+const COLUMNS = 4;
+
+const CARD_SIZE =
+    (SCREEN_WIDTH - PADDING - GAP * (COLUMNS - 1)) / COLUMNS;
 
 type DishCategory = {
     id: string;
     categoryId?: string;
     title: string;
-    image: ImageSourcePropType;
     icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 };
 
 const dishCategories: DishCategory[] = [
-    {
-        id: "salads",
-        categoryId: "97",
-        title: "Салаты",
-        image: require("@/assets/mocks/categories-icons/salad.png"),
-        icon: "leaf",
-    },
-    {
-        id: "mangal",
-        categoryId: "98",
-        title: "Мангал",
-        image: require("@/assets/mocks/categories-icons/mangal.png"),
-        icon: "grill",
-    },
-    {
-        id: "soups",
-        title: "Супы",
-        image: require("@/assets/mocks/categories-icons/soup.png"),
-        icon: "pot-steam-outline",
-    },
-    {
-        id: "desserts",
-        title: "Десерты",
-        image: require("@/assets/mocks/categories-icons/dessert.png"),
-        icon: "cake-variant-outline",
-    },
+    { id: "salads", categoryId: "97", title: "Салаты", icon: "leaf" },
+    { id: "mangal", categoryId: "98", title: "Мангал", icon: "grill" },
+    { id: "soups", title: "Супы", icon: "pot-steam-outline" },
+    { id: "desserts", title: "Десерты", icon: "cake-variant-outline" },
+    { id: "drinks", title: "Напитки", icon: "cup" },
+    { id: "pizza", title: "Пицца", icon: "pizza" },
 ];
 
 export function Categories() {
     return (
-        <View style={styles.categoriesBlock}>
-            <View style={styles.categoriesHeader}>
-                <Text style={styles.categoriesTitle}
-                      numberOfLines={1}
-                >
-                    Категории блюд
-                </Text>
-
-                <Pressable
-                    style={styles.categoriesSeeAll}
-                    onPress={() => router.push("/menu")}
-                >
-                    <Text style={styles.categoriesSeeAllText}>
-                        Смотреть все
-                    </Text>
-
-                    <MaterialCommunityIcons
-                        name="chevron-right"
-                        size={20}
-                        color={themeColors.primary}
-                    />
-                </Pressable>
-            </View>
-
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesList}
-            >
-                {dishCategories.map((category, index) => (
+        <View style={styles.block}>
+            <View style={styles.grid}>
+                {dishCategories.map((category) => (
                     <Pressable
                         key={category.id}
                         onPress={() =>
                             router.push({
                                 pathname: "/menu",
                                 params: category.categoryId
-                                    ? {categoryId: category.categoryId}
+                                    ? { categoryId: category.categoryId }
                                     : undefined,
                             })
                         }
-                        style={({pressed}) => [
-                            styles.categoryCard,
-                            index !== dishCategories.length - 1 &&
-                            styles.categoryCardGap,
-                            pressed && styles.previewPressed,
+                        style={({ pressed }) => [
+                            styles.card,
+                            pressed && styles.pressed,
                         ]}
                     >
-                        <Image
-                            source={category.image}
-                            style={styles.categoryImage}
-                            contentFit="cover"
+                        <MaterialCommunityIcons
+                            name={category.icon}
+                            size={22}
+                            color={themeColors.primary}
                         />
 
-                        <LinearGradient
-                            pointerEvents="none"
-                            colors={["rgba(18,18,16,0.16)", "#121210"]}
-                            locations={[0, 1]}
-                            start={{x: 1, y: 0}}
-                            end={{x: 0, y: 1}}
-                            style={StyleSheet.absoluteFillObject}
-                        />
-
-                        <View style={styles.categoryTopRow}>
-                            <View style={styles.categoryIconWrap}>
-                                <MaterialCommunityIcons
-                                    name={category.icon}
-                                    size={18}
-                                    color={themeColors.primary}
-                                />
-                            </View>
-
-                            <MaterialCommunityIcons
-                                name="chevron-right"
-                                size={20}
-                                color="rgba(255,255,255,0.66)"
-                            />
-                        </View>
-
-                        <Text style={styles.categoryName} numberOfLines={1}>
+                        <Text style={styles.title} numberOfLines={2}>
                             {category.title}
                         </Text>
                     </Pressable>
                 ))}
-            </ScrollView>
+            </View>
         </View>
     );
 }
 
+
 const styles = StyleSheet.create({
-    /* Categories */
-
-    categoriesBlock: {
-        paddingTop: 8,
-        paddingBottom: 18,
-    },
-
-    categoriesHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-
+    block: {
         paddingHorizontal: 12,
-        marginBottom: 13,
+        paddingTop: 10,
     },
 
-    categoriesTitle: {
-        color: themeColors.text,
-        fontSize: 20,
-        lineHeight: 24,
-        fontFamily: "Point-Bold",
-        maxWidth: 190,
-    },
-
-    categoriesSeeAll: {
+    grid: {
         flexDirection: "row",
-        alignItems: "center",
-        gap: 2,
+        flexWrap: "wrap",
+        gap: 10,
     },
 
-    categoriesSeeAllText: {
-        color: themeColors.primary,
-        fontSize: 14,
-        fontFamily: "Point-Bold",
-    },
+    card: {
+        width: CARD_SIZE,
 
-    categoriesList: {
-        paddingHorizontal: 12,
-    },
+        height: 78,
+        borderRadius: 16,
 
-    categoryCard: {
-        width: 152,
-        height: 106,
-        borderRadius: 18,
-        overflow: "hidden",
-        justifyContent: "space-between",
-        padding: 12,
-        backgroundColor: "#121210",
+        backgroundColor: "rgba(255,255,255,0.04)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
-        ...SHADOW,
-    },
+        borderColor: "rgba(255,255,255,0.06)",
 
-    categoryCardGap: {
-        marginRight: 12,
-    },
-
-    categoryImage: {
-        position: "absolute",
-        right: -10,
-        bottom: -13,
-        width: 96,
-        height: 96,
-        opacity: 0.92,
-    },
-
-    categoryTopRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-    },
-
-    categoryIconWrap: {
-        width: 34,
-        height: 34,
-        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(236,172,24,0.10)",
-        borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.16)",
+        gap: 4,
     },
 
-    categoryName: {
-        maxWidth: 96,
+    title: {
         color: themeColors.text,
-        fontSize: 16,
-        lineHeight: 20,
-        fontFamily: "Point-Bold",
+        fontSize: 11,
+        textAlign: "center",
+        fontFamily: "Point-Regular",
     },
-    previewPressed: {
-        opacity: 0.82,
-        transform: [{scale: 0.98}],
+
+    pressed: {
+        opacity: 0.75,
+        transform: [{ scale: 0.97 }],
     },
 });

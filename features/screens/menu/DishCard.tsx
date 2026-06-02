@@ -1,6 +1,7 @@
 import {memo} from "react";
 import {Image, Pressable, StyleSheet, Text, View} from "react-native";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {LinearGradient} from "expo-linear-gradient";
 
 import type {MenuItem} from "@/types/products";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
@@ -17,11 +18,11 @@ function formatDishPrice(item: MenuItem) {
 }
 
 export const DishCard = memo(function DishCard({
-    item,
-    width,
-    onPress,
-    onAddPress,
-}: DishCardProps) {
+                                                   item,
+                                                   width,
+                                                   onPress,
+                                                   onAddPress,
+                                               }: DishCardProps) {
     return (
         <Pressable
             accessibilityRole="button"
@@ -34,10 +35,26 @@ export const DishCard = memo(function DishCard({
             ]}
             onPress={onPress}
         >
+            {/* IMAGE */}
             <View style={styles.imageWrap}>
                 {item.image ? (
-                    <Image source={item.image} style={styles.image} resizeMode="cover" />
+                    <Image
+                        source={item.image}
+                        style={styles.image}
+                        resizeMode="cover"
+                    />
                 ) : null}
+
+                <LinearGradient
+                    pointerEvents="none"
+                    colors={[
+                        "rgba(0,0,0,0.05)",
+                        "rgba(0,0,0,0.25)",
+                        "rgba(0,0,0,0.85)",
+                    ]}
+                    locations={[0, 0.5, 1]}
+                    style={StyleSheet.absoluteFillObject}
+                />
 
                 <View style={styles.pricePill}>
                     <Text style={styles.priceText} numberOfLines={1}>
@@ -56,7 +73,9 @@ export const DishCard = memo(function DishCard({
                         <Text style={styles.weightText} numberOfLines={1}>
                             {item.weight}
                         </Text>
-                    ) : null}
+                    ) : (
+                        <View />
+                    )}
 
                     <Pressable
                         accessibilityRole="button"

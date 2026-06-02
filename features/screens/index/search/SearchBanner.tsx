@@ -45,7 +45,7 @@ export function SearchBanner() {
                 <MaterialCommunityIcons
                     name="tune-variant"
                     size={23}
-                    color={themeColors.primary}
+                    color={themeColors.textSecondary}
                 />
             </Pressable>
         </View>
@@ -54,10 +54,10 @@ export function SearchBanner() {
 
 const styles = StyleSheet.create({
     searchPanel: {
-        height: 54,
+        height: 44,
         marginHorizontal: 12,
         marginBottom: 22,
-        borderRadius: 18,
+        borderRadius: 12,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -65,7 +65,6 @@ const styles = StyleSheet.create({
         paddingRight: 8,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.09)",
-        backgroundColor: "#11110f",
     },
     searchLeft: {
         flex: 1,
@@ -87,6 +86,5 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(236,172,24,0.10)",
     },
 })
