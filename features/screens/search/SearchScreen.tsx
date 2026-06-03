@@ -213,6 +213,7 @@ const styles = StyleSheet.create({
 
     listContent: {
         paddingHorizontal: PAGE_HORIZONTAL_PADDING,
+        paddingTop:16,
         paddingBottom: 28,
     },
 
