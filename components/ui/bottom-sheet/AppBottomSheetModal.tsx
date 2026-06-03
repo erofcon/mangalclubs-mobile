@@ -43,7 +43,7 @@ type AppBottomSheetProps = {
      * Если не передать snapPoints, BottomSheet сам растянется по контенту.
      * Примеры: ["45%"], ["30%", "70%"], [320, "80%"]
      */
-    snapPoints?: Array<string | number>;
+    snapPoints?: (string | number)[];
 
     /**
      * true = высота зависит от содержимого.
