@@ -20,7 +20,7 @@ import {
     BottomSheetModal,
     BottomSheetScrollView,
     BottomSheetView,
-} from "@gorhom/bottom-sheet";
+    } from "@gorhom/bottom-sheet";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {themeColors} from "@/utils/theme-colors";
 

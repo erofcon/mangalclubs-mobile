@@ -1,17 +1,34 @@
-import {ImageSourcePropType, Pressable, StyleSheet, Text, View} from "react-native";
+import {useCallback, useEffect, useRef, useState} from "react";
+import {
+    ImageSourcePropType,
+    Linking,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+
 import {Image} from "expo-image";
 import {LinearGradient} from "expo-linear-gradient";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import {SafeAreaView} from "react-native-safe-area-context";
+
+import {
+    AppBottomSheetModal,
+    type AppBottomSheetRef,
+} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 
 import {Organizations} from "@/mocks/mocks-data";
 import type {Organization} from "@/types/organization";
 import {themeColors} from "@/utils/theme-colors";
-import React from "react";
 
 type Restaurant = {
     id: string;
     title: string;
     address: string;
     hours: string;
+    phone: string;
+    intro: string;
     image: ImageSourcePropType;
 };
 
@@ -20,20 +37,115 @@ const restaurantImages: Record<string, ImageSourcePropType> = {
     "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
 };
 
-const restaurants: Restaurant[] = Organizations.map((organization: Organization) => ({
-    id: organization.id,
-    title: organization.name,
-    address: `${organization.city}, ${organization.address}`,
-    hours: organization.schedule,
-    image: restaurantImages[organization.id] ?? restaurantImages.fazenda,
-}));
+const restaurants: Restaurant[] = Organizations.map(
+    (organization: Organization) => ({
+        id: organization.id,
+        title: organization.name,
+        address: `${organization.city}, ${organization.address}`,
+        hours: organization.schedule,
+        phone: organization.phone,
+        intro: organization.intro,
+        image:
+            restaurantImages[organization.id] ??
+            restaurantImages.fazenda,
+    }),
+);
+
+const getPhoneUrl = (phone: string) =>
+    `tel:${phone.replace(/[^\d+]/g, "")}`;
+
+const getWhatsAppPhone = (phone: string) =>
+    phone.replace(/\D/g, "");
 
 export function RestaurantsList() {
+
+    const restaurantSheetRef =
+        useRef<AppBottomSheetRef>(null);
+
+    const [selectedRestaurant,
+        setSelectedRestaurant] =
+        useState<Restaurant | null>(null);
+
+    useEffect(() => {
+
+        if (selectedRestaurant) {
+            restaurantSheetRef.current?.open();
+        }
+
+    }, [selectedRestaurant]);
+
+    const handleCallPress =
+        useCallback(() => {
+
+            if (!selectedRestaurant) return;
+
+            Linking.openURL(
+                getPhoneUrl(
+                    selectedRestaurant.phone,
+                ),
+            ).catch(() => {
+            });
+
+        }, [selectedRestaurant]);
+
+    const handleWhatsAppPress =
+        useCallback(async () => {
+
+            if (!selectedRestaurant) return;
+
+            const phone =
+                getWhatsAppPhone(
+                    selectedRestaurant.phone,
+                );
+
+            const text =
+                encodeURIComponent(
+                    `Здравствуйте! Хочу уточнить информацию о ресторане ${selectedRestaurant.title}.`,
+                );
+
+            const appUrl =
+                `whatsapp://send?phone=${phone}&text=${text}`;
+
+            const webUrl =
+                `https://wa.me/${phone}?text=${text}`;
+
+            try {
+
+                if (
+                    await Linking.canOpenURL(
+                        appUrl,
+                    )
+                ) {
+
+                    await Linking.openURL(
+                        appUrl,
+                    );
+
+                    return;
+
+                }
+
+                await Linking.openURL(
+                    webUrl,
+                );
+
+            } catch {
+
+                Linking.openURL(
+                    webUrl,
+                ).catch(() => {
+                });
+
+            }
+
+        }, [selectedRestaurant]);
+
     return (
+
         <View style={styles.section}>
 
-            <Text style={styles.restaurantsTitle}
-                  numberOfLines={1}
+            <Text
+                style={styles.restaurantsTitle}
             >
                 Наши рестораны
             </Text>
@@ -41,98 +153,289 @@ export function RestaurantsList() {
             {restaurants.map((restaurant) => (
                 <Pressable
                     key={restaurant.id}
+                    onPress={() =>
+                        setSelectedRestaurant(
+                            restaurant,
+                        )
+                    }
                     style={({pressed}) => [
                         styles.card,
-                        pressed && styles.cardPressed,
+                        pressed &&
+                        styles.cardPressed,
                     ]}
                 >
+
                     <View style={styles.imageWrap}>
+
                         <Image
                             source={restaurant.image}
                             style={styles.image}
                             contentFit="cover"
-                            transition={180}
-                            cachePolicy="memory-disk"
                         />
 
                         <LinearGradient
-                            pointerEvents="none"
-                            colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.78)"]}
-                            style={styles.imageOverlay}
+                            colors={[
+                                "rgba(0,0,0,0.05)",
+                                "rgba(0,0,0,0.78)",
+                            ]}
+                            style={
+                                styles.imageOverlay
+                            }
                         />
 
-                        <View style={styles.restaurantPill}>
-                            <View style={styles.restaurantDot}/>
-                            <Text style={styles.restaurantPillText}>Открыто</Text>
-                        </View>
                     </View>
 
                     <View style={styles.cardBody}>
-                        <Text style={styles.title} numberOfLines={1}>
+
+                        <Text
+                            style={styles.title}
+                        >
                             {restaurant.title}
                         </Text>
 
-                        <Text style={styles.meta} numberOfLines={2}>
-                            {restaurant.address} · {restaurant.hours}
+                        <Text
+                            style={styles.meta}
+                        >
+                            {restaurant.address}
                         </Text>
+
                     </View>
+
                 </Pressable>
             ))}
+
+            <AppBottomSheetModal
+                ref={restaurantSheetRef}
+                title={selectedRestaurant?.title}
+                scrollable
+                snapPoints={["100%"]}
+                onDismiss={() =>
+                    setSelectedRestaurant(
+                        null,
+                    )
+                }
+            >
+
+                {selectedRestaurant && (
+
+                    <View
+                        style={
+                            styles.sheetContainer
+                        }
+                    >
+
+                        <View
+                            style={
+                                styles.sheetScrollableContent
+                            }
+                        >
+
+                            <View
+                                style={
+                                    styles.sheetImageWrap
+                                }
+                            >
+
+                                <Image
+                                    source={
+                                        selectedRestaurant.image
+                                    }
+                                    style={
+                                        styles.sheetImage
+                                    }
+                                    contentFit="cover"
+                                />
+
+                            </View>
+
+                            <Text
+                                style={
+                                    styles.sheetSectionTitle
+                                }
+                            >
+                                Описание
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.sheetDescription
+                                }
+                            >
+                                {
+                                    selectedRestaurant.intro
+                                }
+                            </Text>
+
+                            <Text
+                                style={
+                                    styles.sheetSectionTitle
+                                }
+                            >
+                                Контакты
+                            </Text>
+
+                            <View
+                                style={
+                                    styles.contacts
+                                }
+                            >
+
+                                <ContactRow
+                                    icon="location-outline"
+                                    label="Адрес"
+                                    value={
+                                        selectedRestaurant.address
+                                    }
+                                />
+
+                                <ContactRow
+                                    icon="time-outline"
+                                    label="График"
+                                    value={
+                                        selectedRestaurant.hours
+                                    }
+                                />
+
+                                <ContactRow
+                                    icon="call-outline"
+                                    label="Телефон"
+                                    value={
+                                        selectedRestaurant.phone
+                                    }
+                                />
+
+                            </View>
+
+                        </View>
+
+                        <SafeAreaView
+                            edges={["bottom"]}
+                            style={
+                                styles.fixedFooter
+                            }
+                        >
+
+                            <View
+                                style={
+                                    styles.sheetFooterActions
+                                }
+                            >
+
+                                <Pressable
+                                    onPress={
+                                        handleCallPress
+                                    }
+                                    style={[
+                                        styles.sheetActionButton,
+                                        styles.callButton,
+                                    ]}
+                                >
+
+                                    <Ionicons
+                                        name="call"
+                                        size={18}
+                                        color={
+                                            themeColors.textOnPrimary
+                                        }
+                                    />
+
+                                    <Text
+                                        style={
+                                            styles.callButtonText
+                                        }
+                                    >
+                                        Позвонить
+                                    </Text>
+
+                                </Pressable>
+
+                                <Pressable
+                                    onPress={
+                                        handleWhatsAppPress
+                                    }
+                                    style={[
+                                        styles.sheetActionButton,
+                                        styles.whatsAppButton,
+                                    ]}
+                                >
+
+                                    <Ionicons
+                                        name="logo-whatsapp"
+                                        size={18}
+                                        color={
+                                            themeColors.text
+                                        }
+                                    />
+
+                                    <Text
+                                        style={
+                                            styles.whatsAppButtonText
+                                        }
+                                    >
+                                        WhatsApp
+                                    </Text>
+
+                                </Pressable>
+
+                            </View>
+
+                        </SafeAreaView>
+
+                    </View>
+
+                )}
+
+            </AppBottomSheetModal>
+
         </View>
+
     );
+
+}
+
+function ContactRow({
+                        icon,
+                        label,
+                        value,
+                    }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    value: string;
+}) {
+
+    return (
+        <View style={styles.contactRow}>
+            <Text style={styles.contactValue}>
+                {label}: {value}
+            </Text>
+        </View>
+    )
+
 }
 
 const styles = StyleSheet.create({
+
     section: {
         paddingHorizontal: 12,
-        paddingBottom: 28,
         gap: 14,
     },
+
     restaurantsTitle: {
         color: themeColors.text,
         fontSize: 16,
-        fontFamily: "Point-Bold",
-
     },
 
-
     card: {
-        width: "100%",
-        overflow: "hidden",
         borderRadius: 22,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
-        backgroundColor: "#121210",
+        overflow: "hidden",
     },
 
     cardPressed: {
-        opacity: 0.86,
-        transform: [{scale: 0.99}],
-    },
-
-    title: {
-        color: themeColors.text,
-        fontSize: 18,
-        lineHeight: 22,
-        fontFamily: "Point-Bold",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-    },
-
-    meta: {
-        marginTop: 6,
-        color: themeColors.textSecondary,
-        fontSize: 13,
-        lineHeight: 18,
-        fontFamily: "Point-Regular",
+        opacity: 0.9,
     },
 
     imageWrap: {
-        width: "100%",
         aspectRatio: 1.72,
-        overflow: "hidden",
-        backgroundColor: themeColors.card,
-        position: "relative",
     },
 
     image: {
@@ -144,38 +447,132 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
     },
 
-    restaurantPill: {
-        position: "absolute",
-        left: 12,
-        top: 12,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 7,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        borderRadius: 999,
-        backgroundColor: "rgba(7,8,8,0.64)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.12)",
-    },
-
-    restaurantDot: {
-        width: 7,
-        height: 7,
-        borderRadius: 999,
-        backgroundColor: themeColors.success,
-    },
-
-    restaurantPillText: {
-        color: themeColors.text,
-        fontSize: 12,
-        lineHeight: 14,
-        fontFamily: "Point-SemiBold",
-    },
-
     cardBody: {
-        paddingHorizontal: 14,
-        paddingTop: 12,
-        paddingBottom: 15,
+        padding: 14,
     },
+
+    title: {
+        color: themeColors.text,
+        fontSize: 16,
+        fontFamily: "Point-Bold",
+        letterSpacing: 0.8,
+    },
+
+    meta: {
+        color: themeColors.textSecondary,
+        fontFamily: "Point-Regular"
+    },
+
+    sheetContainer: {
+        position: "relative",
+    },
+
+    sheetScrollableContent: {
+        paddingBottom: 130,
+    },
+
+    sheetImageWrap: {
+        aspectRatio: 1.72,
+        borderRadius: 18,
+        overflow: "hidden",
+    },
+
+    sheetImage: {
+        width: "100%",
+        height: "100%",
+    },
+
+    sheetSectionTitle: {
+        marginTop: 18,
+        color: themeColors.text,
+        fontSize: 14,
+        fontFamily: "Point-Bold",
+        letterSpacing: 0.8,
+    },
+
+    sheetDescription: {
+        marginTop: 16,
+        color: themeColors.textSecondary,
+        fontSize: 14,
+        fontFamily: "Point-Regular",
+        lineHeight: 18,
+    },
+
+    contacts: {
+        gap: 10,
+        marginTop: 10,
+    },
+
+    contactRow: {
+        padding: 14,
+        borderRadius: 12,
+        backgroundColor:
+        themeColors.cardSecondary,
+    },
+
+    contactValue: {
+        color: themeColors.text,
+        fontFamily: "Point-Regular",
+        fontSize: 14,
+    },
+
+    fixedFooter: {
+        position: "absolute",
+
+        left: -16,
+        right: -16,
+        bottom: 0,
+
+        paddingHorizontal: 16,
+        paddingTop: 12,
+
+        backgroundColor: themeColors.card,
+
+        borderTopWidth: 1,
+
+        borderTopColor: themeColors.cardBorder,
+    },
+
+    sheetFooterActions: {
+        flexDirection: "row",
+        gap: 10,
+    },
+
+    sheetActionButton: {
+        flex: 1,
+
+        height: 54,
+
+        borderRadius: 14,
+
+        justifyContent: "center",
+        alignItems: "center",
+
+        flexDirection: "row",
+
+        gap: 8,
+    },
+
+    callButton: {
+        backgroundColor:
+        themeColors.primary,
+    },
+
+    whatsAppButton: {
+        backgroundColor:
+            "rgba(51,172,113,.15)",
+    },
+
+    callButtonText: {
+        color: themeColors.textOnPrimary,
+        fontSize: 14,
+        fontFamily: "Point-Bold",
+    },
+
+    whatsAppButtonText: {
+        color: themeColors.text,
+        fontSize: 14,
+        fontFamily: "Point-Bold",
+    },
+
 });
