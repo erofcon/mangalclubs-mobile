@@ -497,14 +497,21 @@ export function OrderTypeScreen() {
                 </View>
 
                 <View style={styles.content}>
-                    <View style={styles.topText}>
-                        <Text style={styles.title}>
-                            {visibleTab === "delivery" ? "Сохранённые адреса" : "Выберите ресторан"}
-                        </Text>
-                        <Text style={styles.subtitle}>
-                            {visibleTab === "delivery" ? "Выберите адрес для доставки" : "Где вы хотите забрать заказ"}
-                        </Text>
-                    </View>
+                    {!(visibleTab === "delivery" && addresses.length === 0) && (
+                        <View style={styles.topText}>
+                            <Text style={styles.title}>
+                                {visibleTab === "delivery"
+                                    ? "Сохранённые адреса"
+                                    : "Выберите ресторан"}
+                            </Text>
+
+                            <Text style={styles.subtitle}>
+                                {visibleTab === "delivery"
+                                    ? "Выберите адрес для доставки"
+                                    : "Где вы хотите забрать заказ"}
+                            </Text>
+                        </View>
+                    )}
 
                     {visibleTab === "delivery" ? (
                         <FlatList
@@ -658,18 +665,18 @@ const styles = StyleSheet.create({
         width: "100%",
         maxWidth: 300,
         padding: 3,
-        borderRadius: 10,
+        borderRadius: 12,
         backgroundColor: themeColors.card,
     },
     segmentButton: {
         flex: 1,
-        height: 38,
+        height: 36,
         borderRadius: 10,
         alignItems: "center",
         justifyContent: "center",
     },
     segmentButtonActive: {
-        backgroundColor: themeColors.text,
+        backgroundColor: themeColors.primary,
         ...SHADOW,
     },
     segmentText: {

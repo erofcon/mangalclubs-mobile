@@ -308,7 +308,6 @@ export function CategoriesGrid({
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 6,
         flexDirection: "row",
         alignItems: "center",
     },

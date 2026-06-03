@@ -8,6 +8,7 @@ import Animated, {
     type SharedValue,
     useAnimatedStyle,
 } from "react-native-reanimated";
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {Organizations} from "@/mocks/mocks-data";
 import {useAddressStore} from "@/store/address-store";
@@ -96,77 +97,77 @@ export function OrderType({scrollY}: Props) {
     });
 
     return (
-        <Animated.View style={styles.container}>
-            <View style={styles.card}>
-                <Animated.View
-                    pointerEvents="box-none"
-                    style={[styles.segmentClip, segmentClipAnimatedStyle]}
-                >
+        <SafeAreaView>
+            <Animated.View style={styles.container}>
+                <View style={styles.card}>
                     <Animated.View
-                        style={[
-                            styles.segmentAnimatedContent,
-                            segmentContentAnimatedStyle,
-                        ]}
+                        pointerEvents="box-none"
+                        style={[styles.segmentClip, segmentClipAnimatedStyle]}
                     >
-                        <View style={styles.segment}>
-                            <Pressable
-                                onPress={() => handleTypePress("delivery")}
-                                style={[
-                                    styles.segmentButton,
-                                    deliveryType === "delivery" && styles.segmentActive,
-                                ]}
-                            >
-                                <Text
+                        <Animated.View
+                            style={[
+                                styles.segmentAnimatedContent,
+                                segmentContentAnimatedStyle,
+                            ]}
+                        >
+                            <View style={styles.segment}>
+                                <Pressable
+                                    onPress={() => handleTypePress("delivery")}
                                     style={[
-                                        styles.segmentText,
-                                        deliveryType === "delivery" && styles.segmentActiveText,
+                                        styles.segmentButton,
+                                        deliveryType === "delivery" && styles.segmentActive,
                                     ]}
                                 >
-                                    Доставка
-                                </Text>
-                            </Pressable>
+                                    <Text
+                                        style={[
+                                            styles.segmentText,
+                                            deliveryType === "delivery" && styles.segmentActiveText,
+                                        ]}
+                                    >
+                                        Доставка
+                                    </Text>
+                                </Pressable>
 
-                            <Pressable
-                                onPress={() => handleTypePress("takeaway")}
-                                style={[
-                                    styles.segmentButton,
-                                    deliveryType === "takeaway" && styles.segmentActive,
-                                ]}
-                            >
-                                <Text
+                                <Pressable
+                                    onPress={() => handleTypePress("takeaway")}
                                     style={[
-                                        styles.segmentText,
-                                        deliveryType === "takeaway" && styles.segmentActiveText,
+                                        styles.segmentButton,
+                                        deliveryType === "takeaway" && styles.segmentActive,
                                     ]}
                                 >
-                                    Навынос
-                                </Text>
-                            </Pressable>
-                        </View>
+                                    <Text
+                                        style={[
+                                            styles.segmentText,
+                                            deliveryType === "takeaway" && styles.segmentActiveText,
+                                        ]}
+                                    >
+                                        Навынос
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </Animated.View>
                     </Animated.View>
-                </Animated.View>
 
-                <Pressable style={styles.addressRow} onPress={openOrderTypeScreen}>
-                    <Text style={styles.addressText} numberOfLines={1}>
-                        {orderTargetText}
-                    </Text>
+                    <Pressable style={styles.addressRow} onPress={openOrderTypeScreen}>
+                        <Text style={styles.addressText} numberOfLines={1}>
+                            {orderTargetText}
+                        </Text>
 
-                    <MaterialCommunityIcons
-                        name="chevron-right"
-                        size={22}
-                        color={themeColors.text}
-                    />
-                </Pressable>
-            </View>
-        </Animated.View>
+                        <MaterialCommunityIcons
+                            name="chevron-right"
+                            size={22}
+                            color={themeColors.text}
+                        />
+                    </Pressable>
+                </View>
+            </Animated.View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 12,
-        paddingTop: 18,
-        paddingBottom: 10,
         backgroundColor: themeColors.background,
     },
 
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         padding: 4,
         borderRadius: 14,
-        backgroundColor: "#181713",
+        backgroundColor: themeColors.background,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.07)",
     },

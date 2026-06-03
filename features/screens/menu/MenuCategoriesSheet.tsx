@@ -7,6 +7,7 @@ import {
     type AppBottomSheetRef,
 } from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import type {Category} from "@/types/products";
+import {themeColors} from "@/utils/theme-colors";
 
 type MenuCategoriesSheetProps = {
     categories: Category[];
@@ -76,21 +77,21 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 7,
-        backgroundColor: "rgba(255, 238, 230, 0.95)",
+        backgroundColor: themeColors.card,
         borderWidth: 1,
-        borderColor: "rgba(244, 196, 182, 0.7)",
+        borderColor: themeColors.border,
     },
     categoryChipActive: {
-        backgroundColor: "#FFE2DA",
-        borderColor: "#E89A88",
+        backgroundColor: themeColors.primary,
+        borderColor: themeColors.border,
     },
     categoryChipText: {
-        color: "#D76D5F",
+        color: themeColors.text,
         fontSize: 13,
         lineHeight: 16,
         fontFamily: "Point-SemiBold",
     },
     categoryChipTextActive: {
-        color: "#C94F43",
+        color: themeColors.textOnPrimary,
     },
 });

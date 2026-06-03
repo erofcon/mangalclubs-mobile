@@ -26,7 +26,7 @@ import {Hero} from "@/features/screens/index/hero/Hero";
 import {QuickActions} from "@/features/screens/index/hero/QuickActions";
 import {ListOfDay} from "@/features/screens/index/list_of_day/ListOfDay";
 import {SearchBanner} from "@/features/screens/index/search/SearchBanner";
-
+import { SafeAreaView} from 'react-native-safe-area-context';
 
 export function IndexScreen() {
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
@@ -48,7 +48,7 @@ export function IndexScreen() {
 
 
     return (
-        <Screen withTopInset>
+        <Screen>
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.content}
@@ -57,7 +57,10 @@ export function IndexScreen() {
                     <Hero />
 
                     <View style={styles.headerOverlay}>
-                        <Header />
+                        <SafeAreaView>
+                            <Header />
+                        </SafeAreaView>
+
                     </View>
                 </View>
                 <SearchBanner/>

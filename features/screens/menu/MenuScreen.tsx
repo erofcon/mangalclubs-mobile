@@ -1,6 +1,6 @@
 import {Screen} from "@/components/ui/Screen";
 import {StatusBar} from "expo-status-bar";
-import {VideoHeader} from "@/features/screens/menu/video_header/VideoHeader";
+import {Hero} from "@/features/screens/menu/hero/Hero";
 import {OrderType} from "@/features/screens/menu/order_type/OrderType";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject} from "react";
@@ -187,15 +187,14 @@ export function MenuScreen() {
                         onScrollEndDrag={handleMenuScrollEndDrag}
                         onMomentumScrollEnd={handleMenuMomentumEnd}
                     >
-                        <VideoHeader scrollY={scrollY} />
+                        <Hero scrollY={scrollY} />
 
                         <View
                             collapsable={false}
                             style={styles.stickyHeader}
                             onLayout={handleTabsLayout}
                         >
-                            <OrderType scrollY={scrollY} />
-
+                                <OrderType scrollY={scrollY} />
                             <View
                                 collapsable={false}
                                 style={styles.categoriesStickyBlock}
@@ -274,11 +273,8 @@ const styles = StyleSheet.create({
     },
     stickyHeader: {
         zIndex: 999,
-        elevation: 999,
+        backgroundColor:themeColors.background,
         marginTop: -40,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        backgroundColor: themeColors.background,
         overflow: "hidden",
     },
     categoriesStickyBlock: {

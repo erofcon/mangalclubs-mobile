@@ -142,20 +142,10 @@ export function DishDetailsModal({item, onDismiss}: DishDetailsModalProps) {
                         <Image source={item.image} style={styles.image} resizeMode="cover" />
                     ) : null}
 
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Закрыть"
-                        style={styles.closeButton}
-                        onPress={() => sheetRef.current?.dismiss()}
-                        hitSlop={8}
-                    >
-                        <Ionicons name="close" size={26} color={themeColors.text} />
-                    </Pressable>
                 </View>
 
                 {item ? (
                     <View style={styles.details}>
-                        <Text style={styles.eyebrow}>БЛЮДО</Text>
                         <Text style={styles.title}>{item.name}</Text>
                         <Text style={styles.description}>{item.description}</Text>
 
@@ -244,23 +234,22 @@ const styles = StyleSheet.create({
     title: {
         marginTop: 12,
         color: themeColors.text,
-        fontSize: 26,
-        lineHeight: 31,
-        fontFamily: "Point-SemiBold",
+        fontSize: 22,
+        letterSpacing: 0.8,
+        fontFamily: "Point-Bold",
     },
 
     description: {
         marginTop: 14,
         color: themeColors.textSecondary,
-        fontSize: 15,
-        lineHeight: 21,
+        fontSize: 14,
         fontFamily: "Point-Regular",
     },
 
     sectionTitle: {
         marginTop: 26,
         color: themeColors.text,
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: "Point-Bold",
     },
 
@@ -271,8 +260,7 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         borderWidth: 1,
         borderRadius: 18,
-        borderColor: "rgba(255,255,255,0.08)",
-        backgroundColor: "#11110f",
+        borderColor: themeColors.border,
     },
 
     nutritionCell: {
@@ -282,19 +270,19 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         borderRightWidth: 1,
         borderBottomWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: themeColors.border,
     },
 
     nutritionLabel: {
         color: themeColors.textSecondary,
         fontSize: 12,
-        fontFamily: "Point-Bold",
+        fontFamily: "Point-Regular",
     },
 
     nutritionValue: {
         marginTop: 2,
         color: themeColors.text,
-        fontSize: 17,
+        fontSize: 14,
         fontFamily: "Point-Bold",
     },
 
@@ -316,7 +304,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: 12,
-        borderRadius: 16,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.10)",
         backgroundColor: "#11110f",
@@ -343,13 +331,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 14,
-        borderRadius: 16,
+        borderRadius: 12,
         backgroundColor: themeColors.primary,
     },
 
     addButtonText: {
         color: themeColors.textOnPrimary,
-        fontSize: 15,
+        fontSize: 14,
         fontFamily: "Point-Bold",
     },
 });

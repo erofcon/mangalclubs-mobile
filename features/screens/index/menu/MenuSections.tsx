@@ -104,8 +104,7 @@ const styles = StyleSheet.create({
 
     sectionTitle: {
         color: themeColors.text,
-        fontSize: 22,
-        lineHeight: 27,
+        fontSize: 16,
         fontFamily: "Point-Bold",
         marginTop: 24,
         marginBottom: 12,

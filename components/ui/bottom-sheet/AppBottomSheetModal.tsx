@@ -87,7 +87,7 @@ export const AppBottomSheetModal = forwardRef<AppBottomSheetRef, AppBottomSheetP
             maxDynamicContentSize,
             scrollable = false,
             initialIndex = 0,
-            showCloseButton = true,
+            showCloseButton = false,
             enablePanDownToClose = true,
             containerStyle,
             contentContainerStyle,

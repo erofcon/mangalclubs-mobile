@@ -141,11 +141,10 @@ const styles = StyleSheet.create({
 
     cardTitle: {
         color: themeColors.text,
-        fontSize: 15,
+        fontSize: 14,
         lineHeight: 19,
         fontFamily: "Point-Bold",
     },
-
     pricePill: {
         position: "absolute",
         left: 8,
@@ -158,14 +157,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.12)",
     },
-
     priceText: {
         color: themeColors.text,
         fontSize: 12,
-        lineHeight: 15,
         fontFamily: "Point-Bold",
     },
-
     metaRow: {
         marginTop: 10,
         minHeight: 28,
@@ -179,7 +175,6 @@ const styles = StyleSheet.create({
         flex: 1,
         color: themeColors.textSecondary,
         fontSize: 12,
-        lineHeight: 15,
         fontFamily: "Point-Regular",
     },
 

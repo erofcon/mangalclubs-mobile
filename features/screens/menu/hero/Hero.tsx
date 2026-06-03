@@ -17,7 +17,7 @@ type Props = {
     scrollY: SharedValue<number>;
 };
 
-export function VideoHeader({scrollY}: Props) {
+export function Hero({scrollY}: Props) {
     const heroAnimatedStyle = useAnimatedStyle(() => {
         const opacity = interpolate(
             scrollY.value,
@@ -67,16 +67,26 @@ export function VideoHeader({scrollY}: Props) {
                     source={require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp")}
                     style={styles.image}
                     contentFit="cover"
-                    transition={180}
-                    cachePolicy="memory-disk"
+                />
+
+                <View style={styles.overlay}/>
+
+                <LinearGradient
+                    colors={[
+                        themeColors.background,
+                        "transparent",
+                    ]}
+                    style={styles.topGradient}
                 />
 
                 <LinearGradient
-                    pointerEvents="none"
-                    colors={["rgba(7,8,8,0.1)", "rgba(7,8,8,0.56)", "#070808"]}
-                    locations={[0, 0.52, 1]}
-                    style={StyleSheet.absoluteFillObject}
+                    colors={[
+                        "transparent",
+                        themeColors.background,
+                    ]}
+                    style={styles.bottomGradient}
                 />
+
             </Animated.View>
 
             <Animated.View style={[styles.content, contentAnimatedStyle]}>
@@ -86,7 +96,7 @@ export function VideoHeader({scrollY}: Props) {
                         size={15}
                         color={themeColors.primary}
                     />
-                    <Text style={styles.pillText}>Меню Mangal Clubs</Text>
+                    <Text style={styles.pillText}>Меню</Text>
                 </View>
 
                 <Text style={styles.title}>Блюда на огне</Text>
@@ -101,16 +111,35 @@ export function VideoHeader({scrollY}: Props) {
 
 const styles = StyleSheet.create({
     hero: {
-        height: HEADER_HEIGHT,
-        overflow: "hidden",
-        backgroundColor: "#070808",
+        height: 320,
+        position: "relative",
+        backgroundColor: themeColors.background,
     },
     imageLayer: {
         ...StyleSheet.absoluteFillObject,
     },
     image: {
-        width: "100%",
-        height: "100%",
+        ...StyleSheet.absoluteFillObject,
+    },
+
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0,0,0,0.35)",
+    },
+
+    topGradient: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 120,
+    },
+    bottomGradient: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 180,
     },
     content: {
         position: "absolute",
@@ -127,28 +156,25 @@ const styles = StyleSheet.create({
         paddingVertical: 7,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.12)",
+        borderColor: themeColors.border,
         backgroundColor: "rgba(7,8,8,0.58)",
     },
     pillText: {
-        color: "rgba(255,255,255,0.78)",
+        color: themeColors.text,
         fontSize: 12,
-        lineHeight: 14,
         fontFamily: "Point-SemiBold",
     },
     title: {
-        marginTop: 14,
-        color: themeColors.text,
-        fontSize: 36,
-        lineHeight: 39,
+        marginTop:8,
+        color: themeColors.primary,
+        fontSize: 20,
         fontFamily: "Point-Black",
     },
     subtitle: {
-        marginTop: 9,
-        maxWidth: 330,
-        color: "rgba(255,255,255,0.72)",
-        fontSize: 15,
-        lineHeight: 21,
+        marginTop: 8,
+        color: themeColors.text,
+        fontSize: 14,
         fontFamily: "Point-Regular",
+        maxWidth: 340,
     },
 });
