@@ -1,4 +1,5 @@
-import {StyleSheet, Text, View} from "react-native";
+import {useEffect} from "react";
+import {StyleSheet, Text, View, type LayoutChangeEvent} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
 
 import {
@@ -8,7 +9,12 @@ import {
 import {useAppDataStore} from "@/store/app-data-store";
 import {themeColors} from "@/utils/theme-colors";
 
-export function OrderAvailabilityBar() {
+type Props = {
+    topInset?: number;
+    onHeightChange?: (height: number) => void;
+};
+
+export function OrderAvailabilityBar({topInset = 0, onHeightChange}: Props) {
     const organizations = useAppDataStore((state) => state.organizations);
     const availabilityByOrganizationId = useAppDataStore(
         (state) => state.availabilityByOrganizationId
@@ -17,6 +23,12 @@ export function OrderAvailabilityBar() {
         organizations,
         availabilityByOrganizationId
     );
+
+    useEffect(() => {
+        if (unavailableOrganizations.length === 0) {
+            onHeightChange?.(0);
+        }
+    }, [onHeightChange, unavailableOrganizations.length]);
 
     if (unavailableOrganizations.length === 0) {
         return null;
@@ -34,8 +46,18 @@ export function OrderAvailabilityBar() {
         ? firstMessage || DEFAULT_UNAVAILABLE_MESSAGE
         : `Онлайн-заказы временно недоступны в ${unavailableNames}. В других ресторанах можно оформить заказ.`;
 
+    const handleLayout = (event: LayoutChangeEvent) => {
+        onHeightChange?.(event.nativeEvent.layout.height);
+    };
+
     return (
-        <View style={styles.container}>
+        <View
+            style={[
+                styles.container,
+                topInset > 0 && {paddingTop: topInset + 8},
+            ]}
+            onLayout={handleLayout}
+        >
             <Ionicons
                 name="warning-outline"
                 size={16}

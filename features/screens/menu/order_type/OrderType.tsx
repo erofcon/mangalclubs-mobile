@@ -8,7 +8,6 @@ import Animated, {
     type SharedValue,
     useAnimatedStyle,
 } from "react-native-reanimated";
-import {SafeAreaView} from "react-native-safe-area-context";
 
 import {useAddressStore} from "@/store/address-store";
 import {useDeliveryStore} from "@/store/delivery-store";
@@ -100,8 +99,7 @@ export function OrderType({scrollY}: Props) {
     });
 
     return (
-        <SafeAreaView>
-            <Animated.View style={styles.container}>
+        <Animated.View style={styles.container}>
                 <View style={styles.card}>
                     <Animated.View
                         pointerEvents="box-none"
@@ -163,8 +161,7 @@ export function OrderType({scrollY}: Props) {
                         />
                     </Pressable>
                 </View>
-            </Animated.View>
-        </SafeAreaView>
+        </Animated.View>
     );
 }
 

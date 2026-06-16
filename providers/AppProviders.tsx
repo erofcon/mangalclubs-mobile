@@ -12,6 +12,7 @@ import {themeColors} from "@/utils/theme-colors";
 import * as SystemUI from 'expo-system-ui';
 import {HealthGate} from "@/components/HealthGate";
 import {AppDataSync} from "@/components/AppDataSync";
+import {AuthGate} from "@/features/auth/AuthGate";
 
 
 const CustomTheme = {
@@ -56,7 +57,9 @@ export function AppProviders({children}: PropsWithChildren) {
                         <NavigationThemeProvider>
                             <HealthGate>
                                 <AppDataSync />
-                                {children}
+                                <AuthGate>
+                                    {children}
+                                </AuthGate>
                             </HealthGate>
                         </NavigationThemeProvider>
                     </BottomSheetModalProvider>

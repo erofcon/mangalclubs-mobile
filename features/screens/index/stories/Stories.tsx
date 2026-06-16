@@ -1,7 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     FlatList,
-    ImageSourcePropType,
     Modal,
     Pressable,
     StyleSheet,
@@ -28,8 +27,10 @@ import Animated, {
     withSpring,
     withTiming,
 } from "react-native-reanimated";
+import {useQuery} from "@tanstack/react-query";
+import {VideoView, useVideoPlayer} from "expo-video";
 
-import {StoriesData} from "@/mocks/mocks-data";
+import {getStories} from "@/services/stories";
 import {Story} from "@/types/story";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
 
@@ -40,35 +41,18 @@ const STORY_AXIS_RATIO = 1.15;
 const STORY_DRAG_START_DISTANCE = 12;
 const STORY_SETTLE_DURATION = 190;
 
-const storyImageByPath: Record<string, ImageSourcePropType> = {
-    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3524636564161616270.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3524636564161616270.jpg"),
-    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834709189977711846.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834709189977711846.jpg"),
-    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710202994431662.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710202994431662.jpg"),
-    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710151765166617.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710151765166617.jpg"),
-    "assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710048291748543.jpg": require("@/assets/mocks/stories/delivery/story-save.com_Instagram_mangalclubs_3834710048291748543.jpg"),
-
-    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130754686048071.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130754686048071.jpg"),
-    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753352259742.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753352259742.jpg"),
-    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753218028097.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130753218028097.jpg"),
-    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130750248452637.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130750248452637.jpg"),
-    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748897879169.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748897879169.jpg"),
-    "assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748646239697.jpg": require("@/assets/mocks/stories/sauna/story-save.com_Instagram_mangalclubs_3867130748646239697.jpg"),
-
-    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708386996456768.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708386996456768.jpg"),
-    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708283296482743.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708283296482743.jpg"),
-    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708282700931770.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708282700931770.jpg"),
-    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708280670891279.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801708280670891279.jpg"),
-    "assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801707989854605294.jpg": require("@/assets/mocks/stories/vip-fazenda/story-save.com_Instagram_mangalclubs_3801707989854605294.jpg"),
-};
-
-function resolveStoryImage(src?: string): ImageSourcePropType | undefined {
+function resolveStoryImage(src?: string) {
     if (!src) return undefined;
-    return storyImageByPath[src] ?? {uri: src};
+    return {uri: src};
 }
 
 export function Stories() {
     const insets = useSafeAreaInsets();
     const {width} = useWindowDimensions();
+    const {data: stories = []} = useQuery({
+        queryKey: ["stories"],
+        queryFn: ({signal}) => getStories(signal),
+    });
 
     const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
     const [activeSlideIndex, setActiveSlideIndex] = useState(0);
@@ -85,7 +69,7 @@ export function Stories() {
     const gestureAxis = useSharedValue<0 | 1 | 2>(0);
     const activeStoryIndexValue = useSharedValue(0);
 
-    const activeStory = activeStoryIndex !== null ? StoriesData[activeStoryIndex] : null;
+    const activeStory = activeStoryIndex !== null ? stories[activeStoryIndex] : null;
     const activeSlide = activeStory?.slides[activeSlideIndex] ?? null;
 
     const resetSlideState = useCallback(() => {
@@ -158,7 +142,7 @@ export function Stories() {
             return;
         }
 
-        if (activeStoryIndex < StoriesData.length - 1) {
+        if (activeStoryIndex < stories.length - 1) {
             const targetIndex = activeStoryIndex + 1;
 
             resetSlideState();
@@ -170,7 +154,7 @@ export function Stories() {
         }
 
         close();
-    }, [activeSlideIndex, activeStory, activeStoryIndex, activeStoryIndexValue, close, resetSlideState, stripX, width]);
+    }, [activeSlideIndex, activeStory, activeStoryIndex, activeStoryIndexValue, close, resetSlideState, stories.length, stripX, width]);
 
     const goPrev = useCallback(() => {
         if (!activeStory || activeStoryIndex === null || isSwitchingRef.current) return;
@@ -183,7 +167,7 @@ export function Stories() {
 
         if (activeStoryIndex > 0) {
             const targetIndex = activeStoryIndex - 1;
-            const previousStory = StoriesData[activeStoryIndex - 1];
+            const previousStory = stories[activeStoryIndex - 1];
 
             resetSlideState();
             activeStoryIndexValue.value = targetIndex;
@@ -191,7 +175,7 @@ export function Stories() {
             setActiveStoryIndex(targetIndex);
             setActiveSlideIndex(previousStory.slides.length - 1);
         }
-    }, [activeSlideIndex, activeStory, activeStoryIndex, activeStoryIndexValue, resetSlideState, stripX, width]);
+    }, [activeSlideIndex, activeStory, activeStoryIndex, activeStoryIndexValue, resetSlideState, stories, stripX, width]);
 
     const panGesture = useMemo(() => Gesture.Pan()
         .minDistance(STORY_DRAG_START_DISTANCE)
@@ -226,7 +210,7 @@ export function Stories() {
 
             const isPastFirstStory = activeIndex === 0 && event.translationX > 0;
             const isPastLastStory =
-                activeIndex === StoriesData.length - 1 && event.translationX < 0;
+                activeIndex === stories.length - 1 && event.translationX < 0;
             const dampedX = isPastFirstStory || isPastLastStory
                 ? event.translationX * 0.22
                 : event.translationX;
@@ -253,7 +237,7 @@ export function Stories() {
                 gestureAxis.value === 1 &&
                 event.translationX < -STORY_SWIPE_DISTANCE &&
                 absoluteX > absoluteY * STORY_AXIS_RATIO &&
-                activeIndex < StoriesData.length - 1
+                activeIndex < stories.length - 1
             ) {
                 const targetIndex = activeIndex + 1;
 
@@ -318,6 +302,7 @@ export function Stories() {
         markGestureFinished,
         markGestureStarted,
         markStorySwitching,
+        stories.length,
         stripX,
         width,
     ]);
@@ -346,7 +331,14 @@ export function Stories() {
     );
 
     useEffect(() => {
-        if (!activeStory || !activeSlide || isPaused || isMediaLoading || hasMediaError) return;
+        if (
+            !activeStory ||
+            !activeSlide ||
+            activeSlide.type === "video" ||
+            isPaused ||
+            isMediaLoading ||
+            hasMediaError
+        ) return;
 
         const duration = activeSlide.durationMs ?? DEFAULT_IMAGE_DURATION;
         const startedAt = Date.now();
@@ -402,12 +394,22 @@ export function Stories() {
         stripX.value = -activeStoryIndex * width;
     }, [activeStoryIndex, activeStoryIndexValue, stripX, width]);
 
+    useEffect(() => {
+        if (activeStoryIndex !== null && activeStoryIndex >= stories.length) {
+            close();
+        }
+    }, [activeStoryIndex, close, stories.length]);
+
+    if (stories.length === 0) {
+        return null;
+    }
+
     return (
         <>
             <View style={styles.section}>
                 <FlatList
                     horizontal
-                    data={StoriesData}
+                    data={stories}
                     keyExtractor={(item) => String(item.id)}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
@@ -432,7 +434,7 @@ export function Stories() {
             >
                 <GestureHandlerRootView style={styles.modal}>
                     <Animated.View style={[styles.backdrop, backdropAnimatedStyle]} />
-                    <PreloadedStoryImages />
+                    <PreloadedStoryImages stories={stories} />
 
                     {activeStory && activeSlide && (
                         <GestureDetector gesture={storyGesture}>
@@ -440,16 +442,18 @@ export function Stories() {
                                 <Animated.View
                                     style={[
                                         styles.storyStrip,
-                                        {width: width * StoriesData.length},
+                                        {width: width * stories.length},
                                         stripAnimatedStyle,
                                     ]}
                                 >
-                                    {StoriesData.map((story, index) => (
+                                    {stories.map((story, index) => (
                                         <StoryMediaPanel
                                             key={String(story.id)}
+                                            story={story}
                                             width={width}
-                                            storyIndex={index}
                                             slideIndex={index === activeStoryIndex ? activeSlideIndex : 0}
+                                            isActive={index === activeStoryIndex}
+                                            isPaused={isPaused}
                                             onLoadStart={index === activeStoryIndex ? () => {
                                                 setIsMediaLoading(true);
                                                 setHasMediaError(false);
@@ -459,6 +463,8 @@ export function Stories() {
                                                 setIsMediaLoading(false);
                                                 setHasMediaError(true);
                                             } : undefined}
+                                            onEnd={index === activeStoryIndex ? goNext : undefined}
+                                            onProgress={index === activeStoryIndex ? setProgress : undefined}
                                         />
                                     ))}
                                 </Animated.View>
@@ -516,49 +522,163 @@ export function Stories() {
 }
 
 function StoryMediaPanel({
+                             story,
                              width,
-                             storyIndex,
                              slideIndex,
+                             isActive,
+                             isPaused,
                              onLoadStart,
                              onLoadEnd,
                              onError,
+                             onEnd,
+                             onProgress,
                          }: {
+    story: Story;
     width: number;
-    storyIndex: number | null;
     slideIndex: number;
+    isActive: boolean;
+    isPaused: boolean;
     onLoadStart?: () => void;
     onLoadEnd?: () => void;
     onError?: () => void;
+    onEnd?: () => void;
+    onProgress?: (progress: number) => void;
 }) {
-    const story = storyIndex !== null ? StoriesData[storyIndex] : null;
     const slide = story?.slides[slideIndex] ?? story?.slides[0] ?? null;
 
     return (
         <View style={[styles.storyPanel, {width}]}>
-            {slide && (
+            {slide?.type === "video" ? (
+                <StoryVideo
+                    key={`${story.id}-${slide.id}`}
+                    slide={slide}
+                    isActive={isActive}
+                    isPaused={isPaused}
+                    onLoadStart={onLoadStart}
+                    onLoadEnd={onLoadEnd}
+                    onError={onError}
+                    onEnd={onEnd}
+                    onProgress={onProgress}
+                />
+            ) : slide ? (
                 <Image
-                    key={`${story?.id}-${slide.id}`}
+                    key={`${story.id}-${slide.id}`}
                     source={resolveStoryImage(slide.src ?? slide.poster)}
                     style={styles.media}
                     contentFit="contain"
                     transition={0}
                     cachePolicy="memory-disk"
-                    recyclingKey={`${story?.id}-${slide.id}`}
+                    recyclingKey={`${story.id}-${slide.id}`}
                     onLoadStart={onLoadStart}
                     onLoadEnd={onLoadEnd}
                     onError={onError}
                 />
-            )}
+            ) : null}
         </View>
     );
 }
 
-function PreloadedStoryImages() {
+function StoryVideo({
+                        slide,
+                        isActive,
+                        isPaused,
+                        onLoadStart,
+                        onLoadEnd,
+                        onError,
+                        onEnd,
+                        onProgress,
+                    }: {
+    slide: Story["slides"][number];
+    isActive: boolean;
+    isPaused: boolean;
+    onLoadStart?: () => void;
+    onLoadEnd?: () => void;
+    onError?: () => void;
+    onEnd?: () => void;
+    onProgress?: (progress: number) => void;
+}) {
+    const player = useVideoPlayer(
+        {uri: slide.src, useCaching: true},
+        (videoPlayer) => {
+            videoPlayer.loop = false;
+            videoPlayer.muted = false;
+            videoPlayer.timeUpdateEventInterval = 0.25;
+        }
+    );
+
+    useEffect(() => {
+        if (!isActive || isPaused) {
+            player.pause();
+            return;
+        }
+
+        player.play();
+    }, [isActive, isPaused, player]);
+
+    useEffect(() => {
+        if (!isActive) {
+            player.pause();
+            player.currentTime = 0;
+        }
+    }, [isActive, player]);
+
+    useEffect(() => {
+        const statusSubscription = player.addListener("statusChange", ({status}) => {
+            if (status === "loading") {
+                onLoadStart?.();
+                return;
+            }
+
+            if (status === "readyToPlay") {
+                onLoadEnd?.();
+                return;
+            }
+
+            if (status === "error") {
+                onError?.();
+            }
+        });
+        const endSubscription = player.addListener("playToEnd", () => {
+            onProgress?.(100);
+            onEnd?.();
+        });
+        const timeSubscription = player.addListener("timeUpdate", ({currentTime}) => {
+            const durationSeconds =
+                slide.durationMs ? slide.durationMs / 1000 : player.duration;
+
+            if (durationSeconds > 0) {
+                onProgress?.(Math.min((currentTime / durationSeconds) * 100, 100));
+            }
+        });
+
+        return () => {
+            statusSubscription.remove();
+            endSubscription.remove();
+            timeSubscription.remove();
+        };
+    }, [onEnd, onError, onLoadEnd, onLoadStart, onProgress, player, slide.durationMs]);
+
+    return (
+        <VideoView
+            player={player}
+            style={styles.media}
+            contentFit="contain"
+            nativeControls={false}
+            allowsFullscreen={false}
+            allowsPictureInPicture={false}
+            onFirstFrameRender={onLoadEnd}
+        />
+    );
+}
+
+function PreloadedStoryImages({stories}: {stories: Story[]}) {
     return (
         <View pointerEvents="none" style={styles.preloadLayer}>
-            {StoriesData.flatMap((story) => [
+            {stories.flatMap((story) => [
                 story.previewImage,
-                ...story.slides.map((slide) => slide.src),
+                ...story.slides
+                    .filter((slide) => slide.type === "image")
+                    .map((slide) => slide.src),
                 ...story.slides.map((slide) => slide.poster).filter(Boolean),
             ]).map((src, index) => (
                 <Image

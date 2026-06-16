@@ -6,6 +6,8 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {themeColors} from "@/utils/theme-colors";
 import {getCartItemsCount, useCartStore} from "@/store/cart-store";
 import {useNavigationLoading} from "@/providers/NavigationLoadingProvider";
+import {openAuthSheet} from "@/features/auth/AuthSheetController";
+import {isProfileAuthenticated} from "@/store/profile-store";
 
 const TAB_META: Record<
     string,
@@ -79,7 +81,21 @@ export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarPro
                             canPreventDefault: true,
                         });
 
-                        if (!focused && !event.defaultPrevented) {
+                        if (event.defaultPrevented) {
+                            return;
+                        }
+
+                        if (route.name === "profile" && !isProfileAuthenticated()) {
+                            openAuthSheet({
+                                onSuccess: () => {
+                                    showLoading();
+                                    navigation.navigate(route.name);
+                                },
+                            });
+                            return;
+                        }
+
+                        if (!focused) {
                             if (route.name !== "menu") {
                                 showLoading();
                             }

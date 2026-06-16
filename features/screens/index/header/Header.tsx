@@ -8,6 +8,8 @@ import {themeColors} from "@/utils/theme-colors";
 import {useDeliveryStore} from "@/store/delivery-store";
 import {useAddressStore} from "@/store/address-store";
 import {useAppDataStore} from "@/store/app-data-store";
+import {openAuthSheet} from "@/features/auth/AuthSheetController";
+import {isProfileAuthenticated} from "@/store/profile-store";
 
 export function Header() {
     const deliveryType = useDeliveryStore((state) => state.type);
@@ -88,7 +90,19 @@ export function Header() {
                     />
                 </Pressable>
 
-                <Pressable style={styles.profileButton}>
+                <Pressable
+                    style={styles.profileButton}
+                    onPress={() => {
+                        if (isProfileAuthenticated()) {
+                            router.push("/profile");
+                            return;
+                        }
+
+                        openAuthSheet({
+                            onSuccess: () => router.push("/profile"),
+                        });
+                    }}
+                >
                     <View style={styles.avatar} />
                 </Pressable>
             </View>

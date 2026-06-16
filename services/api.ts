@@ -54,6 +54,17 @@ export class ApiError extends Error {
     }
 }
 
+let authTokenProvider: (() => string | null) | null = null;
+let authRefreshHandler: (() => Promise<boolean>) | null = null;
+
+export const setApiAuthTokenProvider = (provider: (() => string | null) | null) => {
+    authTokenProvider = provider;
+};
+
+export const setApiAuthRefreshHandler = (handler: (() => Promise<boolean>) | null) => {
+    authRefreshHandler = handler;
+};
+
 const parseJsonSafely = (text: string) => {
     if (!text) {
         return null;
@@ -70,9 +81,16 @@ export const apiFetch = async <T>(
     path: string,
     options: RequestInit & {
         params?: Record<string, string | null | undefined>;
+        auth?: boolean;
+        retryOnUnauthorized?: boolean;
     } = {}
 ) => {
-    const {params, ...requestOptions} = options;
+    const {
+        params,
+        auth = true,
+        retryOnUnauthorized = true,
+        ...requestOptions
+    } = options;
     const headers = new Headers(requestOptions.headers);
     const isFormDataBody =
         typeof FormData !== "undefined" &&
@@ -82,11 +100,43 @@ export const apiFetch = async <T>(
         headers.set("Content-Type", "application/json");
     }
 
-    const response = await fetch(buildApiUrl(path, params), {
+    const token = auth ? authTokenProvider?.() : null;
+
+    if (token && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const url = buildApiUrl(path, params);
+    let response = await fetch(url, {
         cache: "no-store",
         ...requestOptions,
         headers,
     });
+
+    if (
+        response.status === 401 &&
+        auth &&
+        retryOnUnauthorized &&
+        authRefreshHandler &&
+        await authRefreshHandler()
+    ) {
+        const retryHeaders = new Headers(requestOptions.headers);
+        const retryToken = authTokenProvider?.();
+
+        if (requestOptions.body && !isFormDataBody && !retryHeaders.has("Content-Type")) {
+            retryHeaders.set("Content-Type", "application/json");
+        }
+
+        if (retryToken && !retryHeaders.has("Authorization")) {
+            retryHeaders.set("Authorization", `Bearer ${retryToken}`);
+        }
+
+        response = await fetch(url, {
+            cache: "no-store",
+            ...requestOptions,
+            headers: retryHeaders,
+        });
+    }
 
     if (!response.ok) {
         const error = parseJsonSafely(await response.text().catch(() => ""));

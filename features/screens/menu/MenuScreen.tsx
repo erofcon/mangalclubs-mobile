@@ -61,6 +61,7 @@ export function MenuScreen() {
     const [containerWidth, setContainerWidth] = useState(0);
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
     const [toastMessage, setToastMessage] = useState("");
+    const [availabilityBarHeight, setAvailabilityBarHeight] = useState(0);
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const categoryScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -211,6 +212,8 @@ export function MenuScreen() {
         };
     }, [params.categoryId, scrollToCategory]);
 
+    const topChromeHeight = availabilityBarHeight > 0 ? availabilityBarHeight : insets.top;
+
     return (
         <>
             <StatusBar style="light" />
@@ -219,7 +222,10 @@ export function MenuScreen() {
                 <View style={styles.root} onLayout={onContainerLayout}>
                     <Animated.ScrollView
                         ref={animatedScrollRef}
-                        style={styles.scroll}
+                        style={[
+                            styles.scroll,
+                            {marginTop: topChromeHeight},
+                        ]}
                         contentContainerStyle={{
                             paddingBottom: insets.bottom + 104,
                         }}
@@ -242,7 +248,6 @@ export function MenuScreen() {
                             style={styles.stickyHeader}
                             onLayout={handleTabsLayout}
                         >
-                            <OrderAvailabilityBar />
                             <OrderType scrollY={scrollY} />
                             <View
                                 collapsable={false}
@@ -291,6 +296,23 @@ export function MenuScreen() {
                             )}
                         </View>
                     </Animated.ScrollView>
+
+                    {availabilityBarHeight === 0 && topChromeHeight > 0 ? (
+                        <View
+                            pointerEvents="none"
+                            style={[
+                                styles.topSafeAreaBackground,
+                                {height: topChromeHeight},
+                            ]}
+                        />
+                    ) : null}
+
+                    <View style={styles.availabilityBarOverlay}>
+                        <OrderAvailabilityBar
+                            topInset={insets.top}
+                            onHeightChange={setAvailabilityBarHeight}
+                        />
+                    </View>
 
                     {toastMessage ? (
                         <Animated.View
@@ -385,17 +407,34 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: themeColors.background,
     },
+    availabilityBarOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        elevation: 1000,
+    },
+    topSafeAreaBackground: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: themeColors.background,
+        zIndex: 998,
+        elevation: 998,
+    },
     stickyHeader: {
         zIndex: 999,
-        backgroundColor:themeColors.background,
-        marginTop: -40,
+        backgroundColor: themeColors.background,
         overflow: "hidden",
     },
     categoriesStickyBlock: {
         zIndex: 999,
         elevation: 999,
         paddingHorizontal: 0,
-        paddingVertical:14,
+        paddingTop: 8,
+        paddingBottom: 10,
         backgroundColor: themeColors.background,
     },
     sectionsBlock: {

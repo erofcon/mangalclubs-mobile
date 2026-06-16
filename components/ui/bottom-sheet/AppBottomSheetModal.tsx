@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import {
     Pressable,
+    ScrollViewProps,
     StyleProp,
     StyleSheet,
     Text,
@@ -18,6 +19,7 @@ import {
     BottomSheetBackdrop,
     BottomSheetBackdropProps,
     BottomSheetModal,
+    BottomSheetModalProps,
     BottomSheetScrollView,
     BottomSheetView,
     } from "@gorhom/bottom-sheet";
@@ -66,6 +68,10 @@ type AppBottomSheetProps = {
     initialIndex?: number;
     showCloseButton?: boolean;
     enablePanDownToClose?: boolean;
+    keyboardBehavior?: BottomSheetModalProps["keyboardBehavior"];
+    keyboardBlurBehavior?: BottomSheetModalProps["keyboardBlurBehavior"];
+    androidKeyboardInputMode?: BottomSheetModalProps["android_keyboardInputMode"];
+    keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
 
     containerStyle?: StyleProp<ViewStyle>;
     contentContainerStyle?: StyleProp<ViewStyle>;
@@ -89,6 +95,10 @@ export const AppBottomSheetModal = forwardRef<AppBottomSheetRef, AppBottomSheetP
             initialIndex = 0,
             showCloseButton = false,
             enablePanDownToClose = true,
+            keyboardBehavior = "interactive",
+            keyboardBlurBehavior = "restore",
+            androidKeyboardInputMode = "adjustResize",
+            keyboardShouldPersistTaps = "handled",
             containerStyle,
             contentContainerStyle,
             footerContainerStyle,
@@ -155,9 +165,9 @@ export const AppBottomSheetModal = forwardRef<AppBottomSheetRef, AppBottomSheetP
                 backdropComponent={renderBackdrop}
                 backgroundStyle={styles.background}
                 handleIndicatorStyle={styles.handleIndicator}
-                keyboardBehavior="interactive"
-                keyboardBlurBehavior="restore"
-                android_keyboardInputMode="adjustResize"
+                keyboardBehavior={keyboardBehavior}
+                keyboardBlurBehavior={keyboardBlurBehavior}
+                android_keyboardInputMode={androidKeyboardInputMode}
                 onChange={onChange}
                 onDismiss={onDismiss}
             >
@@ -168,6 +178,7 @@ export const AppBottomSheetModal = forwardRef<AppBottomSheetRef, AppBottomSheetP
                         contentContainerStyle,
                     ]}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps={keyboardShouldPersistTaps}
                 >
                     {hasHeader && (
                         <View style={styles.header}>
