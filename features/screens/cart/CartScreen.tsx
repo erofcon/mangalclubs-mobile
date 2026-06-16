@@ -5,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/ui/Screen";
-import { Organizations } from "@/mocks/mocks-data";
 import { useAddressStore } from "@/store/address-store";
 import {
     CART_DELIVERY_FEE,
@@ -19,10 +18,10 @@ import { useDeliveryStore, type SelectedDeliveryType } from "@/store/delivery-st
 import { SHADOW, themeColors } from "@/utils/theme-colors";
 import { CartRow } from "@/features/screens/cart/CartRow";
 import { formatPrice } from "@/utils/format_price";
+import {useAppDataStore} from "@/store/app-data-store";
 
 const TAB_BAR_HEIGHT = 24;
 const FIXED_HEADER_HEIGHT = 80;
-const DELIVERY_SLOT_STEP = 15;
 const FOOTER_EXTRA_SPACE = 220;
 
 function padTime(value: number): string {
@@ -41,9 +40,14 @@ function formatOrderTime(
     }
 
     const { day, startMinutes } = deliveryTime.selectedTime;
-    const dayLabel = day === "today" ? "Сегодня" : "Завтра";
+    const dayLabel =
+        day === "today"
+            ? "Сегодня"
+            : day === "tomorrow"
+                ? "Завтра"
+                : "Послезавтра";
 
-    return `${dayLabel} в ${formatTime(startMinutes)}-${formatTime(startMinutes + DELIVERY_SLOT_STEP)}`;
+    return `${dayLabel} в ${formatTime(startMinutes)}`;
 }
 
 function formatItemsCount(count: number): string {
@@ -109,6 +113,10 @@ export function CartScreen() {
     const deliveryType = useDeliveryStore((state) => state.type);
     const deliveryTime = useDeliveryStore((state) => state.deliveryTime);
     const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
+    const organizations = useAppDataStore((state) => state.organizations);
+    const defaultDeliveryOrganization = useAppDataStore(
+        (state) => state.defaultDeliveryOrganization
+    );
 
     const addresses = useAddressStore((state) => state.addresses);
     const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
@@ -125,10 +133,14 @@ export function CartScreen() {
 
     const sourceRestaurant = useMemo(
         () =>
-            Organizations.find((organization) => organization.id === sourceRestaurantId) ??
-            Organizations[0] ??
+            organizations.find((organization) =>
+                organization.id === sourceRestaurantId ||
+                organization.slug === sourceRestaurantId
+            ) ??
+            defaultDeliveryOrganization ??
+            organizations[0] ??
             null,
-        [sourceRestaurantId]
+        [defaultDeliveryOrganization, organizations, sourceRestaurantId]
     );
 
     const itemsCount = getCartItemsCount(items);
@@ -139,7 +151,9 @@ export function CartScreen() {
         deliveryType,
         orderTime: formatOrderTime(deliveryTime),
         deliveryTarget: selectedAddress?.shortAddress ?? null,
-        takeawayTarget: sourceRestaurant?.address ?? null,
+        takeawayTarget: sourceRestaurant
+            ? `${sourceRestaurant.name}, ${sourceRestaurant.address}`
+            : null,
     });
 
     if (items.length === 0) {

@@ -18,9 +18,10 @@ import {
     type AppBottomSheetRef,
 } from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 
-import {Organizations} from "@/mocks/mocks-data";
 import type {Organization} from "@/types/organization";
 import {themeColors} from "@/utils/theme-colors";
+import {resolveApiAssetUrl} from "@/services/api";
+import {useAppDataStore} from "@/store/app-data-store";
 
 type Restaurant = {
     id: string;
@@ -29,27 +30,13 @@ type Restaurant = {
     hours: string;
     phone: string;
     intro: string;
-    image: ImageSourcePropType;
+    image: ImageSourcePropType | string;
 };
 
 const restaurantImages: Record<string, ImageSourcePropType> = {
     fazenda: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
     "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
 };
-
-const restaurants: Restaurant[] = Organizations.map(
-    (organization: Organization) => ({
-        id: organization.id,
-        title: organization.name,
-        address: `${organization.city}, ${organization.address}`,
-        hours: organization.schedule,
-        phone: organization.phone,
-        intro: organization.intro,
-        image:
-            restaurantImages[organization.id] ??
-            restaurantImages.fazenda,
-    }),
-);
 
 const getPhoneUrl = (phone: string) =>
     `tel:${phone.replace(/[^\d+]/g, "")}`;
@@ -58,6 +45,7 @@ const getWhatsAppPhone = (phone: string) =>
     phone.replace(/\D/g, "");
 
 export function RestaurantsList() {
+    const organizations = useAppDataStore((state) => state.organizations);
 
     const restaurantSheetRef =
         useRef<AppBottomSheetRef>(null);
@@ -65,6 +53,24 @@ export function RestaurantsList() {
     const [selectedRestaurant,
         setSelectedRestaurant] =
         useState<Restaurant | null>(null);
+
+    const restaurants = organizations.map((organization: Organization) => {
+        const image = resolveApiAssetUrl(organization.photo_url);
+
+        return {
+            id: organization.id,
+            title: organization.name,
+            address: `${organization.city}, ${organization.address}`,
+            hours: organization.schedule,
+            phone: organization.phone,
+            intro: organization.intro,
+            image:
+                image ??
+                restaurantImages[organization.slug ?? organization.id] ??
+                restaurantImages[organization.id] ??
+                restaurantImages.fazenda,
+        };
+    });
 
     useEffect(() => {
 
@@ -462,7 +468,6 @@ const styles = StyleSheet.create({
         color: themeColors.textSecondary,
         fontFamily: "Point-Regular"
     },
-
     sheetContainer: {
         position: "relative",
     },
@@ -502,7 +507,6 @@ const styles = StyleSheet.create({
         gap: 10,
         marginTop: 10,
     },
-
     contactRow: {
         padding: 14,
         borderRadius: 12,

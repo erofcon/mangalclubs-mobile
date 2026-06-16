@@ -5,6 +5,7 @@ import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {themeColors} from "@/utils/theme-colors";
 import {getCartItemsCount, useCartStore} from "@/store/cart-store";
+import {useNavigationLoading} from "@/providers/NavigationLoadingProvider";
 
 const TAB_META: Record<
     string,
@@ -45,6 +46,7 @@ export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarPro
     const insets = useSafeAreaInsets();
     const cartItems = useCartStore((store) => store.items);
     const cartItemsCount = getCartItemsCount(cartItems);
+    const {showLoading} = useNavigationLoading();
 
     return (
         <View
@@ -78,6 +80,7 @@ export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarPro
                         });
 
                         if (!focused && !event.defaultPrevented) {
+                            showLoading();
                             navigation.navigate(route.name);
                         }
                     };

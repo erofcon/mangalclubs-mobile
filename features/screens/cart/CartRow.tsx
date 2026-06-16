@@ -3,6 +3,7 @@ import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {themeColors} from "@/utils/theme-colors";
 import {CartItem} from "@/store/cart-store";
 import {formatPrice} from "@/utils/format_price";
+import {toImageSource} from "@/utils/image-source";
 
 
 export function CartRow({
@@ -25,7 +26,7 @@ export function CartRow({
             <View style={styles.cartRow}>
                 <View style={styles.itemImageWrap}>
                     {item.image ? (
-                        <Image source={item.image} style={styles.itemImage} resizeMode="cover"/>
+                        <Image source={toImageSource(item.image)} style={styles.itemImage} resizeMode="cover"/>
                     ) : (
                         <MaterialCommunityIcons
                             name="food"

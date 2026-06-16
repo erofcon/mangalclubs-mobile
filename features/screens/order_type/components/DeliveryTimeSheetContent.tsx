@@ -4,6 +4,12 @@ import type {DeliveryScheduleDay, DeliveryTimeSlot} from "@/store/delivery-store
 import {formatDayLabel, formatSlotRange} from "../order-type.utils";
 import styles from "../order-type.styles";
 
+const deliveryScheduleDays: DeliveryScheduleDay[] = [
+    "today",
+    "tomorrow",
+    "dayAfterTomorrow",
+];
+
 type Props = {
     now: Date;
     sheetDay: DeliveryScheduleDay;
@@ -27,7 +33,9 @@ export function DeliveryTimeSheetContent({
         <>
             <View style={styles.sheetContent}>
                 <View style={styles.dayTabs}>
-                    {(["today", "tomorrow"] as DeliveryScheduleDay[]).map((day) => {
+                    {deliveryScheduleDays
+                        .filter((day) => scheduleSlots[day].length > 0)
+                        .map((day) => {
                         const slots = scheduleSlots[day];
                         const active = day === sheetDay;
 

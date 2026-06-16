@@ -3,9 +3,13 @@ import {Platform} from "react-native";
 
 import type { Coordinates } from "@/utils/location-config";
 
+const LAST_KNOWN_LOCATION_MAX_AGE_MS = 60_000;
+const LAST_KNOWN_LOCATION_REQUIRED_ACCURACY_METERS = 100;
+
 type DeviceLocationErrorCode =
     | "permission-denied"
     | "permission-blocked"
+    | "precise-permission-denied"
     | "services-disabled"
     | "unavailable";
 
@@ -51,10 +55,22 @@ export async function getCurrentDeviceCoordinates(): Promise<Coordinates> {
         );
     }
 
+    if (Platform.OS === "android" && permission.android?.accuracy !== "fine") {
+        throw new DeviceLocationError(
+            "precise-permission-denied",
+            "Включите точную геопозицию для приложения и попробуйте еще раз."
+        );
+    }
+
     const currentPosition = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.Highest,
         mayShowUserSettingsDialog: true,
-    });
+    }).catch(async () => (
+        Location.getLastKnownPositionAsync({
+            maxAge: LAST_KNOWN_LOCATION_MAX_AGE_MS,
+            requiredAccuracy: LAST_KNOWN_LOCATION_REQUIRED_ACCURACY_METERS,
+        })
+    ));
 
     if (!currentPosition) {
         throw new DeviceLocationError(
@@ -71,6 +87,13 @@ export async function getCurrentDeviceCoordinates(): Promise<Coordinates> {
 }
 
 export function getHumanLocationError(error: unknown): string {
+    if (
+        error instanceof DeviceLocationError &&
+        error.code === "precise-permission-denied"
+    ) {
+        return error.message;
+    }
+
     if (error instanceof DeviceLocationError) {
         switch (error.code) {
             case "permission-denied":

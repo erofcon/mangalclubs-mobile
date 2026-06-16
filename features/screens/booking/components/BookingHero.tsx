@@ -1,0 +1,83 @@
+import {Text, View} from "react-native";
+import {Image} from "expo-image";
+import {LinearGradient} from "expo-linear-gradient";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import Animated, {
+    Extrapolation,
+    interpolate,
+    type SharedValue,
+    useAnimatedStyle,
+} from "react-native-reanimated";
+
+import {themeColors} from "@/utils/theme-colors";
+
+import {HERO_HEIGHT} from "../booking.constants";
+import styles from "../booking.styles";
+
+type BookingHeroProps = {
+    scrollY: SharedValue<number>;
+};
+
+export function BookingHero({scrollY}: BookingHeroProps) {
+    const imageStyle = useAnimatedStyle(() => {
+        const opacity = interpolate(
+            scrollY.value,
+            [0, HERO_HEIGHT * 0.6, HERO_HEIGHT],
+            [1, 0.5, 0],
+            Extrapolation.CLAMP,
+        );
+        const scale = interpolate(scrollY.value, [0, HERO_HEIGHT], [1, 1.08], Extrapolation.CLAMP);
+
+        return {
+            opacity,
+            transform: [{scale}],
+        };
+    });
+
+    const contentStyle = useAnimatedStyle(() => {
+        const opacity = interpolate(scrollY.value, [0, HERO_HEIGHT * 0.45], [1, 0], Extrapolation.CLAMP);
+        const translateY = interpolate(scrollY.value, [0, HERO_HEIGHT], [0, -32], Extrapolation.CLAMP);
+
+        return {
+            opacity,
+            transform: [{translateY}],
+        };
+    });
+
+    return (
+        <View style={styles.hero}>
+            <Animated.View style={[styles.heroImageLayer, imageStyle]}>
+                <Image
+                    source={require("@/assets/mocks/booking/610633596_18097555435907715_5781624860738448425_n..jpg")}
+                    style={styles.heroImage}
+                    contentFit="cover"
+                />
+
+                <View style={styles.heroOverlay} />
+
+                <LinearGradient
+                    colors={[themeColors.background, "transparent"]}
+                    style={styles.heroTopGradient}
+                />
+
+                <LinearGradient
+                    colors={["transparent", themeColors.background]}
+                    style={styles.heroBottomGradient}
+                />
+            </Animated.View>
+
+            <Animated.View style={[styles.heroContent, contentStyle]}>
+                <View style={styles.heroPill}>
+                    <MaterialCommunityIcons name="calendar-clock" size={15} color={themeColors.primary} />
+                    <Text style={styles.heroPillText}>Бронирование</Text>
+                </View>
+
+                <Text style={styles.heroTitle}>Приватные зоны Mangal Clubs</Text>
+
+                <Text style={styles.heroSubtitle} numberOfLines={2}>
+                    Выберите кабинку, сауну или столик и свяжитесь с рестораном удобным способом.
+                </Text>
+            </Animated.View>
+        </View>
+    );
+}

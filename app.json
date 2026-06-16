@@ -4,7 +4,7 @@
     "slug": "mangalclubs-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/logo.png",
     "scheme": "mangalclubs-mobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -25,11 +25,14 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#070808",
+
           "dark": {
-            "backgroundColor": "#000000"
+            "image": "./assets/logo.png",
+            "backgroundColor": "#070808"
           }
         }
       ]

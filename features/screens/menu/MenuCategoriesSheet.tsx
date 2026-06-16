@@ -18,7 +18,11 @@ export const MenuCategoriesSheet = forwardRef<AppBottomSheetRef, MenuCategoriesS
                 title="Категории"
                 options={categories}
                 activeOptionId={activeCategoryId}
-                onSelectOption={onSelectCategory}
+                onSelectOption={(categoryId) => {
+                    if (categoryId) {
+                        onSelectCategory(categoryId);
+                    }
+                }}
             />
         );
     },

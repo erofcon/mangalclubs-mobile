@@ -8,11 +8,11 @@ import Animated, {
     type SharedValue,
     useAnimatedStyle,
 } from "react-native-reanimated";
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView} from "react-native-safe-area-context";
 
-import {Organizations} from "@/mocks/mocks-data";
 import {useAddressStore} from "@/store/address-store";
-import {useDeliveryStore, type DeliveryType} from "@/store/delivery-store";
+import {useDeliveryStore} from "@/store/delivery-store";
+import {useAppDataStore} from "@/store/app-data-store";
 import {themeColors} from "@/utils/theme-colors";
 
 const HEADER_COLLAPSE_DISTANCE = 270;
@@ -23,10 +23,13 @@ type Props = {
 
 export function OrderType({scrollY}: Props) {
     const deliveryType = useDeliveryStore((state) => state.type);
-    const setDeliveryType = useDeliveryStore((state) => state.setType);
     const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
     const addresses = useAddressStore((state) => state.addresses);
     const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
+    const organizations = useAppDataStore((state) => state.organizations);
+    const defaultDeliveryOrganization = useAppDataStore(
+        (state) => state.defaultDeliveryOrganization
+    );
 
     const selectedAddress = useMemo(
         () =>
@@ -38,10 +41,14 @@ export function OrderType({scrollY}: Props) {
 
     const sourceRestaurant = useMemo(
         () =>
-            Organizations.find((organization) => organization.id === sourceRestaurantId) ??
-            Organizations[0] ??
+            organizations.find((organization) =>
+                organization.id === sourceRestaurantId ||
+                organization.slug === sourceRestaurantId
+            ) ??
+            defaultDeliveryOrganization ??
+            organizations[0] ??
             null,
-        [sourceRestaurantId]
+        [defaultDeliveryOrganization, organizations, sourceRestaurantId]
     );
 
     const orderTargetText =
@@ -51,14 +58,10 @@ export function OrderType({scrollY}: Props) {
                 ? sourceRestaurant?.name ?? "Выберите ресторан"
                 : "Выберите способ заказа";
 
-    const handleTypePress = (type: DeliveryType) => {
-        setDeliveryType(type);
-    };
-
-    const openOrderTypeScreen = () => {
+    const openOrderTypeScreen = (type?: "delivery" | "takeaway") => {
         router.push({
             pathname: "/order_type",
-            params: deliveryType ? {type: deliveryType} : undefined,
+            params: type ? {type} : deliveryType ? {type: deliveryType} : undefined,
         });
     };
 
@@ -112,7 +115,7 @@ export function OrderType({scrollY}: Props) {
                         >
                             <View style={styles.segment}>
                                 <Pressable
-                                    onPress={() => handleTypePress("delivery")}
+                                    onPress={() => openOrderTypeScreen("delivery")}
                                     style={[
                                         styles.segmentButton,
                                         deliveryType === "delivery" && styles.segmentActive,
@@ -129,7 +132,7 @@ export function OrderType({scrollY}: Props) {
                                 </Pressable>
 
                                 <Pressable
-                                    onPress={() => handleTypePress("takeaway")}
+                                    onPress={() => openOrderTypeScreen("takeaway")}
                                     style={[
                                         styles.segmentButton,
                                         deliveryType === "takeaway" && styles.segmentActive,
@@ -141,14 +144,14 @@ export function OrderType({scrollY}: Props) {
                                             deliveryType === "takeaway" && styles.segmentActiveText,
                                         ]}
                                     >
-                                        Навынос
+                                        Самовывоз
                                     </Text>
                                 </Pressable>
                             </View>
                         </Animated.View>
                     </Animated.View>
 
-                    <Pressable style={styles.addressRow} onPress={openOrderTypeScreen}>
+                    <Pressable style={styles.addressRow} onPress={() => openOrderTypeScreen()}>
                         <Text style={styles.addressText} numberOfLines={1}>
                             {orderTargetText}
                         </Text>
@@ -170,7 +173,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         backgroundColor: themeColors.background,
     },
-
     card: {
         padding: 7,
         borderRadius: 20,
@@ -178,15 +180,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
     },
-
     segmentClip: {
         overflow: "hidden",
     },
-
     segmentAnimatedContent: {
         height: 52,
     },
-
     segment: {
         height: 42,
         flexDirection: "row",
@@ -196,30 +195,25 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.07)",
     },
-
     segmentButton: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 10,
     },
-
     segmentActive: {
         backgroundColor: themeColors.primary,
     },
-
     segmentText: {
         color: themeColors.text,
         fontSize: 14,
         fontFamily: "Point-SemiBold",
         opacity: 0.82,
     },
-
     segmentActiveText: {
         color: themeColors.textOnPrimary,
         opacity: 1,
     },
-
     addressRow: {
         minHeight: 48,
         flexDirection: "row",
@@ -228,7 +222,6 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingHorizontal: 11,
     },
-
     addressText: {
         flex: 1,
         minWidth: 0,

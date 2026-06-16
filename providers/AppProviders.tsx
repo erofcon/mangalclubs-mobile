@@ -10,6 +10,8 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {BottomSheetModalProvider} from "@gorhom/bottom-sheet";
 import {themeColors} from "@/utils/theme-colors";
 import * as SystemUI from 'expo-system-ui';
+import {HealthGate} from "@/components/HealthGate";
+import {AppDataSync} from "@/components/AppDataSync";
 
 
 const CustomTheme = {
@@ -51,7 +53,12 @@ export function AppProviders({children}: PropsWithChildren) {
             <SafeAreaProvider>
                 <QueryClientProvider client={queryClient}>
                     <BottomSheetModalProvider>
-                        <NavigationThemeProvider>{children}</NavigationThemeProvider>
+                        <NavigationThemeProvider>
+                            <HealthGate>
+                                <AppDataSync />
+                                {children}
+                            </HealthGate>
+                        </NavigationThemeProvider>
                     </BottomSheetModalProvider>
                 </QueryClientProvider>
             </SafeAreaProvider>

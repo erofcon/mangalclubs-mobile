@@ -23,7 +23,6 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
-import {menus} from "@/mocks/mocks-data";
 import type {MenuItem} from "@/types/products";
 import {useIndexMenuScroll} from "@/features/screens/index/menu/use-index-menu-scroll";
 import {ANDROID_DECELERATION_RATE} from "@/features/screens/index/menu/constants";
@@ -34,6 +33,10 @@ import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {MenuCategoriesSheet} from "@/features/screens/menu/MenuCategoriesSheet";
 import {useCartStore} from "@/store/cart-store";
+import {useNavigationLoading} from "@/providers/NavigationLoadingProvider";
+import {useAppDataStore} from "@/store/app-data-store";
+import {useDeliveryStore} from "@/store/delivery-store";
+import {OrderAvailabilityBar} from "@/components/OrderAvailabilityBar";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
 
@@ -45,8 +48,14 @@ export function MenuScreen() {
     const [toastMessage, setToastMessage] = useState("");
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const categoryLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
     const addItemToCart = useCartStore((state) => state.addItem);
+    const deliveryType = useDeliveryStore((state) => state.type);
+    const menus = useAppDataStore((state) => state.menu);
+    const isMenuLoading = useAppDataStore((state) => state.isMenuLoading);
+    const errorMessage = useAppDataStore((state) => state.errorMessage);
+    const {hideLoading, showLoading} = useNavigationLoading();
 
     const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
         setContainerWidth(event.nativeEvent.layout.width);
@@ -54,7 +63,7 @@ export function MenuScreen() {
 
     const availableCategories = useMemo(() => {
         return menus.filter((category) => category.items.length > 0);
-    }, []);
+    }, [menus]);
 
     const itemsByCategory = useMemo(() => {
         return availableCategories.reduce<Record<string, MenuItem[]>>((acc, category) => {
@@ -136,16 +145,25 @@ export function MenuScreen() {
     }, [toastProgress]);
 
     const handleProductAdd = useCallback((item: MenuItem) => {
+        if (!deliveryType) {
+            router.push("/order_type");
+            return;
+        }
+
         addItemToCart(item);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
         });
         showAddedToast(item);
-    }, [addItemToCart, showAddedToast]);
+    }, [addItemToCart, deliveryType, showAddedToast]);
 
     useEffect(() => {
         return () => {
             if (toastTimerRef.current) {
                 clearTimeout(toastTimerRef.current);
+            }
+
+            if (categoryLoadingTimerRef.current) {
+                clearTimeout(categoryLoadingTimerRef.current);
             }
         };
     }, []);
@@ -156,12 +174,29 @@ export function MenuScreen() {
             return;
         }
 
+        showLoading({minDuration: 620, maxDuration: 2600});
+
         const timer = setTimeout(() => {
-            scrollToCategory(categoryId);
+            const duration = scrollToCategory(categoryId);
+            const hideDelay = duration === null ? 420 : duration + 90;
+
+            if (categoryLoadingTimerRef.current) {
+                clearTimeout(categoryLoadingTimerRef.current);
+            }
+
+            categoryLoadingTimerRef.current = setTimeout(() => {
+                hideLoading();
+            }, hideDelay);
         }, 350);
 
-        return () => clearTimeout(timer);
-    }, [params.categoryId, scrollToCategory]);
+        return () => {
+            clearTimeout(timer);
+
+            if (categoryLoadingTimerRef.current) {
+                clearTimeout(categoryLoadingTimerRef.current);
+            }
+        };
+    }, [hideLoading, params.categoryId, scrollToCategory, showLoading]);
 
     return (
         <>
@@ -194,7 +229,8 @@ export function MenuScreen() {
                             style={styles.stickyHeader}
                             onLayout={handleTabsLayout}
                         >
-                                <OrderType scrollY={scrollY} />
+                            <OrderAvailabilityBar />
+                            <OrderType scrollY={scrollY} />
                             <View
                                 collapsable={false}
                                 style={styles.categoriesStickyBlock}
@@ -216,14 +252,24 @@ export function MenuScreen() {
                             style={styles.sectionsBlock}
                             onLayout={handleSectionsLayout}
                         >
-                            <MenuSections
-                                categories={availableCategories}
-                                itemsByCategory={itemsByCategory}
-                                itemWidth={itemWidth}
-                                onProductPress={setSelectedDish}
-                                onProductAdd={handleProductAdd}
-                                onCategoryLayout={handleCategoryLayout}
-                            />
+                            {isMenuLoading ? (
+                                <View style={styles.stateBlock}>
+                                    <Text style={styles.stateText}>Загружаем меню...</Text>
+                                </View>
+                            ) : errorMessage ? (
+                                <View style={styles.stateBlock}>
+                                    <Text style={styles.stateText}>{errorMessage}</Text>
+                                </View>
+                            ) : (
+                                <MenuSections
+                                    categories={availableCategories}
+                                    itemsByCategory={itemsByCategory}
+                                    itemWidth={itemWidth}
+                                    onProductPress={setSelectedDish}
+                                    onProductAdd={handleProductAdd}
+                                    onCategoryLayout={handleCategoryLayout}
+                                />
+                            )}
                         </View>
                     </Animated.ScrollView>
 
@@ -281,7 +327,7 @@ const styles = StyleSheet.create({
         zIndex: 999,
         elevation: 999,
         paddingHorizontal: 0,
-        paddingBottom: 14,
+        paddingVertical:14,
         backgroundColor: themeColors.background,
     },
     sectionsBlock: {
@@ -289,6 +335,19 @@ const styles = StyleSheet.create({
         zIndex: 0,
         elevation: 0,
         backgroundColor: themeColors.background,
+    },
+    stateBlock: {
+        minHeight: 180,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+    },
+    stateText: {
+        color: themeColors.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+        textAlign: "center",
+        fontFamily: "Point-Regular",
     },
     toast: {
         position: "absolute",

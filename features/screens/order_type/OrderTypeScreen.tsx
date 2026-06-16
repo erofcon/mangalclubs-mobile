@@ -1,5 +1,4 @@
-import {Text, View, Pressable} from "react-native";
-import {Ionicons} from "@expo/vector-icons";
+import {Pressable, Text, View} from "react-native";
 
 import {Screen} from "@/components/ui/Screen";
 import {AppBottomSheetModal} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
@@ -30,7 +29,6 @@ export function OrderTypeScreen() {
         visibleTab,
 
         canAddMoreAddresses,
-        hasSavedAddresses,
         showOrderPanel,
         bottomPadding,
 
@@ -41,6 +39,8 @@ export function OrderTypeScreen() {
         selectedTakeawayRestaurantId,
         setTakeawayRestaurantId,
         sourceRestaurantTitle,
+        orderUnavailableMessage,
+        canContinueOrder,
         scheduleSlots,
 
         openSheet,
@@ -53,8 +53,6 @@ export function OrderTypeScreen() {
 
         selectAddress,
     } = useOrderTypeScreen();
-
-    const topTextVisible = !(visibleTab === "delivery" && addresses.length === 0);
 
     return (
         <Screen withTopInset>
@@ -91,26 +89,24 @@ export function OrderTypeScreen() {
                                     activeTab === "takeaway" && styles.segmentTextActive,
                                 ]}
                             >
-                                Навынос
+                                Самовывоз
                             </Text>
                         </Pressable>
                     </View>
                 </View>
 
                 <View style={styles.content}>
-                    {topTextVisible && (
-                        <View style={styles.topText}>
-                            <Text style={styles.title}>
-                                {visibleTab === "delivery" ? "Сохранённые адреса" : "Выберите ресторан"}
-                            </Text>
+                    <View style={styles.topText}>
+                        <Text style={styles.title}>
+                            {visibleTab === "delivery" ? "Адрес доставки" : "Выберите ресторан"}
+                        </Text>
 
-                            <Text style={styles.subtitle}>
-                                {visibleTab === "delivery"
-                                    ? "Выберите адрес для доставки"
-                                    : "Где вы хотите забрать заказ"}
-                            </Text>
-                        </View>
-                    )}
+                        <Text style={styles.subtitle}>
+                            {visibleTab === "delivery"
+                                ? "Выберите сохраненный адрес или добавьте новый"
+                                : "Где вы хотите забрать заказ"}
+                        </Text>
+                    </View>
 
                     {visibleTab === "delivery" ? (
                         <AddressesList
@@ -140,6 +136,8 @@ export function OrderTypeScreen() {
                             currentMode={currentSchedule.mode}
                             currentScheduleText={currentScheduleText}
                             sourceRestaurantTitle={sourceRestaurantTitle}
+                            disabled={!canContinueOrder}
+                            disabledMessage={orderUnavailableMessage}
                             onAsapPress={handleAsapPress}
                             onSchedulePress={openSheet}
                             onContinue={handleContinue}

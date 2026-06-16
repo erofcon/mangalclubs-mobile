@@ -3,16 +3,23 @@ import {Pressable, StyleSheet, Text, View} from "react-native";
 
 import BottomSheet, {
     BottomSheetFooter,
-    BottomSheetView,
+    BottomSheetScrollView,
     type BottomSheetFooterProps,
 } from "@gorhom/bottom-sheet";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {themeColors} from "@/utils/theme-colors";
 
+export const ADDRESS_SHEET_SNAP_POINT = "42%";
+const FOOTER_BUTTON_HEIGHT = 56;
+const FOOTER_VERTICAL_SPACE = 24;
+
 type Props = {
     addressText: string;
+    deliveryPriceText?: string;
     locationStatusText: string;
     locationStatusTone?: "default" | "error";
+    canSave?: boolean;
     onSavePress?: () => void;
 };
 
@@ -20,60 +27,86 @@ export const AddressBottomSheet = forwardRef<
     React.ElementRef<typeof BottomSheet>,
     Props
 >(function AddressBottomSheet(
-    {addressText, locationStatusText, locationStatusTone = "default", onSavePress},
+    {
+        addressText,
+        deliveryPriceText,
+        locationStatusText,
+        locationStatusTone = "default",
+        canSave = true,
+        onSavePress,
+    },
     ref
 ) {
+    const insets = useSafeAreaInsets();
+    const footerBottomInset = Math.max(insets.bottom, 12);
+    const scrollBottomPadding =
+        FOOTER_BUTTON_HEIGHT + FOOTER_VERTICAL_SPACE + footerBottomInset;
+
     const renderFooter = useCallback(
         (props: BottomSheetFooterProps) => (
-            <BottomSheetFooter {...props} bottomInset={24}>
+            <BottomSheetFooter {...props} bottomInset={footerBottomInset}>
                 <View style={styles.footerContainer}>
-                    <Pressable style={styles.button} onPress={onSavePress}>
-                        <Text style={styles.buttonText}>
-                            Сохранить адрес
-                        </Text>
+                    <Pressable
+                        style={[styles.button, !canSave && styles.buttonDisabled]}
+                        onPress={onSavePress}
+                        disabled={!canSave}
+                    >
+                        <Text style={styles.buttonText}>Сохранить адрес</Text>
                     </Pressable>
                 </View>
             </BottomSheetFooter>
         ),
-        [onSavePress]
+        [canSave, footerBottomInset, onSavePress]
     );
 
     return (
         <BottomSheet
             ref={ref}
-            snapPoints={["32%"]}
-            index={1}
+            snapPoints={[ADDRESS_SHEET_SNAP_POINT]}
+            index={0}
             enablePanDownToClose={false}
             enableHandlePanningGesture={false}
-            enableContentPanningGesture={false}
             footerComponent={renderFooter}
             backgroundStyle={styles.background}
             handleIndicatorStyle={styles.handle}
         >
-            <BottomSheetView style={styles.contentContainer}>
+            <BottomSheetScrollView
+                style={styles.scroll}
+                contentContainerStyle={[
+                    styles.contentContainer,
+                    {paddingBottom: scrollBottomPadding},
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.addressContainer}>
                     <Text style={styles.descriptionText}>
                         Переместите карту, чтобы уточнить адрес
                     </Text>
 
-                    <Text style={styles.addressText} numberOfLines={3}>
-                        {addressText}
+                    <Text style={styles.addressText}>
+                        {addressText || "Адрес пока не определен"}
                     </Text>
                 </View>
+
+                {deliveryPriceText ? (
+                    <Text style={styles.deliveryPriceText}>
+                        {deliveryPriceText}
+                    </Text>
+                ) : null}
 
                 {locationStatusText ? (
                     <Text
                         style={[
                             styles.searchStatusText,
                             locationStatusTone === "error" &&
-                                styles.searchStatusTextError,
+                            styles.searchStatusTextError,
                         ]}
-                        numberOfLines={3}
                     >
                         {locationStatusText}
                     </Text>
                 ) : null}
-            </BottomSheetView>
+            </BottomSheetScrollView>
         </BottomSheet>
     );
 });
@@ -85,8 +118,10 @@ const styles = StyleSheet.create({
     handle: {
         backgroundColor: themeColors.background,
     },
-    contentContainer: {
+    scroll: {
         flex: 1,
+    },
+    contentContainer: {
         paddingHorizontal: 16,
         paddingTop: 12,
         gap: 12,
@@ -102,6 +137,9 @@ const styles = StyleSheet.create({
         backgroundColor: themeColors.primary,
         alignItems: "center",
         justifyContent: "center",
+    },
+    buttonDisabled: {
+        opacity: 0.55,
     },
     buttonText: {
         color: themeColors.textOnPrimary,
@@ -128,6 +166,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: "Point-SemiBold",
         letterSpacing: -0.5,
+    },
+    deliveryPriceText: {
+        color: themeColors.primary,
+        fontFamily: "Point-SemiBold",
+        fontSize: 14,
+        lineHeight: 18,
+        letterSpacing: -0.2,
+        paddingHorizontal: 4,
     },
     searchStatusText: {
         color: themeColors.textSecondary,

@@ -1,10 +1,7 @@
 import {FlatList, Pressable, Text, View} from "react-native";
-import {Ionicons} from "@expo/vector-icons";
 import {Image} from "expo-image";
 
 import type {TakeawayRestaurant} from "../order-type.types";
-import {themeColors} from "@/utils/theme-colors";
-
 import styles from "../order-type.styles";
 
 type Props = {
@@ -15,21 +12,28 @@ type Props = {
 };
 
 export function TakeawayRestaurantsList({
-                                            restaurants,
-                                            selectedRestaurantId,
-                                            onSelect,
-                                            bottomPadding,
-                                        }: Props) {
+    restaurants,
+    selectedRestaurantId,
+    onSelect,
+    bottomPadding,
+}: Props) {
     const renderRestaurantItem = ({item}: {item: TakeawayRestaurant}) => {
         const isSelected = item.id === selectedRestaurantId;
+        const isDisabled = item.isUnavailable;
 
         return (
             <Pressable
-                onPress={() => onSelect(item.id)}
+                onPress={() => {
+                    if (!isDisabled) {
+                        onSelect(item.id);
+                    }
+                }}
+                disabled={isDisabled}
                 style={({pressed}) => [
                     styles.restaurantCard,
                     isSelected && styles.restaurantCardSelected,
-                    pressed && styles.pressed,
+                    isDisabled && styles.restaurantCardDisabled,
+                    pressed && !isDisabled && styles.pressed,
                 ]}
             >
                 <View style={styles.restaurantImageWrap}>
@@ -52,7 +56,10 @@ export function TakeawayRestaurantsList({
                         {item.address}
                     </Text>
 
-                    <Text style={styles.restaurantHours}>Время работы: {item.hours}</Text>
+                    <Text style={styles.restaurantHours}>
+                        Время работы: {item.hours}
+                    </Text>
+
                 </View>
             </Pressable>
         );

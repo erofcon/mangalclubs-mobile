@@ -15,13 +15,13 @@ export function CenterPin() {
 const styles = StyleSheet.create({
     container: {
         position: "absolute",
-        top: "37%",
+        top: "50%",
         left: "50%",
         width: 58,
         height: 58,
         transform: [
-            {translateX: -19},
-            {translateY: -38},
+            {translateX: -29},
+            {translateY: -54},
         ],
         zIndex: 20,
         ...SHADOW,

@@ -59,7 +59,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                 y: toY,
                 animated: false,
             });
-            return;
+            return 0;
         }
 
         const duration = Math.min(
@@ -93,6 +93,8 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
         };
 
         scrollAnimationFrameRef.current = requestAnimationFrame(tick);
+
+        return duration;
     }, [cancelSmoothScroll]);
 
     useEffect(() => {
@@ -348,7 +350,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
     const scrollToCategory = useCallback(
         (categoryId: Category["id"]) => {
             const relativeOffset = categoryRelativeOffsetsRef.current[categoryId];
-            if (relativeOffset === undefined) return;
+            if (relativeOffset === undefined) return null;
 
             const categoryTop = sectionsTopOffsetRef.current + relativeOffset;
             const isFirstCategory = categoryId === availableCategories[0]?.id;
@@ -378,7 +380,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                 scheduleAutoScrollUnlock();
             }
 
-            smoothScrollTo(targetY);
+            return smoothScrollTo(targetY);
         },
         [
             availableCategories,

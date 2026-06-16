@@ -4,10 +4,14 @@ import {StyleSheet} from "react-native";
 import {WebView} from "react-native-webview";
 
 import {getMapHTML} from "../utils/map-html";
+import type {DeliveryArea} from "@/services/delivery-zones";
+import type {Coordinates} from "@/utils/location-config";
 
 const apiKey = process.env.EXPO_PUBLIC_YANDEX_MAPS_API_KEY!;
 
 type Props = {
+    deliveryArea?: DeliveryArea | null;
+    initialCenter: Coordinates;
     onCenterChanged?: (coords: {
         latitude: number;
         longitude: number;
@@ -21,7 +25,7 @@ export type AddressMapRef = {
 };
 
 export const AddressMap = forwardRef<AddressMapRef, Props>(
-    ({onCenterChanged, onMapReady}, ref) => {
+    ({deliveryArea, initialCenter, onCenterChanged, onMapReady}, ref) => {
         const webViewRef = useRef<WebView>(null);
 
         useImperativeHandle(ref, () => ({
@@ -38,7 +42,7 @@ export const AddressMap = forwardRef<AddressMapRef, Props>(
                 ref={webViewRef}
                 originWhitelist={["*"]}
                 source={{
-                    html: getMapHTML(apiKey),
+                    html: getMapHTML(apiKey, deliveryArea, initialCenter),
                 }}
                 style={styles.map}
                 javaScriptEnabled

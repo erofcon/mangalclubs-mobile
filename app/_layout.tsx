@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import {AppProviders} from "@/providers/AppProviders";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
+import {NavigationLoadingProvider} from "@/providers/NavigationLoadingProvider";
 
 
 SplashScreen.preventAutoHideAsync().then(r => {
@@ -30,11 +31,14 @@ export default function RootLayout() {
     });
 
     useEffect(() => {
-        if (loaded || error) {
-            SplashScreen.hideAsync().then(r => {
-            });
+        async function prepare() {
+
+            await SplashScreen.hideAsync();
         }
-    }, [loaded, error]);
+
+        prepare();
+
+    }, []);
 
     if (!loaded && !error) {
         return null;
@@ -44,7 +48,18 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{flex: 1}}>
             <AppProviders>
                 <View style={{flex: 1, paddingTop: 10}}>
-                    <Stack screenOptions={{headerShown: false}}/>
+                    <NavigationLoadingProvider>
+                        <Stack
+                            screenOptions={{
+                                headerShown: false,
+                                animation: "fade",
+                                animationDuration: 220,
+                                contentStyle: {
+                                    backgroundColor: "#000000",
+                                },
+                            }}
+                        />
+                    </NavigationLoadingProvider>
                 </View>
             </AppProviders>
         </GestureHandlerRootView>

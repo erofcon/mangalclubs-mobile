@@ -5,6 +5,7 @@ import {LinearGradient} from "expo-linear-gradient";
 
 import type {MenuItem} from "@/types/products";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
+import {toImageSource} from "@/utils/image-source";
 
 type DishCardProps = {
     item: MenuItem;
@@ -39,7 +40,7 @@ export const DishCard = memo(function DishCard({
             <View style={styles.imageWrap}>
                 {item.image ? (
                     <Image
-                        source={item.image}
+                        source={toImageSource(item.image)}
                         style={styles.image}
                         resizeMode="cover"
                     />

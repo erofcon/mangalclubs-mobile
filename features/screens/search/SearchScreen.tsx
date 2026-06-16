@@ -14,10 +14,10 @@ import {Ionicons} from "@expo/vector-icons";
 import {router} from "expo-router";
 
 import {Screen} from "@/components/ui/Screen";
-import {menus} from "@/mocks/mocks-data";
 import type {MenuItem} from "@/types/products";
 import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
 import {DishCard} from "@/features/screens/menu/DishCard";
+import {useAppDataStore} from "@/store/app-data-store";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
 
 type SearchItem = MenuItem & {
@@ -27,13 +27,6 @@ type SearchItem = MenuItem & {
 const PAGE_HORIZONTAL_PADDING = 14;
 const GRID_GAP = 8;
 const MAX_WEB_WIDTH = 430;
-
-const allSearchItems: SearchItem[] = menus.flatMap((category) =>
-    category.items.map((item) => ({
-        ...item,
-        categoryTitle: category.title,
-    }))
-);
 
 function normalizeSearchText(value: string) {
     return value.trim().toLocaleLowerCase("ru-RU");
@@ -52,6 +45,18 @@ export function SearchScreen() {
     const [query, setQuery] = useState("");
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
     const {width} = useWindowDimensions();
+    const menu = useAppDataStore((state) => state.menu);
+
+    const allSearchItems = useMemo<SearchItem[]>(
+        () =>
+            menu.flatMap((category) =>
+                category.items.map((item) => ({
+                    ...item,
+                    categoryTitle: category.title,
+                }))
+            ),
+        [menu]
+    );
 
     const contentWidth = width > 0 ? Math.min(width, MAX_WEB_WIDTH) : MAX_WEB_WIDTH;
     const cardWidth = (contentWidth - PAGE_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2;
@@ -73,7 +78,7 @@ export function SearchScreen() {
 
             return searchableText.includes(normalizedQuery);
         });
-    }, [normalizedQuery]);
+    }, [allSearchItems, normalizedQuery]);
 
     return (
         <>
@@ -157,12 +162,10 @@ const styles = StyleSheet.create({
     screen: {
         backgroundColor: themeColors.background,
     },
-
     container: {
         flex: 1,
         backgroundColor: themeColors.background,
     },
-
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -172,7 +175,6 @@ const styles = StyleSheet.create({
         paddingBottom: 14,
         backgroundColor: themeColors.background,
     },
-
     searchBox: {
         flex: 1,
         height: 44,
@@ -187,7 +189,6 @@ const styles = StyleSheet.create({
         borderColor: themeColors.border,
         ...SHADOW,
     },
-
     searchInput: {
         flex: 1,
         minWidth: 0,
@@ -199,47 +200,39 @@ const styles = StyleSheet.create({
         outlineStyle: "solid",
         outlineWidth: 0,
     },
-
     cancelButton: {
         minHeight: 44,
         justifyContent: "center",
     },
-
     cancelText: {
         color: themeColors.primary,
         fontSize: 14,
         fontFamily: "Point-Bold",
     },
-
     listContent: {
         paddingHorizontal: PAGE_HORIZONTAL_PADDING,
-        paddingTop:16,
+        paddingTop: 16,
         paddingBottom: 28,
     },
-
     emptyListContent: {
         flexGrow: 1,
     },
-
     row: {
         gap: GRID_GAP,
         marginBottom: GRID_GAP,
     },
-
     emptyState: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 26,
     },
-
     emptyTitle: {
         color: themeColors.text,
         fontSize: 18,
         fontFamily: "Point-Bold",
         textAlign: "center",
     },
-
     emptyText: {
         marginTop: 8,
         color: themeColors.textSecondary,

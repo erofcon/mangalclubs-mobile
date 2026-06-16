@@ -9,7 +9,9 @@ export type TakeawayRestaurant = {
     address: string;
     hours: string;
     distance: string;
-    image: ImageSourcePropType;
+    image: ImageSourcePropType | string;
+    isUnavailable?: boolean;
+    unavailableMessage?: string;
 };
 
 export type DeliveryScheduleMap = Record<DeliveryScheduleDay, DeliveryTimeSlot[]>;

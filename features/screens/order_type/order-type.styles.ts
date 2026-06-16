@@ -135,6 +135,9 @@ const styles = StyleSheet.create({
         backgroundColor: themeColors.background,
         ...SHADOW,
     },
+    restaurantCardDisabled: {
+        opacity: 0.52,
+    },
     pressed: {
         opacity: 0.94,
     },
@@ -263,9 +266,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    primaryButtonDisabled: {
+        opacity: 0.55,
+    },
     primaryButtonText: {
         color: themeColors.textOnPrimary,
         fontSize: 16,
+        fontFamily: "Point-SemiBold",
+    },
+    panelWarning: {
+        color: themeColors.primary,
+        fontSize: 12,
+        lineHeight: 16,
         fontFamily: "Point-SemiBold",
     },
     addButton: {

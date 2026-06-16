@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from "react";
-import {ImageSourcePropType} from "react-native";
+import type {ImageSourcePropType} from "react-native";
 import {router, useLocalSearchParams} from "expo-router";
 
 import {
@@ -8,32 +8,60 @@ import {
     type SavedAddress,
 } from "@/store/address-store";
 import {
-    MANGAL_CLUBS_RESTAURANT_ID,
     useDeliveryStore,
     type DeliveryScheduleDay,
     type DeliveryTimeSlot,
     type DeliveryType,
 } from "@/store/delivery-store";
-import {Organizations} from "@/mocks/mocks-data";
+import {useAppDataStore} from "@/store/app-data-store";
 import type {Organization} from "@/types/organization";
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
+import {resolveApiAssetUrl} from "@/services/api";
+import {
+    getOrganizationAvailability,
+    isOrganizationUnavailable,
+} from "@/services/availability";
 
 import {
     formatDistanceKm,
     formatScheduledLabel,
     getDefaultScheduledTime,
-    getSlotsForDay,
+    getScheduleSlots,
 } from "./order-type.utils";
 import type {TakeawayRestaurant} from "./order-type.types";
 
 const restaurantImages: Record<string, ImageSourcePropType> = {
     fazenda: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
     "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
+    "mangal-clubs": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
 };
+
+const scheduleDays: DeliveryScheduleDay[] = [
+    "today",
+    "tomorrow",
+    "dayAfterTomorrow",
+];
+
+const getOrganizationByIdOrSlug = (
+    organizations: Organization[],
+    idOrSlug?: string | null
+) => (
+    organizations.find((organization) =>
+        organization.id === idOrSlug || organization.slug === idOrSlug
+    ) ?? null
+);
 
 export function useOrderTypeScreen() {
     const params = useLocalSearchParams<{type?: DeliveryType}>();
     const now = new Date();
+
+    const organizations = useAppDataStore((state) => state.organizations);
+    const defaultDeliveryOrganization = useAppDataStore(
+        (state) => state.defaultDeliveryOrganization
+    );
+    const availabilityByOrganizationId = useAppDataStore(
+        (state) => state.availabilityByOrganizationId
+    );
 
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
     const [addressToDelete, setAddressToDelete] = useState<SavedAddress | null>(null);
@@ -49,9 +77,12 @@ export function useOrderTypeScreen() {
     const setActiveTab = useDeliveryStore((state) => state.setType);
     const orderSchedule = useDeliveryStore((state) => state.deliveryTime);
     const setOrderSchedule = useDeliveryStore((state) => state.setDeliveryTime);
-    const selectedTakeawayRestaurantId = useDeliveryStore((state) => state.takeawayRestaurantId);
-    const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
-    const setTakeawayRestaurantId = useDeliveryStore((state) => state.setTakeawayRestaurantId);
+    const selectedTakeawayRestaurantId = useDeliveryStore(
+        (state) => state.takeawayRestaurantId
+    );
+    const setTakeawayRestaurantId = useDeliveryStore(
+        (state) => state.setTakeawayRestaurantId
+    );
 
     const canAddMoreAddresses = addresses.length < MAX_SAVED_ADDRESSES;
     const hasSavedAddresses = addresses.length > 0;
@@ -72,40 +103,98 @@ export function useOrderTypeScreen() {
 
     const takeawayRestaurants = useMemo<TakeawayRestaurant[]>(
         () =>
-            Organizations.map((organization: Organization) => ({
-                id: organization.id,
-                title: organization.name,
-                address: `${organization.city}, ${organization.address}`,
-                hours: organization.schedule,
-                distance: selectedAddress
-                    ? formatDistanceKm(selectedAddress, organization.coordinates)
-                    : "—",
-                image: restaurantImages[organization.id] ?? restaurantImages.fazenda,
-            })),
-        [selectedAddress]
+            organizations
+                .filter((organization) => organization.accepts_pickup !== false)
+                .map((organization) => {
+                    const availability = getOrganizationAvailability(
+                        organization,
+                        availabilityByOrganizationId
+                    );
+                    const image = resolveApiAssetUrl(organization.photo_url);
+
+                    return {
+                        id: organization.slug ?? organization.id,
+                        title: organization.name,
+                        address: `${organization.city}, ${organization.address}`,
+                        hours: organization.schedule,
+                        distance: selectedAddress
+                            ? formatDistanceKm(selectedAddress, organization.coordinates)
+                            : "-",
+                        image:
+                            image ??
+                            restaurantImages[organization.slug ?? organization.id] ??
+                            restaurantImages[organization.id] ??
+                            restaurantImages.fazenda,
+                        isUnavailable: availability?.orders_available === false,
+                        unavailableMessage: availability?.message,
+                    };
+                }),
+        [availabilityByOrganizationId, organizations, selectedAddress]
     );
 
     const deliveryRestaurant =
-        Organizations.find((organization) => organization.id === MANGAL_CLUBS_RESTAURANT_ID) ??
-        Organizations[0] ??
-        null;
-
-    const scheduleSlots = useMemo(
-        () => ({
-            today: getSlotsForDay(now, "today"),
-            tomorrow: getSlotsForDay(now, "tomorrow"),
-        }),
-        [now]
+        defaultDeliveryOrganization ?? organizations[0] ?? null;
+    const deliveryAvailability = getOrganizationAvailability(
+        deliveryRestaurant,
+        availabilityByOrganizationId
     );
+    const isDeliveryUnavailable =
+        deliveryAvailability?.orders_available === false;
 
     const selectedTakeawayRestaurant =
-        takeawayRestaurants.find((restaurant) => restaurant.id === selectedTakeawayRestaurantId) ??
+        takeawayRestaurants.find(
+            (restaurant) => restaurant.id === selectedTakeawayRestaurantId
+        ) ??
+        takeawayRestaurants.find((restaurant) => !restaurant.isUnavailable) ??
         takeawayRestaurants[0];
 
+    const selectedTakeawayOrganization = getOrganizationByIdOrSlug(
+        organizations,
+        selectedTakeawayRestaurant?.id ?? selectedTakeawayRestaurantId
+    );
+    const isSelectedTakeawayUnavailable =
+        selectedTakeawayRestaurant?.isUnavailable ??
+        isOrganizationUnavailable(
+            selectedTakeawayOrganization,
+            availabilityByOrganizationId
+        );
+    const scheduleOrganization =
+        visibleTab === "delivery" ? deliveryRestaurant : selectedTakeawayOrganization;
+    const scheduleSlots = useMemo(
+        () => getScheduleSlots(now, scheduleOrganization),
+        [now, scheduleOrganization]
+    );
+    const selectedScheduleSlotAvailable =
+        currentSchedule.mode !== "scheduled" ||
+        (
+            currentSchedule.selectedTime !== null &&
+            scheduleSlots[currentSchedule.selectedTime.day].some(
+                (slot) => slot.startMinutes === currentSchedule.selectedTime?.startMinutes
+            )
+        );
+    const isCurrentTimeUnavailable =
+        currentSchedule.mode === "asap"
+            ? scheduleSlots.today.length === 0
+            : !selectedScheduleSlotAvailable;
+
     const sourceRestaurantTitle =
-        sourceRestaurantId === MANGAL_CLUBS_RESTAURANT_ID
+        visibleTab === "delivery"
             ? deliveryRestaurant?.name ?? "Mangal Club"
-            : selectedTakeawayRestaurant?.title ?? Organizations[0]?.name ?? "Ресторан";
+            : selectedTakeawayRestaurant?.title ?? organizations[0]?.name ?? "Ресторан";
+
+    const orderUnavailableMessage =
+        visibleTab === "delivery" && isDeliveryUnavailable
+            ? deliveryAvailability?.message || "Доставка временно недоступна."
+            : visibleTab === "takeaway" && isSelectedTakeawayUnavailable
+                ? selectedTakeawayRestaurant?.unavailableMessage ||
+                "В этом ресторане сейчас нельзя оформить заказ."
+                : isCurrentTimeUnavailable
+                    ? "До закрытия осталось меньше 30 минут. Выберите другое время заказа."
+                : "";
+    const canContinueOrder =
+        visibleTab === "delivery"
+            ? !isDeliveryUnavailable && !isCurrentTimeUnavailable && hasSavedAddresses
+            : Boolean(selectedTakeawayRestaurant) && !isSelectedTakeawayUnavailable && !isCurrentTimeUnavailable;
 
     useEffect(() => {
         if (params.type === "delivery" || params.type === "takeaway") {
@@ -136,18 +225,29 @@ export function useOrderTypeScreen() {
             return;
         }
 
-        if (
-            selectedTakeawayRestaurantId &&
-            takeawayRestaurants.some((restaurant) => restaurant.id === selectedTakeawayRestaurantId)
-        ) {
-            return;
+        if (selectedTakeawayRestaurantId) {
+            const selected = takeawayRestaurants.find(
+                (restaurant) => restaurant.id === selectedTakeawayRestaurantId
+            );
+
+            if (selected && !selected.isUnavailable) {
+                return;
+            }
         }
 
-        const firstTakeawayRestaurant = takeawayRestaurants[0];
-        if (firstTakeawayRestaurant) {
-            setTakeawayRestaurantId(firstTakeawayRestaurant.id);
+        const firstAvailableRestaurant = takeawayRestaurants.find(
+            (restaurant) => !restaurant.isUnavailable
+        );
+
+        if (firstAvailableRestaurant) {
+            setTakeawayRestaurantId(firstAvailableRestaurant.id);
         }
-    }, [activeTab, selectedTakeawayRestaurantId, setTakeawayRestaurantId, takeawayRestaurants]);
+    }, [
+        activeTab,
+        selectedTakeawayRestaurantId,
+        setTakeawayRestaurantId,
+        takeawayRestaurants,
+    ]);
 
     useEffect(() => {
         if (addressToDelete && !addresses.some((item) => item.id === addressToDelete.id)) {
@@ -159,17 +259,20 @@ export function useOrderTypeScreen() {
         const selectedTime =
             currentSchedule.mode === "scheduled" && currentSchedule.selectedTime
                 ? currentSchedule.selectedTime
-                : getDefaultScheduledTime(now);
+                : getDefaultScheduledTime(now, scheduleOrganization);
 
         const nextDay = selectedTime?.day ?? "today";
         const daySlots = scheduleSlots[nextDay];
+        const firstAvailableDay =
+            scheduleDays.find((day) => scheduleSlots[day].length > 0) ?? nextDay;
 
         const normalized =
             selectedTime && daySlots.some((slot) => slot.startMinutes === selectedTime.startMinutes)
                 ? selectedTime
-                : daySlots[0] ?? getDefaultScheduledTime(now);
+                : scheduleSlots[firstAvailableDay][0] ??
+                getDefaultScheduledTime(now, scheduleOrganization);
 
-        setSheetDay(normalized?.day ?? nextDay);
+        setSheetDay(normalized?.day ?? firstAvailableDay);
         setSheetDraftTime(normalized);
         sheetRef.current?.open();
     };
@@ -207,6 +310,10 @@ export function useOrderTypeScreen() {
     };
 
     const handleContinue = () => {
+        if (!canContinueOrder) {
+            return;
+        }
+
         setActiveTab(visibleTab);
         router.back();
     };
@@ -255,6 +362,8 @@ export function useOrderTypeScreen() {
         selectedTakeawayRestaurantId,
         setTakeawayRestaurantId,
         sourceRestaurantTitle,
+        orderUnavailableMessage,
+        canContinueOrder,
         scheduleSlots,
 
         openSheet,

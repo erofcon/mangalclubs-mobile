@@ -16,16 +16,32 @@ import {
     getCurrentDeviceCoordinates,
     getHumanLocationError,
 } from "@/services/device-location";
-import {reverseGeocodeDeliveryPoint} from "@/services/geoapify";
+import {
+    checkDeliveryZone,
+    getDeliverySettings,
+    type DeliveryCheckAddress,
+    type DeliverySettings,
+} from "@/services/delivery-zones";
 import {MAX_SAVED_ADDRESSES, useAddressStore} from "@/store/address-store";
+import {useAppDataStore} from "@/store/app-data-store";
 import {themeColors} from "@/utils/theme-colors";
 
 import {AddressMap, AddressMapRef} from "./components/AddressMap";
 import {CenterPin} from "./components/CenterPin";
-import {AddressBottomSheet} from "./components/AddressBottomSheet";
+import {
+    ADDRESS_SHEET_SNAP_POINT,
+    AddressBottomSheet,
+} from "./components/AddressBottomSheet";
+
+const LOCATION_BUTTON_GAP = 24;
+const FALLBACK_MAP_CENTER = {
+    latitude: 43.359307,
+    longitude: 45.697802,
+    accuracy: null,
+};
 
 const DEFAULT_STATUS_TEXT =
-    "Переместите карту или нажмите на самолётик, чтобы определить адрес.";
+    "Переместите карту или нажмите на самолетик, чтобы определить адрес.";
 
 type AddressStatusTone = "default" | "error";
 
@@ -38,26 +54,94 @@ type DraftAddress = {
     latitude: number;
     longitude: number;
     accuracy: number | null;
+    deliveryPrice: number | null;
+};
+
+const formatDeliveryPrice = (price: number) => (
+    `${price.toLocaleString("ru-RU")} ₽`
+);
+
+const normalizeBackendAddress = (
+    address: DeliveryCheckAddress | null,
+    coords: {latitude: number; longitude: number},
+    deliveryPrice: number | null
+): DraftAddress | null => {
+    if (!address) {
+        return null;
+    }
+
+    const city = address.city?.trim() ?? "";
+    const street = address.street?.trim() ?? "";
+    const house = address.house?.trim() ?? "";
+    const formatted = address.formatted?.trim() ?? "";
+    const shortAddress = formatted || [city, street, house].filter(Boolean).join(", ");
+
+    if (!shortAddress || !city || !street) {
+        return null;
+    }
+
+    return {
+        city,
+        address: [street, house].filter(Boolean).join(", "),
+        house,
+        shortAddress,
+        isPrecise: Boolean(house),
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: null,
+        deliveryPrice,
+    };
 };
 
 export function DeliveryAddress() {
     const mapRef = useRef<AddressMapRef>(null);
     const pendingMoveToCurrentLocationRef = useRef(false);
-    const geocodeRequestIdRef = useRef(0);
+    const requestIdRef = useRef(0);
 
     const addAddress = useAddressStore((state) => state.addAddress);
+    const defaultDeliveryOrganization = useAppDataStore(
+        (state) => state.defaultDeliveryOrganization
+    );
 
     const [isLocating, setIsLocating] = useState(false);
     const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+    const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
     const [draftAddress, setDraftAddress] = useState<DraftAddress | null>(null);
+    const [mapContainerHeight, setMapContainerHeight] = useState(0);
     const [locationStatusText, setLocationStatusText] =
         useState(DEFAULT_STATUS_TEXT);
     const [locationStatusTone, setLocationStatusTone] =
         useState<AddressStatusTone>("default");
+    const mapInitialCenter =
+        defaultDeliveryOrganization?.coordinates ?? FALLBACK_MAP_CENTER;
+    const sheetHeightRatio =
+        Number.parseFloat(ADDRESS_SHEET_SNAP_POINT) / 100;
+    const locationButtonBottom =
+        mapContainerHeight * sheetHeightRatio + LOCATION_BUTTON_GAP;
 
     useEffect(() => {
+        const controller = new AbortController();
+
+        getDeliverySettings(controller.signal)
+            .then((settings) => {
+                setDeliverySettings(settings);
+            })
+            .catch((error) => {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                setLocationStatusTone("error");
+                setLocationStatusText(
+                    error instanceof Error
+                        ? error.message
+                        : "Не удалось загрузить зону доставки."
+                );
+            });
+
         return () => {
-            geocodeRequestIdRef.current += 1;
+            controller.abort();
+            requestIdRef.current += 1;
         };
     }, []);
 
@@ -66,68 +150,104 @@ export function DeliveryAddress() {
             coords: {latitude: number; longitude: number},
             options?: {finishCurrentLocationSearch?: boolean}
         ) => {
-            const requestId = geocodeRequestIdRef.current + 1;
-            geocodeRequestIdRef.current = requestId;
+            const requestId = requestIdRef.current + 1;
+            requestIdRef.current = requestId;
 
             setIsResolvingAddress(true);
+            setDraftAddress(null);
             setLocationStatusTone("default");
-            setLocationStatusText("Определяем адрес...");
+            setLocationStatusText("Проверяем адрес доставки...");
 
             try {
-                const resolvedAddress = await reverseGeocodeDeliveryPoint({
-                    latitude: coords.latitude,
-                    longitude: coords.longitude,
-                    accuracy: null,
+                const deliveryCheck = await checkDeliveryZone({
+                    coordinates: {
+                        latitude: coords.latitude,
+                        longitude: coords.longitude,
+                    },
+                    organizationSlug: defaultDeliveryOrganization?.slug,
                 });
 
-                if (geocodeRequestIdRef.current !== requestId) {
+                if (requestIdRef.current !== requestId) {
                     return;
                 }
 
-                setDraftAddress({
-                    ...resolvedAddress,
-                    latitude: coords.latitude,
-                    longitude: coords.longitude,
-                    accuracy: null,
-                });
-                setLocationStatusTone("default");
-                setLocationStatusText("");
+                if (!deliveryCheck.available) {
+                    setLocationStatusTone("error");
+                    setLocationStatusText(
+                        deliveryCheck.reason === "outside_delivery_area"
+                            ? "Адрес вне зоны доставки. Сейчас доставляем только по Грозному."
+                            : deliveryCheck.reason === "delivery_tariff_not_configured"
+                                ? "Для этого расстояния пока не настроен тариф доставки."
+                                : "По этому адресу доставка сейчас недоступна."
+                    );
+                    return;
+                }
+
+                const resolvedAddress = normalizeBackendAddress(
+                    deliveryCheck.address,
+                    coords,
+                    deliveryCheck.price
+                );
+
+                if (!resolvedAddress) {
+                    setLocationStatusTone("error");
+                    setLocationStatusText(
+                        "Не удалось определить адрес по этой точке. Переместите карту ближе к дому."
+                    );
+                    return;
+                }
+
+                setDraftAddress(resolvedAddress);
+                setLocationStatusTone(resolvedAddress.isPrecise ? "default" : "error");
+                setLocationStatusText(
+                    resolvedAddress.isPrecise
+                        ? "Адрес в зоне доставки."
+                        : "Адрес найден, но номер дома не определен. Переместите карту ближе к дому."
+                );
             } catch {
-                if (geocodeRequestIdRef.current !== requestId) {
+                if (requestIdRef.current !== requestId) {
                     return;
                 }
 
-                setDraftAddress(null);
                 setLocationStatusTone("error");
                 setLocationStatusText(
-                    "Не удалось определить адрес по этой точке. Проверьте интернет или переместите карту."
+                    "Не удалось проверить адрес через сервер. Проверьте интернет или попробуйте другую точку."
                 );
             } finally {
-                if (geocodeRequestIdRef.current === requestId) {
+                if (requestIdRef.current === requestId) {
                     setIsResolvingAddress(false);
                 }
 
                 if (
-                    geocodeRequestIdRef.current === requestId &&
+                    requestIdRef.current === requestId &&
                     options?.finishCurrentLocationSearch
                 ) {
                     setIsLocating(false);
                 }
             }
         },
-        []
+        [defaultDeliveryOrganization?.slug]
     );
 
     const handleSaveCurrentAddress = useCallback(() => {
         if (!draftAddress) {
             setLocationStatusTone("error");
             setLocationStatusText(
-                "Сначала определите адрес на карте, а потом сохраните его."
+                "Сначала выберите адрес внутри зоны доставки."
             );
             return;
         }
 
-        const result = addAddress(draftAddress);
+        if (!draftAddress.isPrecise) {
+            setLocationStatusTone("error");
+            setLocationStatusText(
+                "Нужен адрес с номером дома. Переместите карту ближе к дому."
+            );
+            return;
+        }
+
+        const {deliveryPrice: _deliveryPrice, ...addressToSave} = draftAddress;
+        const result = addAddress(addressToSave);
 
         if (result.limitReached) {
             setLocationStatusTone("error");
@@ -137,12 +257,6 @@ export function DeliveryAddress() {
             return;
         }
 
-        setLocationStatusTone("default");
-        setLocationStatusText(
-            result.created
-                ? "Адрес сохранён."
-                : "Адрес уже сохранён."
-        );
         router.back();
     }, [addAddress, draftAddress]);
 
@@ -161,7 +275,7 @@ export function DeliveryAddress() {
             if (!mapRef.current) {
                 setLocationStatusTone("error");
                 setLocationStatusText(
-                    "Карта ещё загружается. Попробуйте через пару секунд."
+                    "Карта еще загружается. Попробуйте через пару секунд."
                 );
                 setIsLocating(false);
                 return;
@@ -169,7 +283,7 @@ export function DeliveryAddress() {
 
             pendingMoveToCurrentLocationRef.current = true;
             mapRef.current.moveTo(coords.latitude, coords.longitude);
-            setLocationStatusText("Определяем адрес...");
+            setLocationStatusText("Проверяем адрес доставки...");
         } catch (error) {
             pendingMoveToCurrentLocationRef.current = false;
             setLocationStatusTone("error");
@@ -194,12 +308,25 @@ export function DeliveryAddress() {
         [isLocating, resolveAddressForCenter]
     );
 
+    const canSaveAddress = Boolean(draftAddress?.isPrecise) && !isResolvingAddress;
+    const deliveryPriceText =
+        draftAddress?.deliveryPrice !== null && draftAddress?.deliveryPrice !== undefined
+            ? `Стоимость доставки: ${formatDeliveryPrice(draftAddress.deliveryPrice)}`
+            : undefined;
+
     return (
         <Screen>
             <GestureHandlerRootView style={{flex: 1}}>
-                <View style={styles.container}>
+                <View
+                    style={styles.container}
+                    onLayout={(event) => {
+                        setMapContainerHeight(event.nativeEvent.layout.height);
+                    }}
+                >
                     <AddressMap
                         ref={mapRef}
+                        deliveryArea={deliverySettings?.deliveryArea}
+                        initialCenter={mapInitialCenter}
                         onCenterChanged={handleCenterChanged}
                     />
 
@@ -225,8 +352,9 @@ export function DeliveryAddress() {
                     <Pressable
                         style={[
                             styles.locationButton,
+                            {bottom: locationButtonBottom},
                             (isLocating || isResolvingAddress) &&
-                                styles.locationButtonActive,
+                            styles.locationButtonActive,
                         ]}
                         onPress={handleCurrentLocation}
                         disabled={isLocating || isResolvingAddress}
@@ -248,8 +376,10 @@ export function DeliveryAddress() {
 
                 <AddressBottomSheet
                     addressText={draftAddress?.shortAddress ?? ""}
+                    deliveryPriceText={deliveryPriceText}
                     locationStatusText={locationStatusText}
                     locationStatusTone={locationStatusTone}
+                    canSave={canSaveAddress}
                     onSavePress={handleSaveCurrentAddress}
                 />
             </GestureHandlerRootView>
@@ -290,7 +420,6 @@ const styles = StyleSheet.create({
     locationButton: {
         position: "absolute",
         right: 16,
-        bottom: "35%",
         width: 52,
         height: 52,
         borderRadius: 999,

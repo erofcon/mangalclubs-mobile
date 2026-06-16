@@ -7,7 +7,7 @@ export const MANGAL_CLUBS_RESTAURANT_ID = "mangal-club";
 export type DeliveryType = "delivery" | "takeaway";
 export type SelectedDeliveryType = DeliveryType | null;
 export type DeliveryTimeMode = "asap" | "scheduled";
-export type DeliveryScheduleDay = "today" | "tomorrow";
+export type DeliveryScheduleDay = "today" | "tomorrow" | "dayAfterTomorrow";
 
 export type DeliveryTimeSlot = {
     day: DeliveryScheduleDay;
@@ -23,7 +23,7 @@ type DeliveryStore = {
     type: SelectedDeliveryType;
     deliveryTime: DeliveryTime;
     takeawayRestaurantId: string | null;
-    sourceRestaurantId: string;
+    sourceRestaurantId: string | null;
     hasSelectedType: boolean;
     hasHydrated: boolean;
     setType: (type: DeliveryType) => void;
@@ -41,10 +41,10 @@ export function emptyDeliveryTime(): DeliveryTime {
 export function getDeliveryRestaurantId(
     type: SelectedDeliveryType,
     takeawayRestaurantId: string | null
-): string {
+): string | null {
     return type === "delivery"
-        ? MANGAL_CLUBS_RESTAURANT_ID
-        : takeawayRestaurantId ?? MANGAL_CLUBS_RESTAURANT_ID;
+        ? null
+        : takeawayRestaurantId;
 }
 
 export const useDeliveryStore = create<DeliveryStore>()(
@@ -53,7 +53,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
             type: null,
             deliveryTime: emptyDeliveryTime(),
             takeawayRestaurantId: null,
-            sourceRestaurantId: MANGAL_CLUBS_RESTAURANT_ID,
+            sourceRestaurantId: null,
             hasSelectedType: false,
             hasHydrated: false,
             setType: (type) =>
@@ -99,7 +99,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
 
                 if (!state.hasSelectedType) {
                     state.type = null;
-                    state.sourceRestaurantId = MANGAL_CLUBS_RESTAURANT_ID;
+                    state.sourceRestaurantId = null;
                 }
 
                 state.setHasHydrated(true);

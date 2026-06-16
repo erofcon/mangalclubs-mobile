@@ -1,8 +1,9 @@
-import React from "react";
+import React, {useMemo} from "react";
 import { Pressable, StyleSheet, Text, View, Dimensions } from "react-native";
 import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { themeColors } from "@/utils/theme-colors";
+import type {MenuCategory} from "@/types/products";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const PADDING = 24;
@@ -28,11 +29,37 @@ const dishCategories: DishCategory[] = [
     { id: "pizza", title: "Пицца", icon: "pizza" },
 ];
 
-export function Categories() {
+const fallbackIcons: React.ComponentProps<typeof MaterialCommunityIcons>["name"][] = [
+    "food-steak",
+    "grill",
+    "leaf",
+    "pot-steam-outline",
+    "cake-variant-outline",
+    "cup",
+];
+
+type Props = {
+    categories?: MenuCategory[];
+};
+
+export function Categories({categories}: Props) {
+    const visibleCategories = useMemo<DishCategory[]>(() => {
+        if (!categories?.length) {
+            return dishCategories;
+        }
+
+        return categories.slice(0, 6).map((category, index) => ({
+            id: category.id,
+            categoryId: category.id,
+            title: category.title,
+            icon: fallbackIcons[index % fallbackIcons.length],
+        }));
+    }, [categories]);
+
     return (
         <View style={styles.block}>
             <View style={styles.grid}>
-                {dishCategories.map((category) => (
+                {visibleCategories.map((category) => (
                     <Pressable
                         key={category.id}
                         onPress={() =>

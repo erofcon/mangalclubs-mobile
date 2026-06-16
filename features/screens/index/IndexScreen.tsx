@@ -14,27 +14,25 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {Screen} from "@/components/ui/Screen";
+import {OrderAvailabilityBar} from "@/components/OrderAvailabilityBar";
 import {MenuCategoriesSheet} from "@/features/screens/menu/MenuCategoriesSheet";
 import {Categories} from "@/features/screens/index/categories/Categories";
 import {Stories} from "@/features/screens/index/stories/Stories";
 import {RestaurantsList} from "@/features/screens/index/restaurants/RestaurantsList";
-import {menus, Organizations} from "@/mocks/mocks-data";
-import {useDeliveryStore} from "@/store/delivery-store";
-import {SHADOW, themeColors} from "@/utils/theme-colors";
 import {Header} from "@/features/screens/index/header/Header";
 import {Hero} from "@/features/screens/index/hero/Hero";
-import {QuickActions} from "@/features/screens/index/hero/QuickActions";
 import {ListOfDay} from "@/features/screens/index/list_of_day/ListOfDay";
 import {SearchBanner} from "@/features/screens/index/search/SearchBanner";
 import { SafeAreaView} from 'react-native-safe-area-context';
+import {useAppDataStore} from "@/store/app-data-store";
 
 export function IndexScreen() {
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
-
+    const menus = useAppDataStore((state) => state.menu);
 
     const availableCategories = useMemo(
         () => menus.filter((category) => category.items.length > 0),
-        []
+        [menus]
     );
 
 
@@ -58,6 +56,7 @@ export function IndexScreen() {
 
                     <View style={styles.headerOverlay}>
                         <SafeAreaView>
+                            <OrderAvailabilityBar />
                             <Header />
                         </SafeAreaView>
 
@@ -65,7 +64,7 @@ export function IndexScreen() {
                 </View>
                 <SearchBanner/>
 
-                <Categories/>
+                <Categories categories={availableCategories}/>
 
                 <Stories/>
 

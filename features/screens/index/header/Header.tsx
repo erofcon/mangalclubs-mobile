@@ -1,25 +1,33 @@
-import { Pressable, Text, View, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import {Pressable, Text, View, StyleSheet} from "react-native";
+import {router} from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { themeColors } from "@/utils/theme-colors";
-import { useDeliveryStore } from "@/store/delivery-store";
-import { useMemo } from "react";
-import { useAddressStore } from "@/store/address-store";
-import { Organizations } from "@/mocks/mocks-data";
+import {useMemo} from "react";
+
+import {themeColors} from "@/utils/theme-colors";
+import {useDeliveryStore} from "@/store/delivery-store";
+import {useAddressStore} from "@/store/address-store";
+import {useAppDataStore} from "@/store/app-data-store";
 
 export function Header() {
     const deliveryType = useDeliveryStore((state) => state.type);
     const addresses = useAddressStore((state) => state.addresses);
     const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
     const sourceRestaurantId = useDeliveryStore((state) => state.sourceRestaurantId);
+    const organizations = useAppDataStore((state) => state.organizations);
+    const defaultDeliveryOrganization = useAppDataStore(
+        (state) => state.defaultDeliveryOrganization
+    );
 
     const sourceRestaurant = useMemo(
         () =>
-            Organizations.find((org) => org.id === sourceRestaurantId) ??
-            Organizations[0] ??
+            organizations.find((org) =>
+                org.id === sourceRestaurantId || org.slug === sourceRestaurantId
+            ) ??
+            defaultDeliveryOrganization ??
+            organizations[0] ??
             null,
-        [sourceRestaurantId]
+        [defaultDeliveryOrganization, organizations, sourceRestaurantId]
     );
 
     const selectedAddress = useMemo(
@@ -41,19 +49,18 @@ export function Header() {
         deliveryType === "delivery"
             ? "Доставка"
             : deliveryType === "takeaway"
-                ? "Навынос"
+                ? "Самовывоз"
                 : "Способ заказа";
 
     return (
         <View style={styles.container}>
             <View style={styles.row}>
-                {/* Order selector */}
                 <Pressable
                     style={styles.orderButton}
                     onPress={() =>
                         router.push({
                             pathname: "/order_type",
-                            params: deliveryType ? { type: deliveryType } : undefined,
+                            params: deliveryType ? {type: deliveryType} : undefined,
                         })
                     }
                 >
@@ -81,7 +88,6 @@ export function Header() {
                     />
                 </Pressable>
 
-                {/* Profile circle */}
                 <Pressable style={styles.profileButton}>
                     <View style={styles.avatar} />
                 </Pressable>
@@ -94,13 +100,11 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 12,
     },
-
     row: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
     },
-
     orderButton: {
         flex: 1,
         flexDirection: "row",
@@ -108,30 +112,25 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingVertical: 10,
         paddingHorizontal: 10,
-
         borderRadius: 16,
-        backgroundColor: "rgba(255,255,255,0.04)"
+        backgroundColor: "rgba(255,255,255,0.04)",
     },
-
     iconWrap: {
         width: 34,
         height: 34,
         alignItems: "center",
         justifyContent: "center",
     },
-
     textWrap: {
         flex: 1,
         minWidth: 0,
     },
-
     title: {
         color: themeColors.text,
         fontSize: 15,
         lineHeight: 18,
         fontFamily: "Point-Bold",
     },
-
     subtitle: {
         marginTop: 2,
         color: themeColors.textSecondary,
@@ -139,7 +138,6 @@ const styles = StyleSheet.create({
         lineHeight: 14,
         fontFamily: "Point-Regular",
     },
-
     profileButton: {
         width: 44,
         height: 44,
@@ -147,7 +145,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-
     avatar: {
         width: 36,
         height: 36,

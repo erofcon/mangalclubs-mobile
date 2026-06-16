@@ -19,14 +19,17 @@ import Animated, {
 
 import {DishCard} from "@/features/screens/menu/DishCard";
 import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
-import {menus} from "@/mocks/mocks-data";
 import type {MenuItem} from "@/types/products";
 import {useCartStore} from "@/store/cart-store";
 import {themeColors} from "@/utils/theme-colors";
+import {useAppDataStore} from "@/store/app-data-store";
+import {useDeliveryStore} from "@/store/delivery-store";
 
 export function ListOfDay() {
     const {width} = useWindowDimensions();
     const addItemToCart = useCartStore((state) => state.addItem);
+    const deliveryType = useDeliveryStore((state) => state.type);
+    const menus = useAppDataStore((state) => state.menu);
 
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
     const [toastMessage, setToastMessage] = useState("");
@@ -36,7 +39,7 @@ export function ListOfDay() {
 
     const availableCategories = useMemo(
         () => menus.filter((category) => category.items.length > 0),
-        []
+        [menus]
     );
 
     const featuredItems = useMemo(
@@ -81,6 +84,11 @@ export function ListOfDay() {
 
     const handleProductAdd = useCallback(
         (item: MenuItem) => {
+            if (!deliveryType) {
+                router.push("/order_type");
+                return;
+            }
+
             addItemToCart(item);
 
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
@@ -88,7 +96,7 @@ export function ListOfDay() {
 
             showAddedToast(item);
         },
-        [addItemToCart, showAddedToast]
+        [addItemToCart, deliveryType, showAddedToast]
     );
 
     useEffect(() => {
