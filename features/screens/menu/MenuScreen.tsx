@@ -4,6 +4,7 @@ import {Hero} from "@/features/screens/menu/hero/Hero";
 import {OrderType} from "@/features/screens/menu/order_type/OrderType";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject} from "react";
+import {useFocusEffect} from "@react-navigation/native";
 import {router, useLocalSearchParams} from "expo-router";
 import {useMenuItemWidth} from "@/features/screens/index/menu/use-menu-item-width";
 import {
@@ -25,7 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type {MenuItem} from "@/types/products";
 import {useIndexMenuScroll} from "@/features/screens/index/menu/use-index-menu-scroll";
-import {ANDROID_DECELERATION_RATE} from "@/features/screens/index/menu/constants";
+import {ANDROID_DECELERATION_RATE, GAP, H_PADDING} from "@/features/screens/index/menu/constants";
 import {CategoriesGrid} from "@/features/screens/index/menu/CategoriesGrid";
 import {themeColors} from "@/utils/theme-colors";
 import {MenuSections} from "@/features/screens/index/menu/MenuSections";
@@ -39,6 +40,20 @@ import {useDeliveryStore} from "@/store/delivery-store";
 import {OrderAvailabilityBar} from "@/components/OrderAvailabilityBar";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
+const SKELETON_CATEGORIES = [
+    "skeleton-category-1",
+    "skeleton-category-2",
+    "skeleton-category-3",
+    "skeleton-category-4",
+];
+const SKELETON_ITEMS = [
+    "skeleton-dish-1",
+    "skeleton-dish-2",
+    "skeleton-dish-3",
+    "skeleton-dish-4",
+    "skeleton-dish-5",
+    "skeleton-dish-6",
+];
 
 export function MenuScreen() {
     const insets = useSafeAreaInsets();
@@ -48,14 +63,14 @@ export function MenuScreen() {
     const [toastMessage, setToastMessage] = useState("");
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
     const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const categoryLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const categoryScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
     const addItemToCart = useCartStore((state) => state.addItem);
     const deliveryType = useDeliveryStore((state) => state.type);
     const menus = useAppDataStore((state) => state.menu);
     const isMenuLoading = useAppDataStore((state) => state.isMenuLoading);
     const errorMessage = useAppDataStore((state) => state.errorMessage);
-    const {hideLoading, showLoading} = useNavigationLoading();
+    const {hideLoading} = useNavigationLoading();
 
     const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
         setContainerWidth(event.nativeEvent.layout.width);
@@ -156,14 +171,24 @@ export function MenuScreen() {
         showAddedToast(item);
     }, [addItemToCart, deliveryType, showAddedToast]);
 
+    useFocusEffect(
+        useCallback(() => {
+            const frame = requestAnimationFrame(() => {
+                hideLoading();
+            });
+
+            return () => cancelAnimationFrame(frame);
+        }, [hideLoading])
+    );
+
     useEffect(() => {
         return () => {
             if (toastTimerRef.current) {
                 clearTimeout(toastTimerRef.current);
             }
 
-            if (categoryLoadingTimerRef.current) {
-                clearTimeout(categoryLoadingTimerRef.current);
+            if (categoryScrollTimerRef.current) {
+                clearTimeout(categoryScrollTimerRef.current);
             }
         };
     }, []);
@@ -174,29 +199,17 @@ export function MenuScreen() {
             return;
         }
 
-        showLoading({minDuration: 620, maxDuration: 2600});
-
-        const timer = setTimeout(() => {
-            const duration = scrollToCategory(categoryId);
-            const hideDelay = duration === null ? 420 : duration + 90;
-
-            if (categoryLoadingTimerRef.current) {
-                clearTimeout(categoryLoadingTimerRef.current);
-            }
-
-            categoryLoadingTimerRef.current = setTimeout(() => {
-                hideLoading();
-            }, hideDelay);
-        }, 350);
+        categoryScrollTimerRef.current = setTimeout(() => {
+            scrollToCategory(categoryId);
+        }, 120);
 
         return () => {
-            clearTimeout(timer);
-
-            if (categoryLoadingTimerRef.current) {
-                clearTimeout(categoryLoadingTimerRef.current);
+            if (categoryScrollTimerRef.current) {
+                clearTimeout(categoryScrollTimerRef.current);
+                categoryScrollTimerRef.current = null;
             }
         };
-    }, [hideLoading, params.categoryId, scrollToCategory, showLoading]);
+    }, [params.categoryId, scrollToCategory]);
 
     return (
         <>
@@ -235,15 +248,19 @@ export function MenuScreen() {
                                 collapsable={false}
                                 style={styles.categoriesStickyBlock}
                             >
-                                <CategoriesGrid
-                                    categories={availableCategories}
-                                    activeCategoryId={activeCategoryId}
-                                    savedScrollX={categoryTabsScrollXRef.current}
-                                    onSearchPress={handleSearchPress}
-                                    onCategoriesPress={openCategoriesSheet}
-                                    onSelectCategory={scrollToCategory}
-                                    onScrollXChange={handleCategoryTabsScrollXChange}
-                                />
+                                {isMenuLoading ? (
+                                    <MenuCategoriesSkeleton />
+                                ) : (
+                                    <CategoriesGrid
+                                        categories={availableCategories}
+                                        activeCategoryId={activeCategoryId}
+                                        savedScrollX={categoryTabsScrollXRef.current}
+                                        onSearchPress={handleSearchPress}
+                                        onCategoriesPress={openCategoriesSheet}
+                                        onSelectCategory={scrollToCategory}
+                                        onScrollXChange={handleCategoryTabsScrollXChange}
+                                    />
+                                )}
                             </View>
                         </View>
 
@@ -253,12 +270,14 @@ export function MenuScreen() {
                             onLayout={handleSectionsLayout}
                         >
                             {isMenuLoading ? (
-                                <View style={styles.stateBlock}>
-                                    <Text style={styles.stateText}>Загружаем меню...</Text>
-                                </View>
+                                <MenuSkeleton itemWidth={itemWidth} />
                             ) : errorMessage ? (
                                 <View style={styles.stateBlock}>
                                     <Text style={styles.stateText}>{errorMessage}</Text>
+                                </View>
+                            ) : availableCategories.length === 0 ? (
+                                <View style={styles.stateBlock}>
+                                    <Text style={styles.stateText}>Меню пока недоступно</Text>
                                 </View>
                             ) : (
                                 <MenuSections
@@ -309,13 +328,62 @@ export function MenuScreen() {
     );
 }
 
+function MenuCategoriesSkeleton() {
+    return (
+        <View style={styles.categoriesSkeleton}>
+            <View style={styles.skeletonIconButton} />
+            <View style={styles.skeletonIconButton} />
+
+            <View style={styles.skeletonChips}>
+                {SKELETON_CATEGORIES.map((item, index) => (
+                    <View
+                        key={item}
+                        style={[
+                            styles.skeletonChip,
+                            {width: index === 0 ? 84 : index === 1 ? 112 : 74},
+                        ]}
+                    />
+                ))}
+            </View>
+        </View>
+    );
+}
+
+function MenuSkeleton({itemWidth}: {itemWidth: number}) {
+    const skeletonWidth = itemWidth > 0 ? itemWidth : 160;
+
+    return (
+        <View style={styles.skeletonSection}>
+            <View style={styles.skeletonTitle} />
+
+            <View style={styles.skeletonGrid}>
+                {SKELETON_ITEMS.map((item) => (
+                    <View
+                        key={item}
+                        style={[
+                            styles.skeletonCard,
+                            {width: skeletonWidth},
+                        ]}
+                    >
+                        <View style={styles.skeletonImage} />
+                        <View style={styles.skeletonLineWide} />
+                        <View style={styles.skeletonLineShort} />
+                    </View>
+                ))}
+            </View>
+        </View>
+    );
+}
+
 const styles = StyleSheet.create({
     root: {
         flex: 1,
         width: "100%",
+        backgroundColor: themeColors.background,
     },
     scroll: {
         flex: 1,
+        backgroundColor: themeColors.background,
     },
     stickyHeader: {
         zIndex: 999,
@@ -348,6 +416,83 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         textAlign: "center",
         fontFamily: "Point-Regular",
+    },
+    categoriesSkeleton: {
+        minHeight: 38,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        paddingLeft: 12,
+        paddingRight: 8,
+    },
+    skeletonIconButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        backgroundColor: "#151411",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    skeletonChips: {
+        flex: 1,
+        minWidth: 0,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        overflow: "hidden",
+    },
+    skeletonChip: {
+        height: 38,
+        borderRadius: 999,
+        backgroundColor: "#151411",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    skeletonSection: {
+        paddingTop: 24,
+    },
+    skeletonTitle: {
+        width: 132,
+        height: 18,
+        marginHorizontal: 12,
+        marginBottom: 12,
+        borderRadius: 6,
+        backgroundColor: "#151411",
+    },
+    skeletonGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        gap: GAP,
+        paddingHorizontal: H_PADDING,
+    },
+    skeletonCard: {
+        minHeight: 202,
+        marginBottom: 2,
+        overflow: "hidden",
+        borderRadius: 20,
+        backgroundColor: "#121210",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    skeletonImage: {
+        height: 122,
+        backgroundColor: "#1a1815",
+    },
+    skeletonLineWide: {
+        height: 14,
+        marginTop: 14,
+        marginHorizontal: 10,
+        borderRadius: 6,
+        backgroundColor: "#201e1a",
+    },
+    skeletonLineShort: {
+        width: "54%",
+        height: 12,
+        marginTop: 12,
+        marginHorizontal: 10,
+        borderRadius: 6,
+        backgroundColor: "#201e1a",
     },
     toast: {
         position: "absolute",

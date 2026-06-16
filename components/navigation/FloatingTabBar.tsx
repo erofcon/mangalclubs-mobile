@@ -80,7 +80,10 @@ export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarPro
                         });
 
                         if (!focused && !event.defaultPrevented) {
-                            showLoading();
+                            if (route.name !== "menu") {
+                                showLoading();
+                            }
+
                             navigation.navigate(route.name);
                         }
                     };

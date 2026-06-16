@@ -3,19 +3,12 @@ import {themeColors} from "@/utils/theme-colors";
 import {router} from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import {useCallback, useRef} from "react";
-import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 
+type SearchBannerProps = {
+    onCategoriesPress?: () => void;
+};
 
-export function SearchBanner() {
-
-    const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
-
-
-    const openCategoriesSheet = useCallback(() => {
-        categoriesSheetRef.current?.open();
-    }, []);
-
+export function SearchBanner({onCategoriesPress}: SearchBannerProps) {
     return (
         <View style={styles.searchPanel}>
             <Pressable
@@ -39,7 +32,7 @@ export function SearchBanner() {
                 accessibilityRole="button"
                 accessibilityLabel="Открыть категории"
                 style={styles.filterButton}
-                onPress={openCategoriesSheet}
+                onPress={onCategoriesPress}
                 hitSlop={8}
             >
                 <MaterialCommunityIcons

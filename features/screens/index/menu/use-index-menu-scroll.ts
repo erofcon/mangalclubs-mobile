@@ -30,6 +30,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
     const autoScrollLockRef = useRef(false);
     const autoScrollTargetYRef = useRef<number | null>(null);
     const pendingCategoryIdRef = useRef<Category["id"] | null>(null);
+    const pendingLayoutScrollCategoryIdRef = useRef<Category["id"] | null>(null);
     const autoScrollUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastScrollCategoryHapticAtRef = useRef(0);
     const lastViewportHeightRef = useRef(0);
@@ -100,6 +101,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
     useEffect(() => {
         categoryRelativeOffsetsRef.current = {};
         sectionsTopOffsetRef.current = 0;
+        pendingLayoutScrollCategoryIdRef.current = null;
     }, [availableCategories]);
 
     useEffect(() => {
@@ -349,8 +351,17 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
 
     const scrollToCategory = useCallback(
         (categoryId: Category["id"]) => {
+            const hasCategory = availableCategories.some((category) => category.id === categoryId);
+            if (!hasCategory) return null;
+
             const relativeOffset = categoryRelativeOffsetsRef.current[categoryId];
-            if (relativeOffset === undefined) return null;
+            if (relativeOffset === undefined) {
+                pendingLayoutScrollCategoryIdRef.current = categoryId;
+                setActiveCategoryId(categoryId);
+                return null;
+            }
+
+            pendingLayoutScrollCategoryIdRef.current = null;
 
             const categoryTop = sectionsTopOffsetRef.current + relativeOffset;
             const isFirstCategory = categoryId === availableCategories[0]?.id;
@@ -391,13 +402,27 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
         ]
     );
 
+    const tryPendingLayoutScroll = useCallback(() => {
+        const pendingCategoryId = pendingLayoutScrollCategoryIdRef.current;
+        if (!pendingCategoryId) return;
+
+        requestAnimationFrame(() => {
+            if (pendingLayoutScrollCategoryIdRef.current !== pendingCategoryId) {
+                return;
+            }
+
+            scrollToCategory(pendingCategoryId);
+        });
+    }, [scrollToCategory]);
+
     const handleCategoryTabsScrollXChange = useCallback((scrollX: number) => {
         categoryTabsScrollXRef.current = scrollX;
     }, []);
 
     const handleCategoryLayout = useCallback((categoryId: Category["id"], event: LayoutChangeEvent) => {
         categoryRelativeOffsetsRef.current[categoryId] = event.nativeEvent.layout.y;
-    }, []);
+        tryPendingLayoutScroll();
+    }, [tryPendingLayoutScroll]);
 
     const updateTabsAnchorOffset = useCallback(() => {
         setTabsAnchorOffsetY(tabsContainerOffsetYRef.current + tabsLocalOffsetYRef.current);
@@ -415,11 +440,13 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
         tabsLocalOffsetYRef.current = event.nativeEvent.layout.y;
         updateTabsAnchorOffset();
         setStickyTabsHeight(event.nativeEvent.layout.height);
-    }, [updateTabsAnchorOffset]);
+        tryPendingLayoutScroll();
+    }, [tryPendingLayoutScroll, updateTabsAnchorOffset]);
 
     const handleSectionsLayout = useCallback((event: LayoutChangeEvent) => {
         sectionsTopOffsetRef.current = event.nativeEvent.layout.y;
-    }, []);
+        tryPendingLayoutScroll();
+    }, [tryPendingLayoutScroll]);
 
     return {
         activeCategoryId,

@@ -1,4 +1,4 @@
-import {router, usePathname} from "expo-router";
+import {usePathname} from "expo-router";
 import {
     createContext,
     PropsWithChildren,
@@ -17,6 +17,7 @@ import {
     StyleSheet,
     View,
 } from "react-native";
+import {themeColors} from "@/utils/theme-colors";
 
 type NavigationLoadingContextValue = {
     hideLoading: () => void;
@@ -48,6 +49,9 @@ export function NavigationLoadingProvider({
     const maxTimerRef =
         useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    const removeOverlayTimerRef =
+        useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const minVisibleUntilRef =
         useRef(Date.now() + INITIAL_DURATION);
 
@@ -56,12 +60,6 @@ export function NavigationLoadingProvider({
 
     const pathnameRef =
         useRef(pathname);
-
-    const originalRouterRef = useRef<{
-        back: typeof router.back;
-        push: typeof router.push;
-        replace: typeof router.replace;
-    } | null>(null);
 
     const clearTimers = useCallback(() => {
 
@@ -73,6 +71,11 @@ export function NavigationLoadingProvider({
         if (maxTimerRef.current) {
             clearTimeout(maxTimerRef.current);
             maxTimerRef.current = null;
+        }
+
+        if (removeOverlayTimerRef.current) {
+            clearTimeout(removeOverlayTimerRef.current);
+            removeOverlayTimerRef.current = null;
         }
 
     }, []);
@@ -91,8 +94,17 @@ export function NavigationLoadingProvider({
         hideTimerRef.current = setTimeout(() => {
 
             pendingNavigationRef.current = false;
+            clearTimers();
 
             fadeValue.stopAnimation();
+
+            const removeOverlay = () => {
+                removeOverlayTimerRef.current = null;
+                fadeValue.setValue(0);
+                setVisible(false);
+            };
+
+            removeOverlayTimerRef.current = setTimeout(removeOverlay, 420);
 
             Animated.timing(fadeValue, {
                 toValue: 0,
@@ -102,14 +114,18 @@ export function NavigationLoadingProvider({
             }).start(({finished}) => {
 
                 if (finished) {
-                    setVisible(false);
+                    if (removeOverlayTimerRef.current) {
+                        clearTimeout(removeOverlayTimerRef.current);
+                    }
+
+                    removeOverlay();
                 }
 
             });
 
         }, delay);
 
-    }, [fadeValue]);
+    }, [clearTimers, fadeValue]);
 
     const showLoading = useCallback(
         (
@@ -179,75 +195,6 @@ export function NavigationLoadingProvider({
         hideLoading,
         pathname,
     ]);
-
-    useEffect(() => {
-
-        if (!originalRouterRef.current) {
-
-            originalRouterRef.current = {
-                back: router.back.bind(router),
-                push: router.push.bind(router),
-                replace:
-                    router.replace.bind(router),
-            };
-
-        }
-
-        const originalRouter =
-            originalRouterRef.current;
-
-        router.push = (
-            (...args) => {
-
-                showLoading();
-
-                return originalRouter.push(
-                    ...args,
-                );
-
-            }
-        ) as typeof router.push;
-
-        router.replace = (
-            (...args) => {
-
-                showLoading();
-
-                return originalRouter.replace(
-                    ...args,
-                );
-
-            }
-        ) as typeof router.replace;
-
-        router.back = (
-            (...args) => {
-
-                showLoading({
-                    minDuration: 360,
-                });
-
-                return originalRouter.back(
-                    ...args,
-                );
-
-            }
-        ) as typeof router.back;
-
-        return () => {
-
-            router.push =
-                originalRouter.push;
-
-            router.replace =
-                originalRouter.replace;
-
-            router.back =
-                originalRouter.back;
-
-        };
-
-    }, [showLoading]);
 
     useEffect(() => {
 
@@ -333,7 +280,7 @@ const styles = StyleSheet.create({
 
         justifyContent: "center",
 
-        backgroundColor: "#000000",
+        backgroundColor: themeColors.background,
     },
 
 });

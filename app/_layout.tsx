@@ -6,6 +6,7 @@ import {useEffect} from "react";
 import {AppProviders} from "@/providers/AppProviders";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {NavigationLoadingProvider} from "@/providers/NavigationLoadingProvider";
+import {themeColors} from "@/utils/theme-colors";
 
 
 SplashScreen.preventAutoHideAsync().then(r => {
@@ -24,6 +25,7 @@ export default function RootLayout() {
         "Point-SemiBold": require("@/assets/fonts/point/Point-SemiBold.ttf"),
 
         // крупные заголовки
+        "Point-Black": require("@/assets/fonts/point/Point-Black.ttf"),
         "Point-Bold": require("@/assets/fonts/point/Point-Bold.ttf"),
 
         // очень крупные акценты
@@ -45,9 +47,9 @@ export default function RootLayout() {
     }
 
     return (
-        <GestureHandlerRootView style={{flex: 1}}>
+        <GestureHandlerRootView style={{flex: 1, backgroundColor: themeColors.background}}>
             <AppProviders>
-                <View style={{flex: 1, paddingTop: 10}}>
+                <View style={{flex: 1, backgroundColor: themeColors.background}}>
                     <NavigationLoadingProvider>
                         <Stack
                             screenOptions={{
@@ -55,7 +57,7 @@ export default function RootLayout() {
                                 animation: "fade",
                                 animationDuration: 220,
                                 contentStyle: {
-                                    backgroundColor: "#000000",
+                                    backgroundColor: themeColors.background,
                                 },
                             }}
                         />

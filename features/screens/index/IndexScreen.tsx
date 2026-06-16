@@ -1,16 +1,11 @@
 import {useCallback, useMemo, useRef} from "react";
 import {
-    Pressable,
     ScrollView,
     StyleSheet,
-    Text,
     View,
 } from "react-native";
 
-import {LinearGradient} from "expo-linear-gradient";
 import {router} from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {Screen} from "@/components/ui/Screen";
@@ -35,6 +30,9 @@ export function IndexScreen() {
         [menus]
     );
 
+    const openCategoriesSheet = useCallback(() => {
+        categoriesSheetRef.current?.open();
+    }, []);
 
     const handleCategorySelect = useCallback((categoryId: string) => {
         categoriesSheetRef.current?.close();
@@ -46,39 +44,44 @@ export function IndexScreen() {
 
 
     return (
-        <Screen>
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.content}
-            >
-                <View style={{ flex: 1 }}>
-                    <Hero />
+        <>
+            <Screen>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.content}
+                >
+                    <View style={{ flex: 1 }}>
+                        <Hero />
 
-                    <View style={styles.headerOverlay}>
-                        <SafeAreaView>
-                            <OrderAvailabilityBar />
-                            <Header />
-                        </SafeAreaView>
+                        <View style={styles.headerOverlay}>
+                            <SafeAreaView>
+                                <OrderAvailabilityBar />
+                                <Header />
+                            </SafeAreaView>
 
+                        </View>
                     </View>
-                </View>
-                <SearchBanner/>
+                    <SearchBanner onCategoriesPress={openCategoriesSheet}/>
 
-                <Categories categories={availableCategories}/>
+                    <Categories
+                        categories={availableCategories}
+                        onSelectCategory={handleCategorySelect}
+                    />
 
-                <Stories/>
+                    <Stories/>
 
-                <ListOfDay/>
+                    <ListOfDay/>
 
-                <RestaurantsList/>
-            </ScrollView>
+                    <RestaurantsList/>
+                </ScrollView>
+            </Screen>
 
             <MenuCategoriesSheet
                 ref={categoriesSheetRef}
                 categories={availableCategories}
                 onSelectCategory={handleCategorySelect}
             />
-        </Screen>
+        </>
     );
 }
 

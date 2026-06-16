@@ -1,8 +1,6 @@
-import React, {useMemo} from "react";
-import { Pressable, StyleSheet, Text, View, Dimensions } from "react-native";
-import { router } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { themeColors } from "@/utils/theme-colors";
+import {Dimensions, Pressable, StyleSheet, Text, View} from "react-native";
+
+import {themeColors} from "@/utils/theme-colors";
 import type {MenuCategory} from "@/types/products";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -15,46 +13,32 @@ const CARD_SIZE =
 
 type DishCategory = {
     id: string;
-    categoryId?: string;
     title: string;
-    icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+    isSelectable?: boolean;
 };
 
-const dishCategories: DishCategory[] = [
-    { id: "salads", categoryId: "97", title: "Салаты", icon: "leaf" },
-    { id: "mangal", categoryId: "98", title: "Мангал", icon: "grill" },
-    { id: "soups", title: "Супы", icon: "pot-steam-outline" },
-    { id: "desserts", title: "Десерты", icon: "cake-variant-outline" },
-    { id: "drinks", title: "Напитки", icon: "cup" },
-    { id: "pizza", title: "Пицца", icon: "pizza" },
-];
-
-const fallbackIcons: React.ComponentProps<typeof MaterialCommunityIcons>["name"][] = [
-    "food-steak",
-    "grill",
-    "leaf",
-    "pot-steam-outline",
-    "cake-variant-outline",
-    "cup",
+const fallbackCategories: DishCategory[] = [
+    {id: "salads", title: "Салаты"},
+    {id: "mangal", title: "Мангал"},
+    {id: "soups", title: "Супы"},
+    {id: "desserts", title: "Десерты"},
+    {id: "drinks", title: "Напитки"},
+    {id: "pizza", title: "Пицца"},
 ];
 
 type Props = {
     categories?: MenuCategory[];
+    onSelectCategory?: (categoryId: MenuCategory["id"]) => void;
 };
 
-export function Categories({categories}: Props) {
-    const visibleCategories = useMemo<DishCategory[]>(() => {
-        if (!categories?.length) {
-            return dishCategories;
-        }
-
-        return categories.slice(0, 6).map((category, index) => ({
+export function Categories({categories, onSelectCategory}: Props) {
+    const visibleCategories = categories?.length
+        ? categories.slice(0, 6).map((category) => ({
             id: category.id,
-            categoryId: category.id,
             title: category.title,
-            icon: fallbackIcons[index % fallbackIcons.length],
-        }));
-    }, [categories]);
+            isSelectable: true,
+        }))
+        : fallbackCategories;
 
     return (
         <View style={styles.block}>
@@ -62,25 +46,16 @@ export function Categories({categories}: Props) {
                 {visibleCategories.map((category) => (
                     <Pressable
                         key={category.id}
-                        onPress={() =>
-                            router.push({
-                                pathname: "/menu",
-                                params: category.categoryId
-                                    ? { categoryId: category.categoryId }
-                                    : undefined,
-                            })
+                        onPress={
+                            category.isSelectable
+                                ? () => onSelectCategory?.(category.id)
+                                : undefined
                         }
-                        style={({ pressed }) => [
+                        style={({pressed}) => [
                             styles.card,
                             pressed && styles.pressed,
                         ]}
                     >
-                        <MaterialCommunityIcons
-                            name={category.icon}
-                            size={22}
-                            color={themeColors.primary}
-                        />
-
                         <Text style={styles.title} numberOfLines={2}>
                             {category.title}
                         </Text>
@@ -90,7 +65,6 @@ export function Categories({categories}: Props) {
         </View>
     );
 }
-
 
 const styles = StyleSheet.create({
     block: {
@@ -106,28 +80,27 @@ const styles = StyleSheet.create({
 
     card: {
         width: CARD_SIZE,
-
-        height: 78,
-        borderRadius: 16,
-
+        minHeight: 58,
+        paddingHorizontal: 8,
+        paddingVertical: 10,
+        borderRadius: 12,
         backgroundColor: "rgba(255,255,255,0.04)",
         borderWidth: 1,
         borderColor: themeColors.cardBorder,
-
         alignItems: "center",
         justifyContent: "center",
-        gap: 4,
     },
 
     title: {
         color: themeColors.text,
-        fontSize: 11,
+        fontSize: 12,
+        lineHeight: 15,
         textAlign: "center",
-        fontFamily: "Point-Regular",
+        fontFamily: "Point-SemiBold",
     },
 
     pressed: {
         opacity: 0.75,
-        transform: [{ scale: 0.97 }],
+        transform: [{scale: 0.97}],
     },
 });
