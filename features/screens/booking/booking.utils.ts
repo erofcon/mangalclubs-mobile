@@ -4,6 +4,10 @@ import type {Booking} from "@/types/booking";
 import type {Organization} from "@/types/organization";
 
 export function getBookingImageSource(path?: string) {
+    if (!path) {
+        return undefined;
+    }
+
     if (/^https?:\/\//i.test(path)) {
         return {uri: path};
     }

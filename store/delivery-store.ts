@@ -31,6 +31,7 @@ type DeliveryStore = {
         value: DeliveryTime | ((previous: DeliveryTime) => DeliveryTime)
     ) => void;
     setTakeawayRestaurantId: (restaurantId: string) => void;
+    clearDelivery: () => void;
     setHasHydrated: (value: boolean) => void;
 };
 
@@ -80,6 +81,13 @@ export const useDeliveryStore = create<DeliveryStore>()(
                         restaurantId
                     ),
                 })),
+            clearDelivery: () => set({
+                type: null,
+                deliveryTime: emptyDeliveryTime(),
+                takeawayRestaurantId: null,
+                sourceRestaurantId: null,
+                hasSelectedType: false,
+            }),
             setHasHydrated: (value) => set({hasHydrated: value}),
         }),
         {

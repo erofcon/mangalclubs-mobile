@@ -73,7 +73,10 @@ const toAuthState = (tokens: TokenPair) => ({
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresAt: getExpiresAt(tokens.expires_in),
-    user: tokens.user,
+    user: {
+        ...tokens.user,
+        avatarUrl: tokens.user.avatarUrl ?? tokens.user.avatar_url ?? null,
+    },
     errorMessage: "",
 });
 
@@ -91,14 +94,23 @@ export const useProfileStore = create<ProfileStore>()(
             errorMessage: "",
 
             setHasHydrated: (value) => set({hasHydrated: value}),
-            syncUser: (user) => set((state) => ({
-                user: state.user
+            syncUser: (user) => set((state) => {
+                const nextUser = state.user
                     ? {
                         ...state.user,
                         ...user,
                     }
-                    : null,
-            })),
+                    : null;
+
+                return {
+                    user: nextUser
+                        ? {
+                            ...nextUser,
+                            avatarUrl: nextUser.avatarUrl ?? nextUser.avatar_url ?? null,
+                        }
+                        : null,
+                };
+            }),
             clearError: () => set({errorMessage: ""}),
 
             requestOtp: async (phone) => {

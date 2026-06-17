@@ -362,6 +362,79 @@ export const profileStyles = StyleSheet.create({
         fontFamily: "Point-Regular",
     },
 
+    modalBackdrop: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 24,
+        backgroundColor: "rgba(0,0,0,0.64)",
+    },
+
+    modalCard: {
+        width: "100%",
+        maxWidth: 360,
+        gap: 10,
+        padding: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    modalTitle: {
+        color: themeColors.text,
+        fontSize: 18,
+        lineHeight: 23,
+        fontFamily: "Point-Bold",
+    },
+
+    modalText: {
+        color: themeColors.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: "Point-Regular",
+    },
+
+    modalActions: {
+        flexDirection: "row",
+        gap: 10,
+        marginTop: 8,
+    },
+
+    modalCancel: {
+        flex: 1,
+        minHeight: 50,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+        backgroundColor: "#11100E",
+    },
+
+    modalCancelText: {
+        color: themeColors.text,
+        fontSize: 15,
+        lineHeight: 19,
+        fontFamily: "Point-SemiBold",
+    },
+
+    modalDelete: {
+        flex: 1,
+        minHeight: 50,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        backgroundColor: themeColors.primary,
+    },
+
+    modalDeleteText: {
+        color: themeColors.textOnPrimary,
+        fontSize: 15,
+        lineHeight: 19,
+        fontFamily: "Point-Bold",
+    },
+
     menuButton: {
         width: 40,
         height: 40,

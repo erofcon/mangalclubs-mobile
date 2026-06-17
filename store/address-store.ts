@@ -37,6 +37,7 @@ type AddressStore = {
     };
     deleteAddress: (id: string) => void;
     selectAddress: (id: string) => void;
+    clearAddresses: () => void;
     setHasHydrated: (value: boolean) => void;
 };
 
@@ -161,6 +162,10 @@ export const useAddressStore = create<AddressStore>()(
 
                 set({selectedAddressId: id});
             },
+            clearAddresses: () => set({
+                addresses: [],
+                selectedAddressId: null,
+            }),
             setHasHydrated: (value) => set({hasHydrated: value}),
         }),
         {

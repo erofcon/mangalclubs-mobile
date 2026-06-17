@@ -1,10 +1,11 @@
-import {Pressable, Text, View, StyleSheet} from "react-native";
+import {Image, Pressable, Text, View, StyleSheet} from "react-native";
 import {router} from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {useMemo} from "react";
 
 import {themeColors} from "@/utils/theme-colors";
+import {resolveApiAssetUrl} from "@/services/api";
 import {useDeliveryStore} from "@/store/delivery-store";
 import {useAddressStore} from "@/store/address-store";
 import {useAppDataStore} from "@/store/app-data-store";
@@ -21,6 +22,7 @@ export function Header() {
     const defaultDeliveryOrganization = useAppDataStore(
         (state) => state.defaultDeliveryOrganization
     );
+    const avatarUrl = resolveApiAssetUrl(user?.avatarUrl);
 
     const sourceRestaurant = useMemo(
         () =>
@@ -105,11 +107,19 @@ export function Header() {
                     }}
                 >
                     <View style={[styles.avatar, user && styles.avatarAuthenticated]}>
-                        <MaterialCommunityIcons
-                            name={user ? "account" : "account-outline"}
-                            size={22}
-                            color={user ? themeColors.textOnPrimary : themeColors.text}
-                        />
+                        {avatarUrl ? (
+                            <Image
+                                source={{uri: avatarUrl}}
+                                style={styles.avatarImage}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <MaterialCommunityIcons
+                                name={user ? "account" : "account-outline"}
+                                size={22}
+                                color={user ? themeColors.textOnPrimary : themeColors.text}
+                            />
+                        )}
                     </View>
                 </Pressable>
             </View>
@@ -135,13 +145,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.34)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "rgba(8,9,9,0.72)",
-        shadowColor: themeColors.primary,
-        shadowOffset: {width: 0, height: 8},
-        shadowOpacity: 0.18,
-        shadowRadius: 16,
-        elevation: 4,
     },
     iconWrap: {
         width: 34,
@@ -193,5 +198,10 @@ const styles = StyleSheet.create({
     avatarAuthenticated: {
         backgroundColor: themeColors.primary,
         borderColor: "rgba(236,172,24,0.85)",
+    },
+    avatarImage: {
+        width: "100%",
+        height: "100%",
+        borderRadius: 18,
     },
 });

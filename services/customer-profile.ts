@@ -7,6 +7,7 @@ export type CustomerProfile = {
     email?: string | null;
     birthday?: string | null;
     avatarUrl?: string | null;
+    avatar_url?: string | null;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -92,6 +93,12 @@ export const updateCustomerProfile = (payload: CustomerProfilePatch) => (
     apiFetch<CustomerProfile>("/api/v1/customers/me", {
         method: "PATCH",
         body: JSON.stringify(payload),
+    })
+);
+
+export const deleteCustomerProfile = () => (
+    apiFetch<void>("/api/v1/customers/me", {
+        method: "DELETE",
     })
 );
 

@@ -8,6 +8,7 @@ export type AuthSubject = {
     email?: string | null;
     birthday?: string | null;
     avatarUrl?: string | null;
+    avatar_url?: string | null;
     role?: string | null;
 };
 

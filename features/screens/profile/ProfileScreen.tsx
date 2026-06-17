@@ -8,6 +8,7 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
+    Modal,
     Platform,
     Pressable,
     RefreshControl,
@@ -28,13 +29,17 @@ import {
     CustomerOrder,
     CustomerOrderItem,
     CustomerProfile,
+    deleteCustomerProfile,
     getCurrentCustomerOrders,
     getCustomerOrderStatus,
     getCustomerProfile,
     getHistoryCustomerOrders,
     updateCustomerProfile,
 } from "@/services/customer-profile";
+import {useAddressStore} from "@/store/address-store";
 import {useAppDataStore} from "@/store/app-data-store";
+import {useCartStore} from "@/store/cart-store";
+import {useDeliveryStore} from "@/store/delivery-store";
 import {useProfileStore} from "@/store/profile-store";
 import type {MenuItem} from "@/types/products";
 import {resolveApiAssetUrl} from "@/services/api";
@@ -469,6 +474,9 @@ export function ProfileScreen() {
     const logout = useProfileStore((state) => state.logout);
     const syncUser = useProfileStore((state) => state.syncUser);
     const menu = useAppDataStore((state) => state.menu);
+    const clearAddresses = useAddressStore((state) => state.clearAddresses);
+    const clearCart = useCartStore((state) => state.clearCart);
+    const clearDelivery = useDeliveryStore((state) => state.clearDelivery);
 
     const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
     const [ordersTab, setOrdersTab] = useState<OrdersTab>("current");
@@ -476,6 +484,7 @@ export function ProfileScreen() {
     const [message, setMessage] = useState("");
     const [refreshingOrderIds, setRefreshingOrderIds] = useState<string[]>([]);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isDeleteAccountModalVisible, setIsDeleteAccountModalVisible] = useState(false);
 
     const enabled = hasHydrated && Boolean(user);
 
@@ -528,7 +537,7 @@ export function ProfileScreen() {
             name: profile.name,
             email: profile.email,
             birthday: profile.birthday,
-            avatarUrl: profile.avatarUrl,
+            avatarUrl: profile.avatarUrl ?? profile.avatar_url,
         });
     }, [profileQuery.data, syncUser]);
 
@@ -546,9 +555,24 @@ export function ProfileScreen() {
                 name: profile.name,
                 email: profile.email,
                 birthday: profile.birthday,
-                avatarUrl: profile.avatarUrl,
+                avatarUrl: profile.avatarUrl ?? profile.avatar_url,
             });
             setMessage("Профиль обновлен.");
+        },
+    });
+
+    const deleteAccountMutation = useMutation({
+        mutationFn: deleteCustomerProfile,
+        onSuccess: async () => {
+            setIsLoggingOut(true);
+            setIsDeleteAccountModalVisible(false);
+            setMessage("");
+            clearAddresses();
+            clearCart();
+            clearDelivery();
+            queryClient.clear();
+            router.replace("/");
+            await logout();
         },
     });
 
@@ -581,11 +605,13 @@ export function ProfileScreen() {
             ? profileQuery.error.message
             : currentOrdersQuery.error instanceof Error
                 ? currentOrdersQuery.error.message
-                : historyOrdersQuery.error instanceof Error
-                    ? historyOrdersQuery.error.message
-                    : saveProfileMutation.error instanceof Error
-                        ? saveProfileMutation.error.message
-                        : "";
+                    : historyOrdersQuery.error instanceof Error
+                        ? historyOrdersQuery.error.message
+                        : saveProfileMutation.error instanceof Error
+                            ? saveProfileMutation.error.message
+                            : deleteAccountMutation.error instanceof Error
+                                ? deleteAccountMutation.error.message
+                                : "";
 
     const refreshAll = async () => {
         setMessage("");
@@ -635,6 +661,20 @@ export function ProfileScreen() {
         setIsLoggingOut(true);
         router.replace("/");
         void logout();
+    };
+
+    const handleOpenDeleteAccount = () => {
+        setMessage("");
+        deleteAccountMutation.reset();
+        setIsDeleteAccountModalVisible(true);
+    };
+
+    const handleCloseDeleteAccount = () => {
+        if (deleteAccountMutation.isPending) {
+            return;
+        }
+
+        setIsDeleteAccountModalVisible(false);
     };
 
     if (hasHydrated && !user) {
@@ -697,7 +737,10 @@ export function ProfileScreen() {
                                 }}
                                 onSave={() => saveProfileMutation.mutate(form)}
                             />
-                            <ProfileLinks />
+                            <ProfileLinks
+                                isDeletingAccount={deleteAccountMutation.isPending}
+                                onDeleteAccount={handleOpenDeleteAccount}
+                            />
                         </>
                     ) : (
                         <OrdersSection
@@ -713,19 +756,37 @@ export function ProfileScreen() {
                     )}
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <DeleteAccountModal
+                visible={isDeleteAccountModalVisible}
+                isDeleting={deleteAccountMutation.isPending}
+                onClose={handleCloseDeleteAccount}
+                onConfirm={() => deleteAccountMutation.mutate()}
+            />
         </Screen>
     );
 }
 
-function ProfileLinks() {
+function ProfileLinks({
+    onDeleteAccount,
+    isDeletingAccount,
+}: {
+    onDeleteAccount: () => void;
+    isDeletingAccount: boolean;
+}) {
     return (
         <View style={styles.linksBlock}>
             {profileLegalItems.map((item) => (
                 <Pressable
                     key={item.label}
                     accessibilityRole="button"
-                    style={({pressed}) => [styles.linkRow, pressed && styles.pressed]}
-                    onPress={() => undefined}
+                    disabled={item.danger && isDeletingAccount}
+                    style={({pressed}) => [
+                        styles.linkRow,
+                        item.danger && isDeletingAccount && styles.disabled,
+                        pressed && styles.pressed,
+                    ]}
+                    onPress={item.danger ? onDeleteAccount : undefined}
                 >
                     <View style={[styles.linkIcon, item.danger && styles.linkIconDanger]}>
                         <MaterialCommunityIcons
@@ -746,6 +807,63 @@ function ProfileLinks() {
     );
 }
 
+function DeleteAccountModal({
+    visible,
+    isDeleting,
+    onClose,
+    onConfirm,
+}: {
+    visible: boolean;
+    isDeleting: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+}) {
+    return (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+            <Pressable style={styles.modalBackdrop} onPress={onClose}>
+                <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
+                    <Text style={styles.modalTitle}>Удалить аккаунт?</Text>
+                    <Text style={styles.modalText}>
+                        Профиль будет удален без возможности восстановления. История аккаунта
+                        больше не будет доступна.
+                    </Text>
+
+                    <View style={styles.modalActions}>
+                        <Pressable
+                            accessibilityRole="button"
+                            disabled={isDeleting}
+                            style={({pressed}) => [
+                                styles.modalCancel,
+                                isDeleting && styles.disabled,
+                                pressed && styles.pressed,
+                            ]}
+                            onPress={onClose}
+                        >
+                            <Text style={styles.modalCancelText}>Отмена</Text>
+                        </Pressable>
+                        <Pressable
+                            accessibilityRole="button"
+                            disabled={isDeleting}
+                            style={({pressed}) => [
+                                styles.modalDelete,
+                                isDeleting && styles.disabled,
+                                pressed && styles.pressed,
+                            ]}
+                            onPress={onConfirm}
+                        >
+                            {isDeleting ? (
+                                <ActivityIndicator color={themeColors.textOnPrimary} />
+                            ) : (
+                                <Text style={styles.modalDeleteText}>Удалить</Text>
+                            )}
+                        </Pressable>
+                    </View>
+                </Pressable>
+            </Pressable>
+        </Modal>
+    );
+}
+
 function ProfileHero({
     profile,
     fallbackUser,
@@ -761,7 +879,12 @@ function ProfileHero({
 }) {
     const name = profile?.name || fallbackUser?.name || "Гость Mangal Clubs";
     const phone = profile?.phone || fallbackUser?.phone || "";
-    const avatarUrl = resolveApiAssetUrl(profile?.avatarUrl || fallbackUser?.avatarUrl);
+    const avatarUrl = resolveApiAssetUrl(
+        profile?.avatarUrl ||
+        profile?.avatar_url ||
+        fallbackUser?.avatarUrl ||
+        fallbackUser?.avatar_url
+    );
 
     return (
         <View style={styles.hero}>
