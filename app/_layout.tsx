@@ -5,7 +5,6 @@ import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import {AppProviders} from "@/providers/AppProviders";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
-import {NavigationLoadingProvider} from "@/providers/NavigationLoadingProvider";
 import {themeColors} from "@/utils/theme-colors";
 
 
@@ -50,18 +49,16 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{flex: 1, backgroundColor: themeColors.background}}>
             <AppProviders>
                 <View style={{flex: 1, backgroundColor: themeColors.background}}>
-                    <NavigationLoadingProvider>
-                        <Stack
-                            screenOptions={{
-                                headerShown: false,
-                                animation: "fade",
-                                animationDuration: 220,
-                                contentStyle: {
-                                    backgroundColor: themeColors.background,
-                                },
-                            }}
-                        />
-                    </NavigationLoadingProvider>
+                    <Stack
+                        screenOptions={{
+                            headerShown: false,
+                            animation: "fade",
+                            animationDuration: 220,
+                            contentStyle: {
+                                backgroundColor: themeColors.background,
+                            },
+                        }}
+                    />
                 </View>
             </AppProviders>
         </GestureHandlerRootView>

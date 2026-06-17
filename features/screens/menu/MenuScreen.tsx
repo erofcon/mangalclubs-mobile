@@ -4,7 +4,6 @@ import {Hero} from "@/features/screens/menu/hero/Hero";
 import {OrderType} from "@/features/screens/menu/order_type/OrderType";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject} from "react";
-import {useFocusEffect} from "@react-navigation/native";
 import {router, useLocalSearchParams} from "expo-router";
 import {useMenuItemWidth} from "@/features/screens/index/menu/use-menu-item-width";
 import {
@@ -34,7 +33,6 @@ import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {MenuCategoriesSheet} from "@/features/screens/menu/MenuCategoriesSheet";
 import {useCartStore} from "@/store/cart-store";
-import {useNavigationLoading} from "@/providers/NavigationLoadingProvider";
 import {useAppDataStore} from "@/store/app-data-store";
 import {useDeliveryStore} from "@/store/delivery-store";
 import {OrderAvailabilityBar} from "@/components/OrderAvailabilityBar";
@@ -71,7 +69,6 @@ export function MenuScreen() {
     const menus = useAppDataStore((state) => state.menu);
     const isMenuLoading = useAppDataStore((state) => state.isMenuLoading);
     const errorMessage = useAppDataStore((state) => state.errorMessage);
-    const {hideLoading} = useNavigationLoading();
 
     const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
         setContainerWidth(event.nativeEvent.layout.width);
@@ -171,16 +168,6 @@ export function MenuScreen() {
         });
         showAddedToast(item);
     }, [addItemToCart, deliveryType, showAddedToast]);
-
-    useFocusEffect(
-        useCallback(() => {
-            const frame = requestAnimationFrame(() => {
-                hideLoading();
-            });
-
-            return () => cancelAnimationFrame(frame);
-        }, [hideLoading])
-    );
 
     useEffect(() => {
         return () => {
