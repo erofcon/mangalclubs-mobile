@@ -124,6 +124,7 @@ export function useOrderTypeScreen() {
                         title: organization.name,
                         address: `${organization.city}, ${organization.address}`,
                         hours: organization.schedule,
+                        hoursLines: organization.scheduleLines,
                         distance: selectedAddress
                             ? formatDistanceKm(selectedAddress, organization.coordinates)
                             : "-",

@@ -464,7 +464,12 @@ export function ProfileScreen() {
     const enabled = hasHydrated && Boolean(user);
 
     useEffect(() => {
-        if (!hasHydrated || user || isLoggingOut) {
+        if (!hasHydrated || user) {
+            return;
+        }
+
+        if (isLoggingOut) {
+            setIsLoggingOut(false);
             return;
         }
 

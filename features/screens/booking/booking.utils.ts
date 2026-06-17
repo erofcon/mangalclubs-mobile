@@ -28,15 +28,25 @@ export function getBookingImageSource(path?: string) {
     return bookingImageMap[path] ?? bookingImageMap[DEFAULT_BOOKING_IMAGE_PATH];
 }
 
-export function getBookingImages(booking: Booking | null) {
+export function getBookingImagePaths(booking: Booking | null) {
     if (!booking) {
         return [];
     }
 
-    const paths = [booking.image, ...(booking.images ?? [])].filter(Boolean) as string[];
-    const uniquePaths = Array.from(new Set(paths));
+    const preferredImages = booking.verticalImages?.length
+        ? booking.verticalImages
+        : [booking.image, ...(booking.images ?? [])];
+    const paths = preferredImages.filter(Boolean) as string[];
 
-    return uniquePaths.map(getBookingImageSource);
+    return Array.from(new Set(paths));
+}
+
+export function getBookingPrimaryImageSource(booking: Booking) {
+    return getBookingImageSource(getBookingImagePaths(booking)[0]);
+}
+
+export function getBookingImages(booking: Booking | null) {
+    return getBookingImagePaths(booking).map(getBookingImageSource);
 }
 
 export function getOrganization(

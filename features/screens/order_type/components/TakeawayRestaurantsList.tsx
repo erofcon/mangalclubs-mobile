@@ -56,9 +56,17 @@ export function TakeawayRestaurantsList({
                         {item.address}
                     </Text>
 
-                    <Text style={styles.restaurantHours}>
-                        Время работы: {item.hours}
-                    </Text>
+                    <View style={styles.restaurantHoursBlock}>
+                        {(item.hoursLines?.length ? item.hoursLines : [item.hours]).map((line) => (
+                            <Text
+                                key={line}
+                                style={styles.restaurantHours}
+                                numberOfLines={1}
+                            >
+                                {line}
+                            </Text>
+                        ))}
+                    </View>
 
                 </View>
             </Pressable>

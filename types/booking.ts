@@ -24,6 +24,8 @@ export type Booking = {
     longDescription?: string | null;
     image?: string;
     images?: string[];
+    horizontalImages?: string[];
+    verticalImages?: string[];
     category?: BookingCategory;
     organization?: BookingOrganization;
 };

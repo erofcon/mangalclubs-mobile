@@ -9,8 +9,8 @@ import {themeColors} from "@/utils/theme-colors";
 
 import styles from "../booking.styles";
 import {
-    getBookingImageSource,
     getBookingOrganizationName,
+    getBookingPrimaryImageSource,
     getCategoryTitle,
     getOrganization,
 } from "../booking.utils";
@@ -34,7 +34,7 @@ export function BookingCard({booking, organizations, onPress}: BookingCardProps)
             onPress={onPress}
         >
             <Image
-                source={getBookingImageSource(booking.image)}
+                source={getBookingPrimaryImageSource(booking)}
                 style={styles.cardImage}
                 contentFit="cover"
             />

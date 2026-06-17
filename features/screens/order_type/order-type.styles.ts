@@ -178,10 +178,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontFamily: "Point-Regular",
     },
+    restaurantHoursBlock: {
+        gap: 2,
+    },
     restaurantHours: {
-        color: themeColors.textSecondary,
+        color: themeColors.primary,
         fontSize: 12,
-        fontFamily: "Point-Regular",
+        fontFamily: "Point-SemiBold",
     },
     bottomPanel: {
         position: "absolute",

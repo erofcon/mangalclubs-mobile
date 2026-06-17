@@ -227,7 +227,11 @@ export function BookingDetailsSheet({
                                 />
                             ) : null}
                             {organization?.schedule ? (
-                                <InfoRow icon="clock-outline" label="График" value={organization.schedule} />
+                                <InfoRow
+                                    icon="clock-outline"
+                                    label="График"
+                                    value={organization.scheduleLines?.length ? organization.scheduleLines : organization.schedule}
+                                />
                             ) : null}
                             {callPhone ? (
                                 <InfoRow icon="phone-outline" label="Телефон" value={callPhone} />

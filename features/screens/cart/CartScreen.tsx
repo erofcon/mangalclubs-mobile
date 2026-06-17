@@ -1,14 +1,20 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
+import {useQueryClient} from "@tanstack/react-query";
 
 import { OrderAvailabilityBar } from "@/components/OrderAvailabilityBar";
 import { Screen } from "@/components/ui/Screen";
+import {openAuthSheet} from "@/features/auth/AuthSheetController";
 import { checkDeliveryZone } from "@/services/delivery-zones";
 import { isOrganizationUnavailable } from "@/services/availability";
-import { useAddressStore } from "@/store/address-store";
+import { useAddressStore, type SavedAddress } from "@/store/address-store";
+import { createOrder, getOrderStatus, LAST_ORDER_ID_STORAGE_KEY, type OrderCreatePayload } from "@/services/orders";
 import {
     CART_UTENSILS_PRICE,
     getCartItemsCount,
@@ -17,6 +23,7 @@ import {
     useCartStore,
 } from "@/store/cart-store";
 import { useDeliveryStore, type SelectedDeliveryType } from "@/store/delivery-store";
+import {isProfileAuthenticated} from "@/store/profile-store";
 import { SHADOW, themeColors } from "@/utils/theme-colors";
 import { CartRow } from "@/features/screens/cart/CartRow";
 import { formatPrice } from "@/utils/format_price";
@@ -25,6 +32,55 @@ import {useAppDataStore} from "@/store/app-data-store";
 const TAB_BAR_HEIGHT = 24;
 const FIXED_HEADER_HEIGHT = 80;
 const FOOTER_EXTRA_SPACE = 220;
+const currentOrdersQueryKey = ["customer-orders", "current"];
+const historyOrdersQueryKey = ["customer-orders", "history"];
+const PAYMENT_RETURN_PATH = "order-payment";
+const terminalPaidStatuses = new Set(["paid", "PaymentConfirmed", "Success"]);
+const terminalFailedStatuses = new Set([
+    "payment_failed",
+    "payment_cancelled",
+    "payment_expired",
+    "PaymentFailed",
+    "PaymentExpired",
+]);
+
+function getPaymentReturnUrl(result: "success" | "fail"): string {
+    return Linking.createURL(`${PAYMENT_RETURN_PATH}/${result}`);
+}
+
+function getReturnResult(url?: string | null): "success" | "fail" | null {
+    if (!url) {
+        return null;
+    }
+
+    try {
+        const path = Linking.parse(url).path ?? "";
+
+        if (path.includes(`${PAYMENT_RETURN_PATH}/success`)) {
+            return "success";
+        }
+
+        if (path.includes(`${PAYMENT_RETURN_PATH}/fail`)) {
+            return "fail";
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+}
+
+function getOrderStatusOutcome(status?: string | null): "paid" | "failed" | "pending" {
+    if (status && terminalPaidStatuses.has(status)) {
+        return "paid";
+    }
+
+    if (status && terminalFailedStatuses.has(status)) {
+        return "failed";
+    }
+
+    return "pending";
+}
 
 function padTime(value: number): string {
     return String(value).padStart(2, "0");
@@ -71,6 +127,63 @@ function formatItemsCount(count: number): string {
     return `${count} товаров`;
 }
 
+function addDays(date: Date, days: number): Date {
+    const nextDate = new Date(date);
+
+    nextDate.setDate(nextDate.getDate() + days);
+
+    return nextDate;
+}
+
+function buildCompleteBefore(
+    deliveryTime: ReturnType<typeof useDeliveryStore.getState>["deliveryTime"]
+): string {
+    const now = new Date();
+
+    if (deliveryTime.mode === "scheduled" && deliveryTime.selectedTime) {
+        const {day, startMinutes} = deliveryTime.selectedTime;
+        const dayOffset =
+            day === "tomorrow"
+                ? 1
+                : day === "dayAfterTomorrow"
+                    ? 2
+                    : 0;
+        const scheduledAt = addDays(now, dayOffset);
+
+        scheduledAt.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+
+        return scheduledAt.toISOString();
+    }
+
+    const asapDate = new Date(now);
+    asapDate.setMinutes(asapDate.getMinutes() + 30, 0, 0);
+
+    return asapDate.toISOString();
+}
+
+function splitAddressFallback(address: SavedAddress) {
+    const parts = address.address
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    return {
+        city: address.city || parts[0] || "Грозный",
+        street: parts[0] || address.address || address.shortAddress,
+        house: address.house || parts[1] || "",
+    };
+}
+
+function buildDeliveryAddress(address: SavedAddress) {
+    const fallback = splitAddressFallback(address);
+
+    return {
+        city: address.city || fallback.city,
+        street: fallback.street,
+        house: address.house || fallback.house,
+    };
+}
+
 function getOrderHeaderText({
                                 deliveryType,
                                 orderTime,
@@ -104,6 +217,7 @@ function getOrderHeaderText({
 
 export function CartScreen() {
     const insets = useSafeAreaInsets();
+    const queryClient = useQueryClient();
 
     const items = useCartStore((state) => state.items);
     const addUtensils = useCartStore((state) => state.addUtensils);
@@ -132,6 +246,8 @@ export function CartScreen() {
     const [availabilityBarHeight, setAvailabilityBarHeight] = useState(0);
     const [deliveryFee, setDeliveryFee] = useState<number | null>(null);
     const [isDeliveryFeeLoading, setIsDeliveryFeeLoading] = useState(false);
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [checkoutError, setCheckoutError] = useState("");
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     const selectedAddress = useMemo(
@@ -166,9 +282,11 @@ export function CartScreen() {
     );
     const hasMissingDeliveryFee = isDeliveryOrder && deliveryFee === null;
     const isCheckoutDisabled =
-        isCurrentOrderUnavailable || hasMissingDeliveryFee || !deliveryType;
+        isCurrentOrderUnavailable || hasMissingDeliveryFee || !deliveryType || isCheckingOut;
     const checkoutText = isCurrentOrderUnavailable
         ? "Заказы сейчас недоступны"
+        : isCheckingOut
+            ? "Открываем оплату..."
         : !deliveryType
             ? "Выберите способ заказа"
         : hasMissingDeliveryFee
@@ -193,6 +311,169 @@ export function CartScreen() {
             ? `${sourceRestaurant.name}, ${sourceRestaurant.address}`
             : null,
     });
+
+    const buildOrderPayload = (): OrderCreatePayload | null => {
+        if (!deliveryType) {
+            router.push("/order_type");
+            return null;
+        }
+
+        if (isDeliveryOrder && !selectedAddress) {
+            router.push({
+                pathname: "/order_type",
+                params: {type: "delivery"},
+            });
+            return null;
+        }
+
+        if (!sourceRestaurant) {
+            router.push({
+                pathname: "/order_type",
+                params: {type: deliveryType},
+            });
+            return null;
+        }
+
+        const payload: OrderCreatePayload = {
+            orderType: isDeliveryOrder ? "delivery" : "pickup",
+            comment: orderComment.trim() || undefined,
+            completeBefore: buildCompleteBefore(deliveryTime),
+            guestsCount: 1,
+            items: items.map((item) => ({
+                productId: item.id,
+                amount: item.quantity,
+                price: item.price,
+                productSizeId: item.size_id ?? undefined,
+                comment: item.comment?.trim() || undefined,
+                modifiers: [],
+            })),
+            successUrl: getPaymentReturnUrl("success"),
+            failUrl: getPaymentReturnUrl("fail"),
+        };
+
+        if (isDeliveryOrder && selectedAddress) {
+            const deliveryAddress = buildDeliveryAddress(selectedAddress);
+
+            payload.deliveryPoint = {
+                address: {
+                    city: deliveryAddress.city,
+                    street: deliveryAddress.street,
+                    house: deliveryAddress.house,
+                },
+                coordinates: {
+                    latitude: selectedAddress.latitude,
+                    longitude: selectedAddress.longitude,
+                },
+            };
+        } else {
+            payload.organizationId = sourceRestaurant.id;
+            payload.organizationSlug = sourceRestaurant.slug;
+        }
+
+        return payload;
+    };
+
+    const handleCheckout = async () => {
+        setCheckoutError("");
+
+        if (!isProfileAuthenticated()) {
+            openAuthSheet({
+                onSuccess: () => {
+                    void handleCheckout();
+                },
+            });
+            return;
+        }
+
+        if (isCheckoutDisabled) {
+            return;
+        }
+
+        const payload = buildOrderPayload();
+
+        if (!payload) {
+            return;
+        }
+
+        setIsCheckingOut(true);
+
+        try {
+            if (payload.orderType === "delivery" && payload.deliveryPoint) {
+                const deliveryCheck = await checkDeliveryZone({
+                    coordinates: payload.deliveryPoint.coordinates,
+                    organizationSlug: defaultDeliveryOrganization?.slug,
+                });
+
+                if (!deliveryCheck.available || deliveryCheck.price === null) {
+                    throw new Error(
+                        deliveryCheck.reason === "outside_delivery_area"
+                            ? "Адрес вне зоны доставки."
+                            : "Доставка по этому адресу недоступна."
+                    );
+                }
+
+                setDeliveryFee(deliveryCheck.price);
+            }
+
+            const createdOrder = await createOrder(payload);
+            const paymentUrl = createdOrder.payment?.paymentUrl;
+
+            if (!paymentUrl) {
+                throw new Error("Не удалось получить ссылку на оплату.");
+            }
+
+            await AsyncStorage.setItem(LAST_ORDER_ID_STORAGE_KEY, createdOrder.id);
+
+            const result = await WebBrowser.openAuthSessionAsync(
+                paymentUrl,
+                getPaymentReturnUrl("success")
+            );
+            const returnResult = result.type === "success"
+                ? getReturnResult(result.url)
+                : null;
+
+            if (returnResult === "fail") {
+                throw new Error("Оплата не прошла. Продолжить оплату можно в профиле.");
+            }
+
+            if (returnResult !== "success") {
+                Alert.alert(
+                    "Заказ создан",
+                    "Оплата еще не подтверждена. Продолжить оплату можно в профиле."
+                );
+                void queryClient.invalidateQueries({queryKey: currentOrdersQueryKey});
+                router.push("/profile");
+                return;
+            }
+
+            const status = await getOrderStatus(createdOrder.id).catch(() => null);
+            const statusOutcome = getOrderStatusOutcome(
+                status?.paymentStatus ?? createdOrder.paymentStatus
+            );
+
+            if (statusOutcome === "failed") {
+                throw new Error("Банк отклонил оплату. Попробуйте еще раз.");
+            }
+
+            clearCart();
+            void queryClient.invalidateQueries({queryKey: currentOrdersQueryKey});
+            void queryClient.invalidateQueries({queryKey: historyOrdersQueryKey});
+            Alert.alert(
+                "Оплата принята",
+                `Заказ ${createdOrder.publicNumber} создан. После подтверждения оплаты он автоматически уйдет в ресторан.`
+            );
+            router.push("/profile");
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.message
+                : "Не удалось оформить заказ.";
+
+            setCheckoutError(message);
+            Alert.alert("Оформление заказа", message);
+        } finally {
+            setIsCheckingOut(false);
+        }
+    };
 
     useEffect(() => {
         if (!isDeliveryOrder) {
@@ -430,6 +711,10 @@ export function CartScreen() {
                         ) : null}
                     </View>
 
+                    {checkoutError ? (
+                        <Text style={styles.checkoutError}>{checkoutError}</Text>
+                    ) : null}
+
                     <Pressable
                         accessibilityRole="button"
                         disabled={isCheckoutDisabled}
@@ -438,8 +723,11 @@ export function CartScreen() {
                             isCheckoutDisabled && styles.checkoutButtonDisabled,
                             pressed && !isCheckoutDisabled && styles.pressed,
                         ]}
-                        onPress={() => undefined}
+                        onPress={handleCheckout}
                     >
+                        {isCheckingOut ? (
+                            <ActivityIndicator color={themeColors.textOnPrimary} />
+                        ) : null}
                         <Text style={styles.checkoutText}>{checkoutText}</Text>
                     </Pressable>
                 </View>
@@ -698,8 +986,10 @@ const styles = StyleSheet.create({
 
     checkoutButton: {
         minHeight: 54,
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+        gap: 10,
         borderRadius: 12,
         backgroundColor: themeColors.primary,
         ...SHADOW,
@@ -713,5 +1003,13 @@ const styles = StyleSheet.create({
         color: themeColors.textOnPrimary,
         fontSize: 16,
         fontFamily: "Point-Bold",
+    },
+
+    checkoutError: {
+        marginBottom: 12,
+        color: themeColors.notification,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: "Point-Regular",
     },
 });

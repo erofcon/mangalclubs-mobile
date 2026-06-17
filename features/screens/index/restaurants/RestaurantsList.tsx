@@ -28,6 +28,7 @@ type Restaurant = {
     title: string;
     address: string;
     hours: string;
+    hoursLines?: string[];
     phone: string;
     intro: string;
     image: ImageSourcePropType | string;
@@ -62,6 +63,7 @@ export function RestaurantsList() {
             title: organization.name,
             address: `${organization.city}, ${organization.address}`,
             hours: organization.schedule,
+            hoursLines: organization.scheduleLines,
             phone: organization.phone,
             intro: organization.intro,
             image:
@@ -298,7 +300,9 @@ export function RestaurantsList() {
                                     icon="time-outline"
                                     label="График"
                                     value={
-                                        selectedRestaurant.hours
+                                        selectedRestaurant.hoursLines?.length
+                                            ? selectedRestaurant.hoursLines
+                                            : selectedRestaurant.hours
                                     }
                                 />
 
@@ -406,14 +410,18 @@ function ContactRow({
                     }: {
     icon: keyof typeof Ionicons.glyphMap;
     label: string;
-    value: string;
+    value: string | string[];
 }) {
+    const values = Array.isArray(value) ? value : [value];
 
     return (
         <View style={styles.contactRow}>
-            <Text style={styles.contactValue}>
-                {label}: {value}
-            </Text>
+            <Text style={styles.contactLabel}>{label}</Text>
+            {values.map((item) => (
+                <Text key={item} style={styles.contactValue}>
+                    {item}
+                </Text>
+            ))}
         </View>
     )
 
@@ -514,9 +522,16 @@ const styles = StyleSheet.create({
         themeColors.cardSecondary,
     },
 
+    contactLabel: {
+        marginBottom: 4,
+        color: themeColors.textSecondary,
+        fontFamily: "Point-Regular",
+        fontSize: 12,
+    },
+
     contactValue: {
         color: themeColors.text,
-        fontFamily: "Point-Regular",
+        fontFamily: "Point-SemiBold",
         fontSize: 14,
     },
 

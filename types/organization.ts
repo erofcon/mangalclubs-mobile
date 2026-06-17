@@ -19,6 +19,7 @@ export type Organization = {
     city: string;
     address: string;
     schedule: string;
+    scheduleLines?: string[];
     phone: string;
     intro: string,
     coordinates: Coordinates;

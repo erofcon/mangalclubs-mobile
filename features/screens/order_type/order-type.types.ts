@@ -8,6 +8,7 @@ export type TakeawayRestaurant = {
     title: string;
     address: string;
     hours: string;
+    hoursLines?: string[];
     distance: string;
     image: ImageSourcePropType | string;
     isUnavailable?: boolean;

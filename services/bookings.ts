@@ -20,6 +20,8 @@ type ApiBookingCategory = {
 type ApiBookingImage = {
     id: string;
     url: string;
+    orientation?: "horizontal" | "vertical" | null;
+    alt_text?: string | null;
     sort_order?: number | null;
 };
 
@@ -32,6 +34,8 @@ type ApiBooking = {
     long_description?: string | null;
     preview_url?: string | null;
     images?: ApiBookingImage[];
+    horizontal_images?: ApiBookingImage[];
+    vertical_images?: ApiBookingImage[];
     sort_order?: number | null;
     organization?: ApiBookingOrganization;
     category?: ApiBookingCategory;
@@ -61,10 +65,18 @@ export const normalizeBookingCategory = (
     previewUrl: resolveApiAssetUrl(category.preview_url),
 });
 
+const normalizeBookingImages = (images?: ApiBookingImage[] | null) => (
+    images ?? []
+)
+    .slice()
+    .sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0))
+    .map((image) => resolveApiAssetUrl(image.url))
+    .filter((url): url is string => Boolean(url));
+
 export const normalizeBooking = (booking: ApiBooking): Booking => {
-    const images = (booking.images ?? [])
-        .map((image) => resolveApiAssetUrl(image.url))
-        .filter((url): url is string => Boolean(url));
+    const images = normalizeBookingImages(booking.images);
+    const horizontalImages = normalizeBookingImages(booking.horizontal_images);
+    const verticalImages = normalizeBookingImages(booking.vertical_images);
     const previewUrl = resolveApiAssetUrl(booking.preview_url);
 
     return {
@@ -74,8 +86,10 @@ export const normalizeBooking = (booking: ApiBooking): Booking => {
         title: booking.title,
         description: booking.description,
         longDescription: booking.long_description,
-        image: previewUrl ?? images[0],
+        image: verticalImages[0] ?? previewUrl ?? images[0],
         images,
+        horizontalImages,
+        verticalImages,
         organization: normalizeBookingOrganization(booking.organization),
         category: booking.category ? normalizeBookingCategory(booking.category) : undefined,
     };
