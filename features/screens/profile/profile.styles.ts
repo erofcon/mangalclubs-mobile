@@ -11,8 +11,12 @@ export const profileStyles = StyleSheet.create({
     content: {
         paddingHorizontal: 16,
         paddingTop: 4,
-        paddingBottom: 118,
+        paddingBottom: 180,
         gap: 14,
+    },
+
+    keyboardAvoidingContent: {
+        flex: 1,
     },
 
     pressed: {
@@ -53,6 +57,20 @@ export const profileStyles = StyleSheet.create({
     avatarImage: {
         width: "100%",
         height: "100%",
+    },
+
+    avatarActionBadge: {
+        position: "absolute",
+        right: 5,
+        bottom: 5,
+        width: 24,
+        height: 24,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.35)",
+        backgroundColor: themeColors.primary,
     },
 
     heroText: {
@@ -354,10 +372,242 @@ export const profileStyles = StyleSheet.create({
     },
 
     versionText: {
-        marginTop: 10,
+        color: themeColors.textSecondary,
+        fontSize: 11,
+        lineHeight: 14,
+        fontFamily: "Point-SemiBold",
+    },
+
+    versionBadge: {
+        alignSelf: "center",
+        minHeight: 30,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginTop: 8,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(236,172,24,0.18)",
+        backgroundColor: "rgba(236,172,24,0.06)",
+    },
+
+    supportSheetBackground: {
+        backgroundColor: "#070808",
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: "rgba(255,255,255,0.09)",
+    },
+
+    supportSheetContainer: {
+        backgroundColor: "#070808",
+    },
+
+    supportSheetContent: {
+        backgroundColor: "#070808",
+        paddingBottom: 22,
+    },
+
+    supportIntro: {
+        minHeight: 74,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    supportIntroIcon: {
+        width: 46,
+        height: 46,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(236,172,24,0.22)",
+        backgroundColor: "rgba(236,172,24,0.08)",
+    },
+
+    supportIntroText: {
+        flex: 1,
+        minWidth: 0,
+    },
+
+    supportTitle: {
+        color: themeColors.text,
+        fontSize: 17,
+        lineHeight: 22,
+        fontFamily: "Point-SemiBold",
+    },
+
+    supportSubtitle: {
+        marginTop: 4,
         color: themeColors.textSecondary,
         fontSize: 12,
-        lineHeight: 16,
+        lineHeight: 17,
+        fontFamily: "Point-Regular",
+    },
+
+    supportRestaurantsList: {
+        gap: 12,
+        marginTop: 12,
+    },
+
+    supportRestaurantCard: {
+        gap: 13,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#11100E",
+    },
+
+    supportRestaurantHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+
+    supportRestaurantIcon: {
+        width: 42,
+        height: 42,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    supportRestaurantTitleWrap: {
+        flex: 1,
+        minWidth: 0,
+    },
+
+    supportRestaurantName: {
+        color: themeColors.text,
+        fontSize: 16,
+        lineHeight: 20,
+        fontFamily: "Point-SemiBold",
+    },
+
+    supportRestaurantAddress: {
+        marginTop: 4,
+        color: themeColors.textSecondary,
+        fontSize: 12,
+        lineHeight: 17,
+        fontFamily: "Point-Regular",
+    },
+
+    supportInfoList: {
+        gap: 8,
+    },
+
+    supportInfoRow: {
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 10,
+        padding: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "#080909",
+    },
+
+    supportInfoTextWrap: {
+        flex: 1,
+        minWidth: 0,
+        gap: 3,
+    },
+
+    supportInfoLabel: {
+        color: themeColors.textSecondary,
+        fontSize: 10,
+        lineHeight: 13,
+        fontFamily: "Point-Bold",
+        textTransform: "uppercase",
+    },
+
+    supportInfoValue: {
+        color: themeColors.text,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: "Point-Regular",
+    },
+
+    supportActions: {
+        flexDirection: "row",
+        gap: 8,
+    },
+
+    supportCallButton: {
+        flex: 1,
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 12,
+        backgroundColor: themeColors.primary,
+    },
+
+    supportCallButtonText: {
+        color: themeColors.textOnPrimary,
+        fontSize: 13,
+        lineHeight: 17,
+        fontFamily: "Point-Bold",
+    },
+
+    supportWhatsappButton: {
+        flex: 1,
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+        backgroundColor: "#080909",
+    },
+
+    supportWhatsappButtonText: {
+        color: themeColors.text,
+        fontSize: 13,
+        lineHeight: 17,
+        fontFamily: "Point-Bold",
+    },
+
+    supportEmpty: {
+        alignItems: "center",
+        gap: 8,
+        marginTop: 12,
+        paddingHorizontal: 18,
+        paddingVertical: 24,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#11100E",
+    },
+
+    supportEmptyTitle: {
+        color: themeColors.text,
+        fontSize: 16,
+        lineHeight: 20,
+        textAlign: "center",
+        fontFamily: "Point-SemiBold",
+    },
+
+    supportEmptyText: {
+        color: themeColors.textSecondary,
+        fontSize: 12,
+        lineHeight: 17,
         textAlign: "center",
         fontFamily: "Point-Regular",
     },

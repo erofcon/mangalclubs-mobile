@@ -21,12 +21,19 @@ import {SearchBanner} from "@/features/screens/index/search/SearchBanner";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useAppDataStore} from "@/store/app-data-store";
 import {themeColors} from "@/utils/theme-colors";
+import {CartAddedToast} from "@/components/ui/CartAddedToast";
+import {useCartAddedToast} from "@/hooks/useCartAddedToast";
 
 export function IndexScreen() {
     const insets = useSafeAreaInsets();
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
     const menus = useAppDataStore((state) => state.menu);
     const [availabilityBarHeight, setAvailabilityBarHeight] = useState(0);
+    const {
+        toastMessage,
+        toastAnimatedStyle,
+        showAddedToast,
+    } = useCartAddedToast();
 
     const availableCategories = useMemo(
         () => menus.filter((category) => category.items.length > 0),
@@ -71,7 +78,7 @@ export function IndexScreen() {
 
                         <Stories/>
 
-                        <ListOfDay/>
+                        <ListOfDay onAddedToCart={showAddedToast}/>
 
                         <RestaurantsList/>
                     </ScrollView>
@@ -89,6 +96,12 @@ export function IndexScreen() {
                             onHeightChange={setAvailabilityBarHeight}
                         />
                     </View>
+
+                    <CartAddedToast
+                        message={toastMessage}
+                        bottom={insets.bottom + 92}
+                        animatedStyle={toastAnimatedStyle}
+                    />
                 </View>
             </Screen>
 

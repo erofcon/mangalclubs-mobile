@@ -19,9 +19,7 @@ import * as Haptics from "expo-haptics";
 import Animated, {
     runOnJS,
     useAnimatedScrollHandler,
-    useAnimatedStyle,
     useSharedValue,
-    withTiming,
 } from "react-native-reanimated";
 import type {MenuItem} from "@/types/products";
 import {useIndexMenuScroll} from "@/features/screens/index/menu/use-index-menu-scroll";
@@ -36,6 +34,8 @@ import {useCartStore} from "@/store/cart-store";
 import {useAppDataStore} from "@/store/app-data-store";
 import {OrderAvailabilityBar} from "@/components/OrderAvailabilityBar";
 import {requestCartAddPermission} from "@/store/cart-gate-store";
+import {CartAddedToast} from "@/components/ui/CartAddedToast";
+import {useCartAddedToast} from "@/hooks/useCartAddedToast";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
 const SKELETON_CATEGORIES = [
@@ -58,10 +58,8 @@ export function MenuScreen() {
     const params = useLocalSearchParams<{categoryId?: string}>();
     const [containerWidth, setContainerWidth] = useState(0);
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
-    const [toastMessage, setToastMessage] = useState("");
     const [availabilityBarHeight, setAvailabilityBarHeight] = useState(0);
     const categoriesSheetRef = useRef<AppBottomSheetRef>(null);
-    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const categoryScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
     const addItemToCart = useCartStore((state) => state.addItem);
@@ -85,7 +83,11 @@ export function MenuScreen() {
     }, [availableCategories]);
 
     const scrollY = useSharedValue(0);
-    const toastProgress = useSharedValue(0);
+    const {
+        toastMessage,
+        toastAnimatedStyle,
+        showAddedToast,
+    } = useCartAddedToast();
 
     const {
         activeCategoryId,
@@ -118,11 +120,6 @@ export function MenuScreen() {
         },
     });
 
-    const toastAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: toastProgress.value,
-        transform: [{translateY: (1 - toastProgress.value) * 12}],
-    }));
-
     const handleSearchPress = useCallback(() => {
         router.push("/search");
     }, []);
@@ -139,23 +136,6 @@ export function MenuScreen() {
         [scrollToCategory],
     );
 
-    const showAddedToast = useCallback((item: MenuItem) => {
-        if (toastTimerRef.current) {
-            clearTimeout(toastTimerRef.current);
-        }
-
-        setToastMessage(`Добавлено: ${item.name}`);
-        toastProgress.value = withTiming(1, {duration: 160});
-
-        toastTimerRef.current = setTimeout(() => {
-            toastProgress.value = withTiming(0, {duration: 180});
-
-            toastTimerRef.current = setTimeout(() => {
-                setToastMessage("");
-            }, 200);
-        }, 1700);
-    }, [toastProgress]);
-
     const handleProductAdd = useCallback((item: MenuItem) => {
         if (!requestCartAddPermission(item)) {
             return;
@@ -169,10 +149,6 @@ export function MenuScreen() {
 
     useEffect(() => {
         return () => {
-            if (toastTimerRef.current) {
-                clearTimeout(toastTimerRef.current);
-            }
-
             if (categoryScrollTimerRef.current) {
                 clearTimeout(categoryScrollTimerRef.current);
             }
@@ -299,28 +275,16 @@ export function MenuScreen() {
                         />
                     </View>
 
-                    {toastMessage ? (
-                        <Animated.View
-                            pointerEvents="none"
-                            style={[
-                                styles.toast,
-                                {bottom: insets.bottom + 92},
-                                toastAnimatedStyle,
-                            ]}
-                        >
-                            <View style={styles.toastIcon}>
-                                <Text style={styles.toastIconText}>+</Text>
-                            </View>
-
-                            <Text style={styles.toastText} numberOfLines={1}>
-                                {toastMessage}
-                            </Text>
-                        </Animated.View>
-                    ) : null}
+                    <CartAddedToast
+                        message={toastMessage}
+                        bottom={insets.bottom + 92}
+                        animatedStyle={toastAnimatedStyle}
+                    />
 
                     <DishDetailsModal
                         item={selectedDish}
                         onDismiss={() => setSelectedDish(null)}
+                        onAddedToCart={showAddedToast}
                     />
 
                     <MenuCategoriesSheet
@@ -517,44 +481,5 @@ const styles = StyleSheet.create({
         marginHorizontal: 10,
         borderRadius: 6,
         backgroundColor: "#201e1a",
-    },
-    toast: {
-        position: "absolute",
-        left: 16,
-        right: 16,
-        minHeight: 48,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.10)",
-        backgroundColor: "rgba(18,18,16,0.96)",
-        zIndex: 1000,
-        elevation: 1000,
-    },
-    toastIcon: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: themeColors.primary,
-    },
-    toastIconText: {
-        color: themeColors.textOnPrimary,
-        fontSize: 18,
-        lineHeight: 21,
-        fontFamily: "Point-Bold",
-    },
-    toastText: {
-        flex: 1,
-        minWidth: 0,
-        color: themeColors.text,
-        fontSize: 14,
-        lineHeight: 18,
-        fontFamily: "Point-SemiBold",
     },
 });

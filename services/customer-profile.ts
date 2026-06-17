@@ -18,6 +18,12 @@ export type CustomerProfilePatch = {
     birthday?: string | null;
 };
 
+export type CustomerAvatarUpload = {
+    uri: string;
+    name: string;
+    type: string;
+};
+
 export type OrderPayment = {
     id?: string;
     status?: string | null;
@@ -93,6 +99,23 @@ export const updateCustomerProfile = (payload: CustomerProfilePatch) => (
     apiFetch<CustomerProfile>("/api/v1/customers/me", {
         method: "PATCH",
         body: JSON.stringify(payload),
+    })
+);
+
+export const uploadCustomerAvatar = (avatar: CustomerAvatarUpload) => {
+    const formData = new FormData();
+
+    formData.append("avatar", avatar as unknown as Blob);
+
+    return apiFetch<CustomerProfile>("/api/v1/customers/me/avatar", {
+        method: "POST",
+        body: formData,
+    });
+};
+
+export const deleteCustomerAvatar = () => (
+    apiFetch<void>("/api/v1/customers/me/avatar", {
+        method: "DELETE",
     })
 );
 

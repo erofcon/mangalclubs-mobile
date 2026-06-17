@@ -1,12 +1,15 @@
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import Constants from "expo-constants";
 import {Image} from "expo-image";
 import * as Linking from "expo-linking";
 import {router} from "expo-router";
-import {useEffect, useMemo, useRef, useState} from "react";
+import {forwardRef, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     ActivityIndicator,
+    Dimensions,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -29,20 +32,24 @@ import {
     CustomerOrder,
     CustomerOrderItem,
     CustomerProfile,
+    deleteCustomerAvatar,
     deleteCustomerProfile,
     getCurrentCustomerOrders,
     getCustomerOrderStatus,
     getCustomerProfile,
     getHistoryCustomerOrders,
     updateCustomerProfile,
+    uploadCustomerAvatar,
 } from "@/services/customer-profile";
 import {useAddressStore} from "@/store/address-store";
 import {useAppDataStore} from "@/store/app-data-store";
 import {useCartStore} from "@/store/cart-store";
 import {useDeliveryStore} from "@/store/delivery-store";
 import {useProfileStore} from "@/store/profile-store";
+import type {Organization} from "@/types/organization";
 import type {MenuItem} from "@/types/products";
 import {resolveApiAssetUrl} from "@/services/api";
+import {appVersion} from "@/utils/app-version";
 import {formatPrice} from "@/utils/format_price";
 import {themeColors} from "@/utils/theme-colors";
 
@@ -58,9 +65,16 @@ type ProfileForm = {
     birthday: string;
 };
 
+type ProfileFieldFocusHandler = NonNullable<React.ComponentProps<typeof TextInput>["onFocus"]>;
+
 const profileQueryKey = ["customer-profile"];
 const currentOrdersQueryKey = ["customer-orders", "current"];
 const historyOrdersQueryKey = ["customer-orders", "history"];
+const avatarMaxSourceSizeBytes = 8 * 1024 * 1024;
+const avatarTargetSize = 512;
+const avatarUploadMimeType = "image/jpeg";
+const avatarUploadFileName = "avatar.jpg";
+const allowedAvatarMimeTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const initialForm: ProfileForm = {
     name: "",
@@ -68,19 +82,17 @@ const initialForm: ProfileForm = {
     birthday: "",
 };
 
-const appVersion = Constants.expoConfig?.version ?? "1.0.0";
-
 const profileLegalItems: Array<{
+    key: "delivery" | "support" | "personal-data" | "cards" | "delete-account";
     label: string;
     icon: keyof typeof MaterialCommunityIcons.glyphMap;
     danger?: boolean;
 }> = [
-    {label: "Условия доставки", icon: "truck-delivery-outline"},
-    {label: "Поддержка", icon: "lifebuoy"},
-    {label: "Обработка персональных данных", icon: "shield-account-outline"},
-    {label: "Условия использования карт", icon: "map-marker-radius-outline"},
-    {label: "О компании", icon: "information-outline"},
-    {label: "Удалить аккаунт", icon: "account-remove-outline", danger: true},
+    {key: "delivery", label: "Условия доставки", icon: "truck-delivery-outline"},
+    {key: "support", label: "Поддержка", icon: "lifebuoy"},
+    {key: "personal-data", label: "Обработка персональных данных", icon: "shield-account-outline"},
+    {key: "cards", label: "Условия использования карт", icon: "map-marker-radius-outline"},
+    {key: "delete-account", label: "Удалить аккаунт", icon: "account-remove-outline", danger: true},
 ];
 
 const fallbackStatus = {
@@ -173,6 +185,29 @@ const readString = (value: unknown) => (
     typeof value === "string" && value.trim() ? value.trim() : null
 );
 
+const getPhoneUrl = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+
+const getWhatsAppPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+
+    if (digits.length === 11 && digits.startsWith("8")) {
+        return `7${digits.slice(1)}`;
+    }
+
+    return digits;
+};
+
+const openExternalUrl = async (url: string, fallbackUrl?: string) => {
+    try {
+        const canOpen = await Linking.canOpenURL(url);
+        await Linking.openURL(canOpen ? url : fallbackUrl ?? url);
+    } catch {
+        if (fallbackUrl) {
+            await Linking.openURL(fallbackUrl).catch(() => undefined);
+        }
+    }
+};
+
 const formatDateTime = (value?: string | null) => {
     if (!value) {
         return "Дата уточняется";
@@ -213,6 +248,70 @@ const formatBirthday = (value?: string | null) => {
 const getBirthdayInputValue = (value?: string | null) => (
     value ? value.slice(0, 10) : ""
 );
+
+const formatBirthdayInputValue = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    const parts = [
+        digits.slice(0, 4),
+        digits.slice(4, 6),
+        digits.slice(6, 8),
+    ].filter(Boolean);
+
+    return parts.join("-");
+};
+
+const formatFileSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(0)} МБ`;
+
+const getImageMimeType = (asset: ImagePicker.ImagePickerAsset) => {
+    const source = asset.mimeType || asset.fileName || asset.uri;
+    const normalized = source.toLowerCase().split("?")[0];
+
+    if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg") || normalized === "image/jpeg") {
+        return "image/jpeg";
+    }
+
+    if (normalized.endsWith(".png") || normalized === "image/png") {
+        return "image/png";
+    }
+
+    if (normalized.endsWith(".webp") || normalized === "image/webp") {
+        return "image/webp";
+    }
+
+    return asset.mimeType;
+};
+
+const prepareAvatarUpload = async (asset: ImagePicker.ImagePickerAsset) => {
+    const mimeType = getImageMimeType(asset);
+
+    if (!mimeType || !allowedAvatarMimeTypes.has(mimeType)) {
+        throw new Error("Можно загрузить только JPEG, PNG или WebP.");
+    }
+
+    if (typeof asset.fileSize === "number" && asset.fileSize > avatarMaxSourceSizeBytes) {
+        throw new Error(`Изображение должно быть до ${formatFileSize(avatarMaxSourceSizeBytes)}.`);
+    }
+
+    const resize =
+        asset.width >= asset.height
+            ? {width: avatarTargetSize}
+            : {height: avatarTargetSize};
+
+    const result = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{resize}],
+        {
+            compress: 0.85,
+            format: ImageManipulator.SaveFormat.JPEG,
+        }
+    );
+
+    return {
+        uri: result.uri,
+        name: avatarUploadFileName,
+        type: avatarUploadMimeType,
+    };
+};
 
 const formatMoney = (value?: number | null) => (
     typeof value === "number"
@@ -474,6 +573,7 @@ export function ProfileScreen() {
     const logout = useProfileStore((state) => state.logout);
     const syncUser = useProfileStore((state) => state.syncUser);
     const menu = useAppDataStore((state) => state.menu);
+    const organizations = useAppDataStore((state) => state.organizations);
     const clearAddresses = useAddressStore((state) => state.clearAddresses);
     const clearCart = useCartStore((state) => state.clearCart);
     const clearDelivery = useDeliveryStore((state) => state.clearDelivery);
@@ -485,8 +585,23 @@ export function ProfileScreen() {
     const [refreshingOrderIds, setRefreshingOrderIds] = useState<string[]>([]);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDeleteAccountModalVisible, setIsDeleteAccountModalVisible] = useState(false);
+    const supportSheetRef = useRef<AppBottomSheetRef>(null);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const keyboardHeightRef = useRef(0);
 
     const enabled = hasHydrated && Boolean(user);
+
+    const syncProfile = useCallback((profile: CustomerProfile) => {
+        queryClient.setQueryData(profileQueryKey, profile);
+        syncUser({
+            id: profile.id,
+            phone: profile.phone,
+            name: profile.name,
+            email: profile.email,
+            birthday: profile.birthday,
+            avatarUrl: profile.avatarUrl ?? profile.avatar_url,
+        });
+    }, [queryClient, syncUser]);
 
     useEffect(() => {
         if (!hasHydrated || user) {
@@ -500,6 +615,26 @@ export function ProfileScreen() {
 
         openAuthSheet();
     }, [hasHydrated, isLoggingOut, user]);
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener(
+            Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+            (event) => {
+                keyboardHeightRef.current = event.endCoordinates.height;
+            }
+        );
+        const hideSubscription = Keyboard.addListener(
+            Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+            () => {
+                keyboardHeightRef.current = 0;
+            }
+        );
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
 
     const profileQuery = useQuery({
         queryKey: profileQueryKey,
@@ -531,15 +666,8 @@ export function ProfileScreen() {
             email: profile.email ?? "",
             birthday: getBirthdayInputValue(profile.birthday),
         });
-        syncUser({
-            id: profile.id,
-            phone: profile.phone,
-            name: profile.name,
-            email: profile.email,
-            birthday: profile.birthday,
-            avatarUrl: profile.avatarUrl ?? profile.avatar_url,
-        });
-    }, [profileQuery.data, syncUser]);
+        syncProfile(profile);
+    }, [profileQuery.data, syncProfile]);
 
     const saveProfileMutation = useMutation({
         mutationFn: (payload: ProfileForm) => updateCustomerProfile({
@@ -548,16 +676,38 @@ export function ProfileScreen() {
             birthday: payload.birthday || null,
         }),
         onSuccess: (profile) => {
-            queryClient.setQueryData(profileQueryKey, profile);
-            syncUser({
-                id: profile.id,
-                phone: profile.phone,
-                name: profile.name,
-                email: profile.email,
-                birthday: profile.birthday,
-                avatarUrl: profile.avatarUrl ?? profile.avatar_url,
-            });
+            syncProfile(profile);
             setMessage("Профиль обновлен.");
+        },
+    });
+
+    const uploadAvatarMutation = useMutation({
+        mutationFn: uploadCustomerAvatar,
+        onSuccess: (profile) => {
+            syncProfile(profile);
+            setMessage("Аватар обновлен.");
+        },
+    });
+
+    const deleteAvatarMutation = useMutation({
+        mutationFn: deleteCustomerAvatar,
+        onSuccess: () => {
+            const currentProfile = queryClient.getQueryData<CustomerProfile>(profileQueryKey);
+
+            if (currentProfile) {
+                syncProfile({
+                    ...currentProfile,
+                    avatarUrl: null,
+                    avatar_url: null,
+                });
+            } else {
+                syncUser({
+                    avatarUrl: null,
+                    avatar_url: null,
+                });
+            }
+
+            setMessage("Аватар удален.");
         },
     });
 
@@ -609,12 +759,18 @@ export function ProfileScreen() {
                         ? historyOrdersQuery.error.message
                         : saveProfileMutation.error instanceof Error
                             ? saveProfileMutation.error.message
-                            : deleteAccountMutation.error instanceof Error
-                                ? deleteAccountMutation.error.message
-                                : "";
+                            : uploadAvatarMutation.error instanceof Error
+                                ? uploadAvatarMutation.error.message
+                                : deleteAvatarMutation.error instanceof Error
+                                    ? deleteAvatarMutation.error.message
+                                    : deleteAccountMutation.error instanceof Error
+                                        ? deleteAccountMutation.error.message
+                                        : "";
 
     const refreshAll = async () => {
         setMessage("");
+        uploadAvatarMutation.reset();
+        deleteAvatarMutation.reset();
         await Promise.all([
             queryClient.invalidateQueries({queryKey: profileQueryKey}),
             queryClient.invalidateQueries({queryKey: currentOrdersQueryKey}),
@@ -657,6 +813,53 @@ export function ProfileScreen() {
         }
     };
 
+    const handlePickAvatar = async () => {
+        if (uploadAvatarMutation.isPending || deleteAvatarMutation.isPending) {
+            return;
+        }
+
+        setMessage("");
+        uploadAvatarMutation.reset();
+        deleteAvatarMutation.reset();
+
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync(false);
+
+        if (!permission.granted) {
+            setMessage("Разрешите доступ к фото, чтобы выбрать аватар.");
+            return;
+        }
+
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 1,
+                selectionLimit: 1,
+            });
+
+            if (result.canceled || !result.assets[0]) {
+                return;
+            }
+
+            const avatar = await prepareAvatarUpload(result.assets[0]);
+            uploadAvatarMutation.mutate(avatar);
+        } catch (error) {
+            setMessage(error instanceof Error ? error.message : "Не удалось подготовить изображение.");
+        }
+    };
+
+    const handleDeleteAvatar = () => {
+        if (uploadAvatarMutation.isPending || deleteAvatarMutation.isPending) {
+            return;
+        }
+
+        setMessage("");
+        uploadAvatarMutation.reset();
+        deleteAvatarMutation.reset();
+        deleteAvatarMutation.mutate();
+    };
+
     const handleLogout = () => {
         setIsLoggingOut(true);
         router.replace("/");
@@ -677,6 +880,28 @@ export function ProfileScreen() {
         setIsDeleteAccountModalVisible(false);
     };
 
+    const handleProfileFieldFocus: ProfileFieldFocusHandler = (event) => {
+        const target = event.target;
+
+        requestAnimationFrame(() => {
+            const keyboardHeight = keyboardHeightRef.current || (Platform.OS === "android" ? 320 : 300);
+            const visibleHeight = Dimensions.get("window").height - keyboardHeight - 92;
+
+            target.measure((_x, _y, _width, height, _pageX, pageY) => {
+                const fieldBottom = pageY + height;
+
+                if (fieldBottom <= visibleHeight) {
+                    return;
+                }
+
+                scrollViewRef.current?.scrollTo({
+                    y: fieldBottom - visibleHeight + 36,
+                    animated: true,
+                });
+            });
+        });
+    };
+
     if (hasHydrated && !user) {
         return <Screen withTopInset />;
     }
@@ -684,11 +909,16 @@ export function ProfileScreen() {
     return (
         <Screen withTopInset>
             <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                behavior={Platform.OS === "ios" ? "padding" : "position"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
                 style={styles.root}
+                contentContainerStyle={styles.keyboardAvoidingContent}
             >
                 <ScrollView
+                    ref={scrollViewRef}
                     showsVerticalScrollIndicator={false}
+                    scrollIndicatorInsets={{bottom: 180}}
+                    keyboardDismissMode="interactive"
                     keyboardShouldPersistTaps="handled"
                     refreshControl={
                         <RefreshControl
@@ -709,6 +939,9 @@ export function ProfileScreen() {
                         fallbackUser={user}
                         activeOrdersCount={displayedCurrentOrders.length}
                         historyOrdersCount={displayedHistoryOrders.length}
+                        isUpdatingAvatar={uploadAvatarMutation.isPending || deleteAvatarMutation.isPending}
+                        onChangeAvatar={handlePickAvatar}
+                        onDeleteAvatar={handleDeleteAvatar}
                         onLogout={handleLogout}
                     />
 
@@ -733,12 +966,15 @@ export function ProfileScreen() {
                                 isSaving={saveProfileMutation.isPending}
                                 onChange={(field, value) => {
                                     setMessage("");
+                                    saveProfileMutation.reset();
                                     setForm((prev) => ({...prev, [field]: value}));
                                 }}
+                                onFieldFocus={handleProfileFieldFocus}
                                 onSave={() => saveProfileMutation.mutate(form)}
                             />
                             <ProfileLinks
                                 isDeletingAccount={deleteAccountMutation.isPending}
+                                onOpenSupport={() => supportSheetRef.current?.open()}
                                 onDeleteAccount={handleOpenDeleteAccount}
                             />
                         </>
@@ -763,14 +999,21 @@ export function ProfileScreen() {
                 onClose={handleCloseDeleteAccount}
                 onConfirm={() => deleteAccountMutation.mutate()}
             />
+
+            <SupportSheet
+                ref={supportSheetRef}
+                organizations={organizations}
+            />
         </Screen>
     );
 }
 
 function ProfileLinks({
+    onOpenSupport,
     onDeleteAccount,
     isDeletingAccount,
 }: {
+    onOpenSupport: () => void;
     onDeleteAccount: () => void;
     isDeletingAccount: boolean;
 }) {
@@ -786,7 +1029,13 @@ function ProfileLinks({
                         item.danger && isDeletingAccount && styles.disabled,
                         pressed && styles.pressed,
                     ]}
-                    onPress={item.danger ? onDeleteAccount : undefined}
+                    onPress={
+                        item.key === "support"
+                            ? onOpenSupport
+                            : item.danger
+                                ? onDeleteAccount
+                                : undefined
+                    }
                 >
                     <View style={[styles.linkIcon, item.danger && styles.linkIconDanger]}>
                         <MaterialCommunityIcons
@@ -802,7 +1051,223 @@ function ProfileLinks({
                 </Pressable>
             ))}
 
-            <Text style={styles.versionText}>Версия приложения {appVersion}</Text>
+            <View style={styles.versionBadge}>
+                <MaterialCommunityIcons
+                    name="cellphone-check"
+                    size={14}
+                    color={themeColors.primary}
+                />
+                <Text style={styles.versionText}>Версия {appVersion}</Text>
+            </View>
+        </View>
+    );
+}
+
+const SupportSheet = forwardRef<AppBottomSheetRef, {organizations: Organization[]}>(
+    ({organizations}, ref) => {
+        const restaurants = organizations.filter((organization) => (
+            organization.name || organization.address || organization.phone
+        ));
+
+        return (
+            <AppBottomSheetModal
+                ref={ref}
+                title="Поддержка"
+                showCloseButton
+                scrollable
+                snapPoints={["72%"]}
+                enableDynamicSizing={false}
+                backgroundStyle={styles.supportSheetBackground}
+                handleIndicatorStyle={styles.orderSheetHandle}
+                containerStyle={styles.supportSheetContainer}
+                contentContainerStyle={styles.supportSheetContent}
+            >
+                <View style={styles.supportIntro}>
+                    <View style={styles.supportIntroIcon}>
+                        <MaterialCommunityIcons
+                            name="lifebuoy"
+                            size={22}
+                            color={themeColors.primary}
+                        />
+                    </View>
+                    <View style={styles.supportIntroText}>
+                        <Text style={styles.supportTitle}>Свяжитесь с рестораном</Text>
+                        <Text style={styles.supportSubtitle}>
+                            Выберите нужный адрес, позвоните или напишите нам в WhatsApp.
+                        </Text>
+                    </View>
+                </View>
+
+                {restaurants.length ? (
+                    <View style={styles.supportRestaurantsList}>
+                        {restaurants.map((restaurant) => (
+                            <SupportRestaurantCard
+                                key={restaurant.id}
+                                restaurant={restaurant}
+                            />
+                        ))}
+                    </View>
+                ) : (
+                    <View style={styles.supportEmpty}>
+                        <MaterialCommunityIcons
+                            name="store-clock-outline"
+                            size={30}
+                            color={themeColors.primary}
+                        />
+                        <Text style={styles.supportEmptyTitle}>Контакты загружаются</Text>
+                        <Text style={styles.supportEmptyText}>
+                            Обновите экран профиля или попробуйте открыть поддержку чуть позже.
+                        </Text>
+                    </View>
+                )}
+            </AppBottomSheetModal>
+        );
+    }
+);
+
+SupportSheet.displayName = "SupportSheet";
+
+function SupportRestaurantCard({restaurant}: {restaurant: Organization}) {
+    const phone = restaurant.phone?.trim() ?? "";
+    const address = restaurant.address?.trim() || "Адрес уточняйте по телефону";
+    const scheduleLines = restaurant.scheduleLines?.length
+        ? restaurant.scheduleLines
+        : [restaurant.schedule || "График уточняйте по телефону"];
+    const formattedPhone = phone ? formatRuPhoneDisplay(phone) : "Телефон уточняется";
+    const canContact = Boolean(phone);
+
+    const handleCall = () => {
+        if (!phone) {
+            return;
+        }
+
+        void openExternalUrl(getPhoneUrl(phone));
+    };
+
+    const handleWhatsApp = () => {
+        if (!phone) {
+            return;
+        }
+
+        const whatsappPhone = getWhatsAppPhone(phone);
+        const text = encodeURIComponent(
+            `Здравствуйте! Хочу уточнить информацию по ресторану ${restaurant.name}.`
+        );
+
+        void openExternalUrl(
+            `whatsapp://send?phone=${whatsappPhone}&text=${text}`,
+            `https://wa.me/${whatsappPhone}?text=${text}`
+        );
+    };
+
+    return (
+        <View style={styles.supportRestaurantCard}>
+            <View style={styles.supportRestaurantHeader}>
+                <View style={styles.supportRestaurantIcon}>
+                    <MaterialCommunityIcons
+                        name="storefront-outline"
+                        size={22}
+                        color={themeColors.primary}
+                    />
+                </View>
+                <View style={styles.supportRestaurantTitleWrap}>
+                    <Text style={styles.supportRestaurantName} numberOfLines={1}>
+                        {restaurant.name || "Ресторан"}
+                    </Text>
+                    <Text style={styles.supportRestaurantAddress} numberOfLines={2}>
+                        {address}
+                    </Text>
+                </View>
+            </View>
+
+            <View style={styles.supportInfoList}>
+                <SupportInfoRow
+                    icon="phone-outline"
+                    label="Телефон"
+                    value={formattedPhone}
+                />
+                <SupportInfoRow
+                    icon="map-marker-outline"
+                    label="Адрес"
+                    value={address}
+                />
+                <View style={styles.supportInfoRow}>
+                    <MaterialCommunityIcons
+                        name="clock-outline"
+                        size={18}
+                        color={themeColors.primary}
+                    />
+                    <View style={styles.supportInfoTextWrap}>
+                        <Text style={styles.supportInfoLabel}>График работы</Text>
+                        {scheduleLines.map((line) => (
+                            <Text
+                                key={`${restaurant.id}-${line}`}
+                                style={styles.supportInfoValue}
+                            >
+                                {line}
+                            </Text>
+                        ))}
+                    </View>
+                </View>
+            </View>
+
+            <View style={styles.supportActions}>
+                <Pressable
+                    accessibilityRole="button"
+                    disabled={!canContact}
+                    style={({pressed}) => [
+                        styles.supportCallButton,
+                        !canContact && styles.disabled,
+                        pressed && styles.pressed,
+                    ]}
+                    onPress={handleCall}
+                >
+                    <Ionicons name="call" size={18} color={themeColors.textOnPrimary} />
+                    <Text style={styles.supportCallButtonText} numberOfLines={1}>
+                        Позвонить
+                    </Text>
+                </Pressable>
+
+                <Pressable
+                    accessibilityRole="button"
+                    disabled={!canContact}
+                    style={({pressed}) => [
+                        styles.supportWhatsappButton,
+                        !canContact && styles.disabled,
+                        pressed && styles.pressed,
+                    ]}
+                    onPress={handleWhatsApp}
+                >
+                    <MaterialCommunityIcons
+                        name="whatsapp"
+                        size={20}
+                        color={themeColors.text}
+                    />
+                    <Text style={styles.supportWhatsappButtonText} numberOfLines={1}>
+                        WhatsApp
+                    </Text>
+                </Pressable>
+            </View>
+        </View>
+    );
+}
+
+function SupportInfoRow({
+    icon,
+    label,
+    value,
+}: {
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    label: string;
+    value: string;
+}) {
+    return (
+        <View style={styles.supportInfoRow}>
+            <MaterialCommunityIcons name={icon} size={18} color={themeColors.primary} />
+            <View style={styles.supportInfoTextWrap}>
+                <Text style={styles.supportInfoLabel}>{label}</Text>
+                <Text style={styles.supportInfoValue}>{value}</Text>
+            </View>
         </View>
     );
 }
@@ -824,8 +1289,8 @@ function DeleteAccountModal({
                 <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
                     <Text style={styles.modalTitle}>Удалить аккаунт?</Text>
                     <Text style={styles.modalText}>
-                        Профиль будет удален без возможности восстановления. История аккаунта
-                        больше не будет доступна.
+                        РџСЂРѕС„РёР»СЊ Р±СѓРґРµС‚ СѓРґР°Р»РµРЅ Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ. РСЃС‚РѕСЂРёСЏ Р°РєРєР°СѓРЅС‚Р°
+                        Р±РѕР»СЊС€Рµ РЅРµ Р±СѓРґРµС‚ РґРѕСЃС‚СѓРїРЅР°.
                     </Text>
 
                     <View style={styles.modalActions}>
@@ -869,12 +1334,18 @@ function ProfileHero({
     fallbackUser,
     activeOrdersCount,
     historyOrdersCount,
+    isUpdatingAvatar,
+    onChangeAvatar,
+    onDeleteAvatar,
     onLogout,
 }: {
     profile?: CustomerProfile;
     fallbackUser: ReturnType<typeof useProfileStore.getState>["user"];
     activeOrdersCount: number;
     historyOrdersCount: number;
+    isUpdatingAvatar: boolean;
+    onChangeAvatar: () => void;
+    onDeleteAvatar: () => void;
     onLogout: () => void;
 }) {
     const name = profile?.name || fallbackUser?.name || "Гость Mangal Clubs";
@@ -889,7 +1360,17 @@ function ProfileHero({
     return (
         <View style={styles.hero}>
             <View style={styles.heroTop}>
-                <View style={styles.avatar}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={avatarUrl ? "Изменить аватар" : "Добавить аватар"}
+                    disabled={isUpdatingAvatar}
+                    style={({pressed}) => [
+                        styles.avatar,
+                        isUpdatingAvatar && styles.disabled,
+                        pressed && styles.pressed,
+                    ]}
+                    onPress={onChangeAvatar}
+                >
                     {avatarUrl ? (
                         <Image
                             source={{uri: avatarUrl}}
@@ -903,7 +1384,18 @@ function ProfileHero({
                             color={themeColors.primary}
                         />
                     )}
-                </View>
+                    <View style={styles.avatarActionBadge}>
+                        {isUpdatingAvatar ? (
+                            <ActivityIndicator size="small" color={themeColors.textOnPrimary} />
+                        ) : (
+                            <MaterialCommunityIcons
+                                name="camera-outline"
+                                size={15}
+                                color={themeColors.textOnPrimary}
+                            />
+                        )}
+                    </View>
+                </Pressable>
 
                 <View style={styles.heroText}>
                     <Text style={styles.eyebrow}>Профиль</Text>
@@ -912,6 +1404,23 @@ function ProfileHero({
                         {phone ? formatRuPhoneDisplay(phone) : "Телефон подтвержден"}
                     </Text>
                 </View>
+
+                {avatarUrl ? (
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Удалить аватар"
+                        disabled={isUpdatingAvatar}
+                        hitSlop={10}
+                        style={({pressed}) => [
+                            styles.iconButton,
+                            isUpdatingAvatar && styles.disabled,
+                            pressed && styles.pressed,
+                        ]}
+                        onPress={onDeleteAvatar}
+                    >
+                        <MaterialCommunityIcons name="trash-can-outline" size={20} color={themeColors.text} />
+                    </Pressable>
+                ) : null}
 
                 <Pressable
                     accessibilityRole="button"
@@ -995,6 +1504,7 @@ function ProfileDetails({
     errorMessage,
     isSaving,
     onChange,
+    onFieldFocus,
     onSave,
 }: {
     profile?: CustomerProfile;
@@ -1003,6 +1513,7 @@ function ProfileDetails({
     errorMessage: string;
     isSaving: boolean;
     onChange: (field: keyof ProfileForm, value: string) => void;
+    onFieldFocus: ProfileFieldFocusHandler;
     onSave: () => void;
 }) {
     return (
@@ -1031,6 +1542,7 @@ function ProfileDetails({
                     value={form.name}
                     placeholder="Как к вам обращаться"
                     icon="account-outline"
+                    onFocus={onFieldFocus}
                     onChangeText={(value) => onChange("name", value)}
                 />
                 <FormField
@@ -1040,6 +1552,7 @@ function ProfileDetails({
                     icon="email-outline"
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    onFocus={onFieldFocus}
                     onChangeText={(value) => onChange("email", value)}
                 />
                 <FormField
@@ -1048,7 +1561,9 @@ function ProfileDetails({
                     placeholder="ГГГГ-ММ-ДД"
                     icon="calendar-month-outline"
                     keyboardType="numbers-and-punctuation"
-                    onChangeText={(value) => onChange("birthday", value)}
+                    maxLength={10}
+                    onFocus={onFieldFocus}
+                    onChangeText={(value) => onChange("birthday", formatBirthdayInputValue(value))}
                 />
             </View>
 
@@ -1204,7 +1719,7 @@ function OrdersSection({
 
             <AppBottomSheetModal
                 ref={orderDetailsSheetRef}
-                title={selectedOrderDetails ? `${getOrderTypeLabel(selectedOrderDetails.orderType)} №${getOrderNumber(selectedOrderDetails)}` : "Заказ"}
+                title={selectedOrderDetails ? `${getOrderTypeLabel(selectedOrderDetails.orderType)} в„–${getOrderNumber(selectedOrderDetails)}` : "Заказ"}
                 showCloseButton
                 scrollable
                 snapPoints={["82%"]}
@@ -1288,7 +1803,7 @@ function OrderCard({
 
                 <View style={styles.orderTitleWrap}>
                     <Text style={styles.orderTitle} numberOfLines={1}>
-                        {getOrderTypeLabel(order.orderType)} №{getOrderNumber(order)}
+                        {getOrderTypeLabel(order.orderType)} в„–{getOrderNumber(order)}
                     </Text>
                     <Text style={styles.orderDate} numberOfLines={1}>
                         {formatDateTime(order.createdAt)}
@@ -1345,7 +1860,7 @@ function OrderDetailsSheetContent({
 
                     <View style={styles.orderTitleWrap}>
                         <Text style={styles.detailsTitle} numberOfLines={1}>
-                            {getOrderTypeLabel(order.orderType)} №{getOrderNumber(order)}
+                            {getOrderTypeLabel(order.orderType)} в„–{getOrderNumber(order)}
                         </Text>
                         <Text style={styles.orderDate} numberOfLines={1}>
                             {formatDateTime(order.createdAt)}
@@ -1397,7 +1912,7 @@ function OrderDetailsSheetContent({
                                             {getOrderItemName(item, menuItem)}
                                         </Text>
                                         <Text style={styles.orderItemMeta} numberOfLines={1}>
-                                            {quantity} шт.{item.sizeName ? ` · ${item.sizeName}` : ""}
+                                            {quantity} С€С‚.{item.sizeName ? ` В· ${item.sizeName}` : ""}
                                         </Text>
                                         {item.comment ? (
                                             <Text style={styles.orderItemComment} numberOfLines={2}>

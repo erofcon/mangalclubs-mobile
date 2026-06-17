@@ -20,11 +20,12 @@ import {toImageSource} from "@/utils/image-source";
 type DishDetailsModalProps = {
     item: MenuItem | null;
     onDismiss: () => void;
+    onAddedToCart?: (item: MenuItem) => void;
 };
 
 const formatPrice = (price: number) => price.toLocaleString("ru-RU");
 
-export function DishDetailsModal({item, onDismiss}: DishDetailsModalProps) {
+export function DishDetailsModal({item, onDismiss, onAddedToCart}: DishDetailsModalProps) {
     const sheetRef = useRef<BottomSheetModal>(null);
     const insets = useSafeAreaInsets();
     const {width} = useWindowDimensions();
@@ -58,8 +59,9 @@ export function DishDetailsModal({item, onDismiss}: DishDetailsModalProps) {
         }
 
         addItemToCart(item, quantity);
+        onAddedToCart?.(item);
         sheetRef.current?.dismiss();
-    }, [addItemToCart, item, quantity]);
+    }, [addItemToCart, item, onAddedToCart, quantity]);
 
     const renderBackdrop = useCallback(
         (props: BottomSheetBackdropProps) => (
