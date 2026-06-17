@@ -1,0 +1,27 @@
+
+> mangalclubs-mobile@1.0.0 web
+> expo start --web --port 19006
+
+env: load .env.local
+env: export EXPO_PUBLIC_GEOAPIFY_KEY EXPO_PUBLIC_YANDEX_MAPS_API_KEY EXPO_PUBLIC_API_URL
+Starting project at D:\ExpoProjects\mangalclubs-mobile
+Starting Metro Bundler
+Networking has been disabled
+Waiting on http://localhost:19006
+Logs for your project will appear below.
+λ Bundled 1917ms node_modules\expo-router\node\render.js (1356 modules)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 96.7% (1545/1571)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 74.6% (1171/1356)
+Web Bundled 4233ms node_modules\expo-router\entry.js (1620 modules)
+Web Bundled 501ms node_modules\expo-router\entry.js (1536 modules)
+λ Bundled 42ms node_modules\expo-router\node\render.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 642ms node_modules\expo-router\entry.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 50ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 643ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 61ms node_modules\expo-router\entry.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 856ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 1849ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 141ms node_modules\expo-router\entry.js (1 module)

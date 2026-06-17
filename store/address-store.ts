@@ -16,6 +16,7 @@ export type SavedAddress = {
     longitude: number;
     accuracy: number | null;
     isPrecise: boolean;
+    deliveryPrice: number | null;
     createdAt: number;
     updatedAt: number;
 };

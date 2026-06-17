@@ -61,7 +61,8 @@ export function BookingHero({scrollY}: BookingHeroProps) {
                 />
 
                 <LinearGradient
-                    colors={["transparent", themeColors.background]}
+                    colors={["transparent", "rgba(7,8,8,0.72)", themeColors.background]}
+                    locations={[0, 0.52, 1]}
                     style={styles.heroBottomGradient}
                 />
             </Animated.View>
@@ -72,9 +73,9 @@ export function BookingHero({scrollY}: BookingHeroProps) {
                     <Text style={styles.heroPillText}>Бронирование</Text>
                 </View>
 
-                <Text style={styles.heroTitle}>Приватные зоны Mangal Clubs</Text>
+                <Text style={styles.heroTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.9}>Приватные зоны Mangal Clubs</Text>
 
-                <Text style={styles.heroSubtitle} numberOfLines={2}>
+                <Text style={styles.heroSubtitle} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.9}>
                     Выберите кабинку, сауну или столик и свяжитесь с рестораном удобным способом.
                 </Text>
             </Animated.View>

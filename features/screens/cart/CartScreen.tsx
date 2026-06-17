@@ -1,13 +1,15 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { OrderAvailabilityBar } from "@/components/OrderAvailabilityBar";
 import { Screen } from "@/components/ui/Screen";
+import { checkDeliveryZone } from "@/services/delivery-zones";
+import { isOrganizationUnavailable } from "@/services/availability";
 import { useAddressStore } from "@/store/address-store";
 import {
-    CART_DELIVERY_FEE,
     CART_UTENSILS_PRICE,
     getCartItemsCount,
     getCartSubtotal,
@@ -105,9 +107,11 @@ export function CartScreen() {
 
     const items = useCartStore((state) => state.items);
     const addUtensils = useCartStore((state) => state.addUtensils);
+    const orderComment = useCartStore((state) => state.orderComment);
     const incrementItem = useCartStore((state) => state.incrementItem);
     const decrementItem = useCartStore((state) => state.decrementItem);
     const setItemComment = useCartStore((state) => state.setItemComment);
+    const setOrderComment = useCartStore((state) => state.setOrderComment);
     const clearCart = useCartStore((state) => state.clearCart);
 
     const deliveryType = useDeliveryStore((state) => state.type);
@@ -117,11 +121,18 @@ export function CartScreen() {
     const defaultDeliveryOrganization = useAppDataStore(
         (state) => state.defaultDeliveryOrganization
     );
+    const availabilityByOrganizationId = useAppDataStore(
+        (state) => state.availabilityByOrganizationId
+    );
 
     const addresses = useAddressStore((state) => state.addresses);
     const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
 
     const [commentItemId, setCommentItemId] = useState<string | null>(null);
+    const [availabilityBarHeight, setAvailabilityBarHeight] = useState(0);
+    const [deliveryFee, setDeliveryFee] = useState<number | null>(null);
+    const [isDeliveryFeeLoading, setIsDeliveryFeeLoading] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     const selectedAddress = useMemo(
         () =>
@@ -145,7 +156,34 @@ export function CartScreen() {
 
     const itemsCount = getCartItemsCount(items);
     const subtotal = getCartSubtotal(items);
-    const total = getCartTotal(items, addUtensils);
+    const isDeliveryOrder = deliveryType === "delivery";
+    const deliveryFeeForTotal = isDeliveryOrder && deliveryFee !== null ? deliveryFee : 0;
+    const total = getCartTotal(items, addUtensils, deliveryFeeForTotal);
+    const topChromeHeight = availabilityBarHeight > 0 ? availabilityBarHeight : insets.top;
+    const isCurrentOrderUnavailable = isOrganizationUnavailable(
+        sourceRestaurant,
+        availabilityByOrganizationId
+    );
+    const hasMissingDeliveryFee = isDeliveryOrder && deliveryFee === null;
+    const isCheckoutDisabled =
+        isCurrentOrderUnavailable || hasMissingDeliveryFee || !deliveryType;
+    const checkoutText = isCurrentOrderUnavailable
+        ? "Заказы сейчас недоступны"
+        : !deliveryType
+            ? "Выберите способ заказа"
+        : hasMissingDeliveryFee
+            ? "Уточните адрес доставки"
+            : `Оформить заказ на ${formatPrice(total)}`;
+    const deliveryFeeText =
+        isDeliveryFeeLoading && deliveryFee === null
+            ? "Уточняем"
+            : deliveryFee !== null
+                ? formatPrice(deliveryFee)
+                : "Уточните адрес";
+    const footerBottom =
+        keyboardHeight > 0
+            ? Math.max(8, keyboardHeight - insets.bottom + 8)
+            : insets.bottom + TAB_BAR_HEIGHT;
 
     const orderHeader = getOrderHeaderText({
         deliveryType,
@@ -156,40 +194,147 @@ export function CartScreen() {
             : null,
     });
 
+    useEffect(() => {
+        if (!isDeliveryOrder) {
+            setDeliveryFee(0);
+            setIsDeliveryFeeLoading(false);
+            return;
+        }
+
+        if (!selectedAddress) {
+            setDeliveryFee(null);
+            setIsDeliveryFeeLoading(false);
+            return;
+        }
+
+        setDeliveryFee(selectedAddress.deliveryPrice ?? null);
+        setIsDeliveryFeeLoading(true);
+
+        const controller = new AbortController();
+
+        checkDeliveryZone(
+            {
+                coordinates: {
+                    latitude: selectedAddress.latitude,
+                    longitude: selectedAddress.longitude,
+                },
+                organizationSlug: defaultDeliveryOrganization?.slug,
+            },
+            controller.signal
+        )
+            .then((deliveryCheck) => {
+                if (!deliveryCheck.available || deliveryCheck.price === null) {
+                    setDeliveryFee(null);
+                    return;
+                }
+
+                setDeliveryFee(deliveryCheck.price);
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) {
+                    setDeliveryFee(selectedAddress.deliveryPrice ?? null);
+                }
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) {
+                    setIsDeliveryFeeLoading(false);
+                }
+            });
+
+        return () => {
+            controller.abort();
+        };
+    }, [
+        defaultDeliveryOrganization?.slug,
+        isDeliveryOrder,
+        selectedAddress?.deliveryPrice,
+        selectedAddress?.id,
+        selectedAddress?.latitude,
+        selectedAddress?.longitude,
+    ]);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+        const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+        const showSubscription = Keyboard.addListener(showEvent, (event) => {
+            setKeyboardHeight(event.endCoordinates.height);
+        });
+        const hideSubscription = Keyboard.addListener(hideEvent, () => {
+            setKeyboardHeight(0);
+        });
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
+
     if (items.length === 0) {
         return (
-            <Screen withTopInset contentContainerStyle={styles.emptyRoot}>
-                <View style={styles.emptyCard}>
-                    <View style={styles.emptyIconWrap}>
-                        <MaterialCommunityIcons
-                            name="shopping-outline"
-                            size={46}
-                            color={themeColors.primary}
+            <Screen>
+                <View style={styles.root}>
+                    {availabilityBarHeight === 0 && insets.top > 0 ? (
+                        <View
+                            pointerEvents="none"
+                            style={[styles.topSafeAreaBackground, {height: insets.top}]}
+                        />
+                    ) : null}
+
+                    <View style={styles.availabilityBarOverlay}>
+                        <OrderAvailabilityBar
+                            topInset={insets.top}
+                            onHeightChange={setAvailabilityBarHeight}
                         />
                     </View>
 
-                    <Text style={styles.emptyTitle}>Корзина пуста</Text>
-                    <Text style={styles.emptyText}>
-                        Добавьте блюда из меню, и они появятся здесь перед оформлением.
-                    </Text>
+                    <View style={[styles.emptyRoot, {paddingTop: topChromeHeight}]}>
+                        <View style={styles.emptyCard}>
+                            <View style={styles.emptyIconWrap}>
+                                <MaterialCommunityIcons
+                                    name="shopping-outline"
+                                    size={46}
+                                    color={themeColors.primary}
+                                />
+                            </View>
 
-                    <Pressable
-                        accessibilityRole="button"
-                        style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}
-                        onPress={() => router.push("/menu")}
-                    >
-                        <Text style={styles.emptyButtonText}>Перейти в меню</Text>
-                        <Ionicons name="arrow-forward" size={19} color={themeColors.textOnPrimary} />
-                    </Pressable>
+                            <Text style={styles.emptyTitle}>Корзина пуста</Text>
+                            <Text style={styles.emptyText}>
+                                Добавьте блюда из меню, и они появятся здесь перед оформлением.
+                            </Text>
+
+                            <Pressable
+                                accessibilityRole="button"
+                                style={({ pressed }) => [styles.emptyButton, pressed && styles.pressed]}
+                                onPress={() => router.push("/menu")}
+                            >
+                                <Text style={styles.emptyButtonText}>Перейти в меню</Text>
+                                <Ionicons name="arrow-forward" size={19} color={themeColors.textOnPrimary} />
+                            </Pressable>
+                        </View>
+                    </View>
                 </View>
             </Screen>
         );
     }
 
     return (
-        <Screen withTopInset>
+        <Screen>
             <View style={styles.root}>
-                <View style={styles.fixedHeader}>
+                {availabilityBarHeight === 0 && insets.top > 0 ? (
+                    <View
+                        pointerEvents="none"
+                        style={[styles.topSafeAreaBackground, {height: insets.top}]}
+                    />
+                ) : null}
+
+                <View style={styles.availabilityBarOverlay}>
+                    <OrderAvailabilityBar
+                        topInset={insets.top}
+                        onHeightChange={setAvailabilityBarHeight}
+                    />
+                </View>
+
+                <View style={[styles.fixedHeader, {top: topChromeHeight}]}>
                     <Pressable
                         accessibilityRole="button"
                         style={({ pressed }) => [styles.deliveryCard, pressed && styles.pressed]}
@@ -223,7 +368,7 @@ export function CartScreen() {
                     contentContainerStyle={[
                         styles.content,
                         {
-                            paddingTop: FIXED_HEADER_HEIGHT + 14,
+                            paddingTop: topChromeHeight + FIXED_HEADER_HEIGHT + 14,
                             paddingBottom: insets.bottom + TAB_BAR_HEIGHT + FOOTER_EXTRA_SPACE,
                         },
                     ]}
@@ -258,13 +403,28 @@ export function CartScreen() {
                     style={[
                         styles.footer,
                         {
-                            bottom: insets.bottom + TAB_BAR_HEIGHT,
+                            bottom: footerBottom,
                         },
                     ]}
                 >
+                    <View style={styles.orderCommentCard}>
+                        <TextInput
+                            value={orderComment}
+                            onChangeText={setOrderComment}
+                            placeholder="Комментарий к заказу"
+                            placeholderTextColor={themeColors.textMuted}
+                            multiline
+                            maxLength={220}
+                            style={styles.orderCommentInput}
+                            textAlignVertical="top"
+                        />
+                    </View>
+
                     <View style={styles.summary}>
                         <SummaryRow label="Блюда в заказе" value={formatPrice(subtotal)} strong />
-                        <SummaryRow label="Доставка" value={formatPrice(CART_DELIVERY_FEE)} />
+                        {isDeliveryOrder ? (
+                            <SummaryRow label="Доставка" value={deliveryFeeText} />
+                        ) : null}
                         {addUtensils ? (
                             <SummaryRow label="Приборы" value={formatPrice(CART_UTENSILS_PRICE)} />
                         ) : null}
@@ -272,10 +432,15 @@ export function CartScreen() {
 
                     <Pressable
                         accessibilityRole="button"
-                        style={({ pressed }) => [styles.checkoutButton, pressed && styles.pressed]}
+                        disabled={isCheckoutDisabled}
+                        style={({ pressed }) => [
+                            styles.checkoutButton,
+                            isCheckoutDisabled && styles.checkoutButtonDisabled,
+                            pressed && !isCheckoutDisabled && styles.pressed,
+                        ]}
                         onPress={() => undefined}
                     >
-                        <Text style={styles.checkoutText}>Оформить заказ на {formatPrice(total)}</Text>
+                        <Text style={styles.checkoutText}>{checkoutText}</Text>
                     </Pressable>
                 </View>
             </View>
@@ -315,6 +480,7 @@ const styles = StyleSheet.create({
     },
 
     emptyRoot: {
+        flex: 1,
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 20,
@@ -389,6 +555,25 @@ const styles = StyleSheet.create({
         backgroundColor: themeColors.background,
     },
 
+    availabilityBarOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        elevation: 1000,
+    },
+
+    topSafeAreaBackground: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: themeColors.background,
+        zIndex: 998,
+        elevation: 998,
+    },
+
     deliveryCard: {
         minHeight: 58,
         flexDirection: "row",
@@ -446,8 +631,30 @@ const styles = StyleSheet.create({
         gap: 12,
     },
 
+    orderCommentCard: {
+        minHeight: 58,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: themeColors.card,
+        borderWidth: 1,
+        borderColor: themeColors.cardBorder,
+    },
+
+    orderCommentInput: {
+        minHeight: 38,
+        maxHeight: 72,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingHorizontal: 0,
+        color: themeColors.text,
+        fontSize: 14,
+        lineHeight: 19,
+        fontFamily: "Point-Regular",
+    },
+
     summary: {
-        marginVertical: 24,
+        marginVertical: 18,
         gap: 8,
     },
 
@@ -480,7 +687,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         paddingHorizontal: 16,
-        paddingTop: 12,
+        paddingTop: 14,
         paddingBottom: 16,
         backgroundColor: themeColors.background,
         borderTopWidth: 1,
@@ -496,6 +703,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: themeColors.primary,
         ...SHADOW,
+    },
+
+    checkoutButtonDisabled: {
+        opacity: 0.48,
     },
 
     checkoutText: {

@@ -23,12 +23,11 @@ import type {MenuItem} from "@/types/products";
 import {useCartStore} from "@/store/cart-store";
 import {themeColors} from "@/utils/theme-colors";
 import {useAppDataStore} from "@/store/app-data-store";
-import {useDeliveryStore} from "@/store/delivery-store";
+import {requestCartAddPermission} from "@/store/cart-gate-store";
 
 export function ListOfDay() {
     const {width} = useWindowDimensions();
     const addItemToCart = useCartStore((state) => state.addItem);
-    const deliveryType = useDeliveryStore((state) => state.type);
     const menus = useAppDataStore((state) => state.menu);
 
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
@@ -84,8 +83,7 @@ export function ListOfDay() {
 
     const handleProductAdd = useCallback(
         (item: MenuItem) => {
-            if (!deliveryType) {
-                router.push("/order_type");
+            if (!requestCartAddPermission(item)) {
                 return;
             }
 
@@ -96,7 +94,7 @@ export function ListOfDay() {
 
             showAddedToast(item);
         },
-        [addItemToCart, deliveryType, showAddedToast]
+        [addItemToCart, showAddedToast]
     );
 
     useEffect(() => {

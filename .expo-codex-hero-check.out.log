@@ -1,0 +1,34 @@
+env: load .env.local
+env: export EXPO_PUBLIC_GEOAPIFY_KEY EXPO_PUBLIC_YANDEX_MAPS_API_KEY EXPO_PUBLIC_API_URL
+Starting project at D:\ExpoProjects\mangalclubs-mobile
+Starting Metro Bundler
+Networking has been disabled
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 83.1% (1292/1417)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 81.2% (1260/1398)
+λ Bundled 2960ms node_modules\expo-router\node\render.js (1631 modules)
+Web Bundled 5326ms node_modules\expo-router\entry.js (1620 modules)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓░░░░░░░░░░░ 32.6% (315/552)
+Web Bundled 622ms node_modules\expo-router\entry.js (1455 modules)
+λ Bundled 54ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 701ms node_modules\expo-router\entry.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 52ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 702ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 56ms node_modules\expo-router\entry.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 51ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 632ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 52ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 44ms node_modules\expo-router\node\render.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 611ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 45ms node_modules\expo-router\entry.js (1 module)
+λ Bundled 36ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 575ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 44ms node_modules\expo-router\entry.js (1 module)
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 33ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 931ms node_modules\expo-router\entry.js (1 module)
+Web Bundled 51ms node_modules\expo-router\entry.js (1 module)

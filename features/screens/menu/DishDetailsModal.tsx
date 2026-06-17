@@ -10,11 +10,10 @@ import {
     BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import {Ionicons} from "@expo/vector-icons";
-import {router} from "expo-router";
 
 import type {MenuItem} from "@/types/products";
 import {useCartStore} from "@/store/cart-store";
-import {useDeliveryStore} from "@/store/delivery-store";
+import {requestCartAddPermission} from "@/store/cart-gate-store";
 import {themeColors} from "@/utils/theme-colors";
 import {toImageSource} from "@/utils/image-source";
 
@@ -31,7 +30,6 @@ export function DishDetailsModal({item, onDismiss}: DishDetailsModalProps) {
     const {width} = useWindowDimensions();
     const [quantity, setQuantity] = useState(1);
     const addItemToCart = useCartStore((state) => state.addItem);
-    const deliveryType = useDeliveryStore((state) => state.type);
 
     const snapPoints = useMemo(() => ["92%"], []);
     const imageHeight = Math.min(300, width * 0.78);
@@ -53,15 +51,15 @@ export function DishDetailsModal({item, onDismiss}: DishDetailsModalProps) {
         if (!item) {
             return;
         }
-        if (!deliveryType) {
+
+        if (!requestCartAddPermission(item, quantity)) {
             sheetRef.current?.dismiss();
-            router.push("/order_type");
             return;
         }
 
         addItemToCart(item, quantity);
         sheetRef.current?.dismiss();
-    }, [addItemToCart, deliveryType, item, quantity]);
+    }, [addItemToCart, item, quantity]);
 
     const renderBackdrop = useCallback(
         (props: BottomSheetBackdropProps) => (

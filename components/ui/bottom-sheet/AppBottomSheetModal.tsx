@@ -74,6 +74,8 @@ type AppBottomSheetProps = {
     keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
 
     containerStyle?: StyleProp<ViewStyle>;
+    backgroundStyle?: StyleProp<ViewStyle>;
+    handleIndicatorStyle?: StyleProp<ViewStyle>;
     contentContainerStyle?: StyleProp<ViewStyle>;
     footerContainerStyle?: StyleProp<ViewStyle>;
 
@@ -100,6 +102,8 @@ export const AppBottomSheetModal = forwardRef<AppBottomSheetRef, AppBottomSheetP
             androidKeyboardInputMode = "adjustResize",
             keyboardShouldPersistTaps = "handled",
             containerStyle,
+            backgroundStyle,
+            handleIndicatorStyle,
             contentContainerStyle,
             footerContainerStyle,
             onChange,
@@ -163,8 +167,8 @@ export const AppBottomSheetModal = forwardRef<AppBottomSheetRef, AppBottomSheetP
                 maxDynamicContentSize={maxDynamicContentSize}
                 enablePanDownToClose={enablePanDownToClose}
                 backdropComponent={renderBackdrop}
-                backgroundStyle={styles.background}
-                handleIndicatorStyle={styles.handleIndicator}
+                backgroundStyle={[styles.background, backgroundStyle]}
+                handleIndicatorStyle={[styles.handleIndicator, handleIndicatorStyle]}
                 keyboardBehavior={keyboardBehavior}
                 keyboardBlurBehavior={keyboardBlurBehavior}
                 android_keyboardInputMode={androidKeyboardInputMode}

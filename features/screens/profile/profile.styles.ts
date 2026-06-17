@@ -24,9 +24,9 @@ export const profileStyles = StyleSheet.create({
     },
 
     hero: {
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.18)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#080909",
         overflow: "hidden",
     },
@@ -43,10 +43,10 @@ export const profileStyles = StyleSheet.create({
         height: 72,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 7,
+        borderRadius: 12,
         backgroundColor: "#050606",
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.28)",
+        borderColor: "rgba(255,255,255,0.10)",
         overflow: "hidden",
     },
 
@@ -89,16 +89,16 @@ export const profileStyles = StyleSheet.create({
         height: 40,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 7,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.18)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#11100E",
     },
 
     statsRow: {
         flexDirection: "row",
         borderTopWidth: 1,
-        borderTopColor: "rgba(236,172,24,0.12)",
+        borderTopColor: "rgba(255,255,255,0.08)",
     },
 
     statCell: {
@@ -107,7 +107,7 @@ export const profileStyles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 12,
         borderRightWidth: 1,
-        borderRightColor: "rgba(236,172,24,0.10)",
+        borderRightColor: "rgba(255,255,255,0.07)",
     },
 
     statLabel: {
@@ -137,9 +137,9 @@ export const profileStyles = StyleSheet.create({
         flexDirection: "row",
         padding: 4,
         gap: 4,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.16)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#080909",
     },
 
@@ -148,7 +148,7 @@ export const profileStyles = StyleSheet.create({
         minHeight: 36,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 6,
+        borderRadius: 9,
     },
 
     segmentActive: {
@@ -167,9 +167,9 @@ export const profileStyles = StyleSheet.create({
     },
 
     section: {
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.18)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#080909",
         padding: 14,
         gap: 14,
@@ -211,9 +211,9 @@ export const profileStyles = StyleSheet.create({
         minWidth: 0,
         minHeight: 96,
         padding: 12,
-        borderRadius: 7,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.14)",
+        borderColor: "rgba(255,255,255,0.08)",
         backgroundColor: "#11100E",
     },
 
@@ -254,9 +254,9 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         gap: 10,
         paddingHorizontal: 12,
-        borderRadius: 7,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.16)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#050606",
     },
 
@@ -276,7 +276,7 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        borderRadius: 7,
+        borderRadius: 12,
         backgroundColor: themeColors.primary,
     },
 
@@ -295,9 +295,9 @@ export const profileStyles = StyleSheet.create({
         justifyContent: "center",
         gap: 8,
         paddingHorizontal: 16,
-        borderRadius: 7,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.22)",
+        borderColor: "rgba(255,255,255,0.10)",
     },
 
     secondaryButtonText: {
@@ -312,7 +312,7 @@ export const profileStyles = StyleSheet.create({
         height: 40,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 7,
+        borderRadius: 12,
         backgroundColor: themeColors.primary,
     },
 
@@ -335,9 +335,9 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 12,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.16)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#080909",
     },
 
@@ -355,9 +355,9 @@ export const profileStyles = StyleSheet.create({
     orderCard: {
         gap: 12,
         padding: 12,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.14)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#11100E",
     },
 
@@ -372,9 +372,9 @@ export const profileStyles = StyleSheet.create({
         height: 40,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 7,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.18)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#080909",
     },
 
@@ -399,10 +399,23 @@ export const profileStyles = StyleSheet.create({
     },
 
     orderPreview: {
+        flex: 1,
+        minWidth: 0,
         color: "#C8BDB1",
         fontSize: 13,
         lineHeight: 19,
         fontFamily: "Point-Regular",
+    },
+
+    orderSummaryRow: {
+        flexDirection: "row",
+        gap: 8,
+    },
+
+    orderFooterRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
     },
 
     orderMetaGrid: {
@@ -418,9 +431,9 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         gap: 7,
         paddingHorizontal: 9,
-        borderRadius: 6,
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.10)",
+        borderColor: "rgba(255,255,255,0.08)",
         backgroundColor: "#080909",
     },
 
@@ -445,7 +458,7 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 7,
-        borderRadius: 7,
+        borderRadius: 12,
         backgroundColor: themeColors.primary,
     },
 
@@ -463,9 +476,9 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 7,
-        borderRadius: 7,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.22)",
+        borderColor: "rgba(255,255,255,0.10)",
     },
 
     refreshButtonText: {
@@ -475,13 +488,168 @@ export const profileStyles = StyleSheet.create({
         fontFamily: "Point-Bold",
     },
 
+    orderSheetBackground: {
+        backgroundColor: "#070808",
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: "rgba(255,255,255,0.09)",
+    },
+
+    orderSheetHandle: {
+        backgroundColor: "rgba(255,255,255,0.22)",
+    },
+
+    orderSheetContainer: {
+        backgroundColor: "#070808",
+    },
+
+    orderSheetContent: {
+        backgroundColor: "#070808",
+        paddingBottom: 20,
+    },
+
+    detailsSheet: {
+        gap: 14,
+        paddingBottom: 10,
+    },
+
+    detailsHero: {
+        gap: 14,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    detailsHeroHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+
+    orderIconLarge: {
+        width: 46,
+        height: 46,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#11100E",
+    },
+
+    detailsTitle: {
+        color: themeColors.text,
+        fontSize: 17,
+        lineHeight: 22,
+        fontFamily: "Point-SemiBold",
+    },
+
+    detailsBlock: {
+        gap: 10,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#11100E",
+    },
+
+    detailsBlockTitle: {
+        color: themeColors.text,
+        fontSize: 16,
+        lineHeight: 20,
+        fontFamily: "Point-SemiBold",
+    },
+
+    detailsText: {
+        color: themeColors.textSecondary,
+        fontSize: 13,
+        lineHeight: 19,
+        fontFamily: "Point-Regular",
+    },
+
+    detailsMutedText: {
+        color: themeColors.textSecondary,
+        fontSize: 13,
+        lineHeight: 19,
+        fontFamily: "Point-Regular",
+    },
+
+    orderItemsList: {
+        gap: 10,
+    },
+
+    orderItemRow: {
+        minHeight: 76,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+
+    orderItemImageWrap: {
+        width: 64,
+        height: 64,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    orderItemImage: {
+        width: "100%",
+        height: "100%",
+    },
+
+    orderItemInfo: {
+        flex: 1,
+        minWidth: 0,
+    },
+
+    orderItemName: {
+        color: themeColors.text,
+        fontSize: 14,
+        lineHeight: 18,
+        fontFamily: "Point-SemiBold",
+    },
+
+    orderItemMeta: {
+        marginTop: 4,
+        color: themeColors.textSecondary,
+        fontSize: 12,
+        lineHeight: 16,
+        fontFamily: "Point-Regular",
+    },
+
+    orderItemComment: {
+        marginTop: 4,
+        color: "#C8BDB1",
+        fontSize: 12,
+        lineHeight: 16,
+        fontFamily: "Point-Regular",
+    },
+
+    orderItemPrice: {
+        maxWidth: 72,
+        color: themeColors.text,
+        fontSize: 13,
+        lineHeight: 17,
+        textAlign: "right",
+        fontFamily: "Point-Bold",
+    },
+
     statusBadge: {
         maxWidth: 118,
         minHeight: 28,
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 8,
-        borderRadius: 6,
+        borderRadius: 10,
         borderWidth: 1,
     },
 
@@ -540,9 +708,9 @@ export const profileStyles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 18,
         paddingVertical: 26,
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.14)",
+        borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#11100E",
     },
 
@@ -551,9 +719,9 @@ export const profileStyles = StyleSheet.create({
         height: 62,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 8,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "rgba(236,172,24,0.20)",
+        borderColor: "rgba(255,255,255,0.10)",
         backgroundColor: "#080909",
     },
 

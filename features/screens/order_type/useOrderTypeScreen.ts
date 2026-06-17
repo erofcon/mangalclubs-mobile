@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import type {ImageSourcePropType} from "react-native";
-import {router, useLocalSearchParams} from "expo-router";
+import {router, useLocalSearchParams, useNavigation} from "expo-router";
 
 import {
     MAX_SAVED_ADDRESSES,
@@ -14,6 +14,11 @@ import {
     type DeliveryType,
 } from "@/store/delivery-store";
 import {useAppDataStore} from "@/store/app-data-store";
+import {
+    cancelPendingCartFlow,
+    continuePendingCartFlow,
+    useCartGateStore,
+} from "@/store/cart-gate-store";
 import type {Organization} from "@/types/organization";
 import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {resolveApiAssetUrl} from "@/services/api";
@@ -53,6 +58,7 @@ const getOrganizationByIdOrSlug = (
 
 export function useOrderTypeScreen() {
     const params = useLocalSearchParams<{type?: DeliveryType}>();
+    const navigation = useNavigation();
     const now = new Date();
 
     const organizations = useAppDataStore((state) => state.organizations);
@@ -62,6 +68,7 @@ export function useOrderTypeScreen() {
     const availabilityByOrganizationId = useAppDataStore(
         (state) => state.availabilityByOrganizationId
     );
+    const hasPendingCartItem = useCartGateStore((state) => Boolean(state.pendingCartItem));
 
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
     const [addressToDelete, setAddressToDelete] = useState<SavedAddress | null>(null);
@@ -255,6 +262,14 @@ export function useOrderTypeScreen() {
         }
     }, [addresses, addressToDelete]);
 
+    useEffect(() => {
+        return navigation.addListener("beforeRemove", () => {
+            if (useCartGateStore.getState().pendingCartItem) {
+                cancelPendingCartFlow();
+            }
+        });
+    }, [navigation]);
+
     const openSheet = () => {
         const selectedTime =
             currentSchedule.mode === "scheduled" && currentSchedule.selectedTime
@@ -309,12 +324,15 @@ export function useOrderTypeScreen() {
         });
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (!canContinueOrder) {
             return;
         }
 
         setActiveTab(visibleTab);
+        if (hasPendingCartItem) {
+            await continuePendingCartFlow({refreshMenu: true});
+        }
         router.back();
     };
 

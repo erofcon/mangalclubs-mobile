@@ -36,6 +36,7 @@ export function AuthSheetHost() {
     const bottomSheetRef = useRef<AppBottomSheetRef>(null);
     const codeInputRef = useRef<ElementRef<typeof BottomSheetTextInput>>(null);
     const successCallbackRef = useRef<(() => void) | null>(null);
+    const cancelCallbackRef = useRef<(() => void) | null>(null);
 
     const [step, setStep] = useState<AuthStep>("phone");
     const [phoneInput, setPhoneInput] = useState("");
@@ -69,6 +70,7 @@ export function AuthSheetHost() {
     useEffect(() => {
         setAuthSheetListener((options) => {
             successCallbackRef.current = options?.onSuccess ?? null;
+            cancelCallbackRef.current = options?.onCancel ?? null;
             resetFlow();
             bottomSheetRef.current?.open();
         });
@@ -95,8 +97,21 @@ export function AuthSheetHost() {
 
         successCallbackRef.current?.();
         successCallbackRef.current = null;
+        cancelCallbackRef.current = null;
         bottomSheetRef.current?.close();
     }, [user]);
+
+    const handleDismiss = useCallback(() => {
+        const onCancel = cancelCallbackRef.current;
+
+        successCallbackRef.current = null;
+        cancelCallbackRef.current = null;
+        resetFlow();
+
+        if (!useProfileStore.getState().user) {
+            onCancel?.();
+        }
+    }, [resetFlow]);
 
     const snapPoints = useMemo(() => ["74%"], []);
 
@@ -286,7 +301,7 @@ export function AuthSheetHost() {
             keyboardShouldPersistTaps="handled"
             androidKeyboardInputMode="adjustResize"
             showCloseButton
-            onDismiss={resetFlow}
+            onDismiss={handleDismiss}
             contentContainerStyle={styles.sheetContent}
         >
             {step === "phone" ? renderPhoneStep() : renderCodeStep()}

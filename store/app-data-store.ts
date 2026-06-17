@@ -32,7 +32,7 @@ type MenuResponse = {
     menu: MenuCategory[];
 };
 
-type LoadMenuReason = "initial" | "selection-change";
+type LoadMenuReason = "initial" | "selection-change" | "cart-gate";
 
 type AppDataStore = {
     organizations: Organization[];
@@ -303,7 +303,7 @@ export const useAppDataStore = create<AppDataStore>((set, get) => ({
                         : "Не удалось обновить меню",
             });
 
-            if (reason === "initial") {
+            if (reason === "initial" || reason === "cart-gate") {
                 throw error;
             }
         }

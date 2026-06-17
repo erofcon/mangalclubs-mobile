@@ -10,8 +10,15 @@ import Animated, {
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {themeColors} from "@/utils/theme-colors";
+import {
+    SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT,
+    SCREEN_HERO_CONTENT_BOTTOM,
+    SCREEN_HERO_HEIGHT,
+    SCREEN_HERO_HORIZONTAL_PADDING,
+    SCREEN_HERO_TOP_GRADIENT_HEIGHT,
+} from "@/features/screens/shared/hero-layout";
 
-const HEADER_HEIGHT = 286;
+const HEADER_HEIGHT = SCREEN_HERO_HEIGHT;
 
 type Props = {
     scrollY: SharedValue<number>;
@@ -99,9 +106,9 @@ export function Hero({scrollY}: Props) {
                     <Text style={styles.pillText}>Меню</Text>
                 </View>
 
-                <Text style={styles.title}>Блюда на огне</Text>
+                <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.9}>Блюда на огне</Text>
 
-                <Text style={styles.subtitle} numberOfLines={2}>
+                <Text style={styles.subtitle} numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.9}>
                     Стейки, мангал, свежие салаты и блюда для доставки без лишней суеты.
                 </Text>
             </Animated.View>
@@ -111,7 +118,7 @@ export function Hero({scrollY}: Props) {
 
 const styles = StyleSheet.create({
     hero: {
-        height: 320,
+        height: SCREEN_HERO_HEIGHT,
         position: "relative",
         backgroundColor: themeColors.background,
     },
@@ -132,20 +139,20 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        height: 120,
+        height: SCREEN_HERO_TOP_GRADIENT_HEIGHT,
     },
     bottomGradient: {
         position: "absolute",
         bottom: 0,
         left: 0,
         right: 0,
-        height: 180,
+        height: SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT,
     },
     content: {
         position: "absolute",
-        left: 12,
-        right: 12,
-        bottom: 52,
+        left: SCREEN_HERO_HORIZONTAL_PADDING,
+        right: SCREEN_HERO_HORIZONTAL_PADDING,
+        bottom: SCREEN_HERO_CONTENT_BOTTOM,
     },
     pill: {
         alignSelf: "flex-start",
@@ -168,13 +175,15 @@ const styles = StyleSheet.create({
         marginTop:8,
         color: themeColors.primary,
         fontSize: 20,
+        lineHeight: 25,
         fontFamily: "Point-Black",
     },
     subtitle: {
         marginTop: 8,
         color: themeColors.text,
         fontSize: 14,
+        lineHeight: 20,
         fontFamily: "Point-Regular",
-        maxWidth: 340,
+        maxWidth: 360,
     },
 });

@@ -1,0 +1,9 @@
+env: load .env.local
+env: export EXPO_PUBLIC_GEOAPIFY_KEY EXPO_PUBLIC_YANDEX_MAPS_API_KEY EXPO_PUBLIC_API_URL
+Starting project at D:\ExpoProjects\mangalclubs-mobile
+Starting Metro Bundler
+Networking has been disabled
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+iOS node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+iOS Bundled 2456ms node_modules\expo-router\entry.js (1876 modules)

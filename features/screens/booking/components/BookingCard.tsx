@@ -1,22 +1,30 @@
 import {Pressable, Text, View} from "react-native";
 import {Image} from "expo-image";
 import {LinearGradient} from "expo-linear-gradient";
-import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
+import {Ionicons} from "@expo/vector-icons";
 
 import type {Booking} from "@/types/booking";
+import type {Organization} from "@/types/organization";
 import {themeColors} from "@/utils/theme-colors";
 
 import styles from "../booking.styles";
-import {getBookingImageSource, getCategoryTitle, getOrganization} from "../booking.utils";
+import {
+    getBookingImageSource,
+    getBookingOrganizationName,
+    getCategoryTitle,
+    getOrganization,
+} from "../booking.utils";
 
 type BookingCardProps = {
     booking: Booking;
+    organizations: Organization[];
     onPress: () => void;
 };
 
-export function BookingCard({booking, onPress}: BookingCardProps) {
-    const organization = getOrganization(booking.organizationId);
-    const categoryTitle = getCategoryTitle(booking.categoryId);
+export function BookingCard({booking, organizations, onPress}: BookingCardProps) {
+    const organization = getOrganization(organizations, booking.organizationId);
+    const organizationName = getBookingOrganizationName(booking, organization);
+    const categoryTitle = getCategoryTitle(booking);
 
     return (
         <Pressable
@@ -45,13 +53,8 @@ export function BookingCard({booking, onPress}: BookingCardProps) {
                     </View>
 
                     <View style={styles.cardPillMuted}>
-                        <MaterialCommunityIcons
-                            name="storefront-outline"
-                            size={13}
-                            color={themeColors.primary}
-                        />
                         <Text style={styles.cardPillMutedText} numberOfLines={1}>
-                            {organization.name}
+                            {organizationName}
                         </Text>
                     </View>
                 </View>

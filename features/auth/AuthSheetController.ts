@@ -1,5 +1,6 @@
 type OpenAuthSheetOptions = {
     onSuccess?: () => void;
+    onCancel?: () => void;
 };
 
 type AuthSheetListener = (options?: OpenAuthSheetOptions) => void;

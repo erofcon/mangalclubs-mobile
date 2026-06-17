@@ -3,7 +3,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {Image} from "expo-image";
 import * as Linking from "expo-linking";
 import {router} from "expo-router";
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -17,6 +17,10 @@ import {
 } from "react-native";
 
 import {Screen} from "@/components/ui/Screen";
+import {
+    AppBottomSheetModal,
+    type AppBottomSheetRef,
+} from "@/components/ui/bottom-sheet/AppBottomSheetModal";
 import {openAuthSheet} from "@/features/auth/AuthSheetController";
 import {formatRuPhoneDisplay} from "@/features/auth/utils/phone";
 import {
@@ -337,6 +341,40 @@ const getMenuItemForOrderItem = (
 const getOrderItemName = (item: CustomerOrderItem, menuItem?: MenuItem) => (
     getRawOrderItemName(item) || menuItem?.name || "Позиция заказа"
 );
+
+const getOrderItemImage = (item: CustomerOrderItem, menuItem?: MenuItem) => {
+    const image =
+        item.imageUrl ||
+        item.image ||
+        item.productImage ||
+        item.product?.imageUrl ||
+        item.product?.image ||
+        menuItem?.image;
+
+    return typeof image === "string" ? resolveApiAssetUrl(image) : image;
+};
+
+const getOrderItemQuantity = (item: CustomerOrderItem) => (
+    item.amount ?? item.quantity ?? 1
+);
+
+const getOrderItemPrice = (item: CustomerOrderItem) => {
+    const quantity = getOrderItemQuantity(item);
+
+    if (typeof item.total === "number") {
+        return item.total;
+    }
+
+    if (typeof item.sum === "number") {
+        return item.sum;
+    }
+
+    if (typeof item.price === "number") {
+        return item.price * quantity;
+    }
+
+    return null;
+};
 
 const getOrderPreviewText = (
     order: CustomerOrder,
@@ -934,50 +972,84 @@ function OrdersSection({
     onContinuePayment: (order: CustomerOrder) => void;
 }) {
     const orders = activeTab === "current" ? currentOrders : historyOrders;
+    const orderDetailsSheetRef = useRef<AppBottomSheetRef>(null);
+    const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
+    const selectedOrderDetails = selectedOrder
+        ? [...currentOrders, ...historyOrders].find((order) => order.id === selectedOrder.id) ?? selectedOrder
+        : null;
+
+    const handleOrderPress = (order: CustomerOrder) => {
+        setSelectedOrder(order);
+        requestAnimationFrame(() => orderDetailsSheetRef.current?.open());
+    };
 
     return (
-        <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-                <View>
-                    <Text style={styles.sectionEyebrow}>Заказы</Text>
-                    <Text style={styles.sectionTitle}>Активность</Text>
+        <>
+            <View style={styles.section}>
+                <View style={styles.sectionHeaderRow}>
+                    <View>
+                        <Text style={styles.sectionEyebrow}>Заказы</Text>
+                        <Text style={styles.sectionTitle}>Активность</Text>
+                    </View>
+
+                    <Pressable
+                        accessibilityRole="button"
+                        style={({pressed}) => [styles.menuButton, pressed && styles.pressed]}
+                        onPress={() => router.push("/menu")}
+                    >
+                        <MaterialCommunityIcons name="silverware-fork-knife" size={18} color={themeColors.textOnPrimary} />
+                    </Pressable>
                 </View>
 
-                <Pressable
-                    accessibilityRole="button"
-                    style={({pressed}) => [styles.menuButton, pressed && styles.pressed]}
-                    onPress={() => router.push("/menu")}
-                >
-                    <MaterialCommunityIcons name="silverware-fork-knife" size={18} color={themeColors.textOnPrimary} />
-                </Pressable>
+                <SegmentedControl
+                    value={activeTab}
+                    options={[
+                        {value: "current", label: `Активные ${currentOrders.length}`},
+                        {value: "history", label: `История ${historyOrders.length}`},
+                    ]}
+                    onChange={onChangeTab}
+                />
+
+                {orders.length ? (
+                    <View style={styles.ordersList}>
+                        {orders.map((order) => (
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                menuItemLookup={menuItemLookup}
+                                onPress={() => handleOrderPress(order)}
+                            />
+                        ))}
+                    </View>
+                ) : (
+                    <EmptyOrders tab={activeTab} />
+                )}
             </View>
 
-            <SegmentedControl
-                value={activeTab}
-                options={[
-                    {value: "current", label: `Активные ${currentOrders.length}`},
-                    {value: "history", label: `История ${historyOrders.length}`},
-                ]}
-                onChange={onChangeTab}
-            />
-
-            {orders.length ? (
-                <View style={styles.ordersList}>
-                    {orders.map((order) => (
-                        <OrderCard
-                            key={order.id}
-                            order={order}
-                            menuItemLookup={menuItemLookup}
-                            isRefreshing={refreshingOrderIds.includes(order.id)}
-                            onRefresh={() => onRefreshOrder(order)}
-                            onContinuePayment={() => onContinuePayment(order)}
-                        />
-                    ))}
-                </View>
-            ) : (
-                <EmptyOrders tab={activeTab} />
-            )}
-        </View>
+            <AppBottomSheetModal
+                ref={orderDetailsSheetRef}
+                title={selectedOrderDetails ? `${getOrderTypeLabel(selectedOrderDetails.orderType)} №${getOrderNumber(selectedOrderDetails)}` : "Заказ"}
+                showCloseButton
+                scrollable
+                snapPoints={["82%"]}
+                enableDynamicSizing={false}
+                backgroundStyle={styles.orderSheetBackground}
+                handleIndicatorStyle={styles.orderSheetHandle}
+                containerStyle={styles.orderSheetContainer}
+                contentContainerStyle={styles.orderSheetContent}
+                onDismiss={() => setSelectedOrder(null)}
+            >
+                {selectedOrderDetails ? (
+                    <OrderDetailsSheetContent
+                        order={selectedOrderDetails}
+                        menuItemLookup={menuItemLookup}
+                        isRefreshing={refreshingOrderIds.includes(selectedOrderDetails.id)}
+                        onRefresh={() => onRefreshOrder(selectedOrderDetails)}
+                        onContinuePayment={() => onContinuePayment(selectedOrderDetails)}
+                    />
+                ) : null}
+            </AppBottomSheetModal>
+        </>
     );
 }
 
@@ -1014,23 +1086,21 @@ function EmptyOrders({tab}: {tab: OrdersTab}) {
 function OrderCard({
     order,
     menuItemLookup,
-    isRefreshing,
-    onRefresh,
-    onContinuePayment,
+    onPress,
 }: {
     order: CustomerOrder;
     menuItemLookup: Map<string, MenuItem>;
-    isRefreshing: boolean;
-    onRefresh: () => void;
-    onContinuePayment: () => void;
+    onPress: () => void;
 }) {
     const status = getOrderStatus(order);
-    const canContinuePayment =
-        (order.paymentStatus === "payment_pending" || order.paymentStatus === "payment_form_created") &&
-        Boolean(order.payment?.paymentUrl);
 
     return (
-        <View style={styles.orderCard}>
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Открыть заказ №${getOrderNumber(order)}`}
+            style={({pressed}) => [styles.orderCard, pressed && styles.pressed]}
+            onPress={onPress}
+        >
             <View style={styles.orderTop}>
                 <View style={styles.orderIcon}>
                     <MaterialCommunityIcons
@@ -1052,16 +1122,132 @@ function OrderCard({
                 <StatusBadge label={status.label} tone={status.tone} />
             </View>
 
-            <Text style={styles.orderPreview} numberOfLines={2}>
-                {getOrderPreviewText(order, menuItemLookup)}
-            </Text>
-
-            <View style={styles.orderMetaGrid}>
+            <View style={styles.orderSummaryRow}>
                 <OrderMeta icon="cash" label={formatMoney(order.totalSum)} />
-                <OrderMeta icon="clock-outline" label={formatDateTime(order.completeBefore)} />
-                <OrderMeta icon="map-marker-outline" label={getOrderPlaceLabel(order)} />
                 <OrderMeta icon="format-list-bulleted" label={getItemsLabel(order)} />
             </View>
+
+            <View style={styles.orderFooterRow}>
+                <Text style={styles.orderPreview} numberOfLines={1}>
+                    {getOrderPreviewText(order, menuItemLookup)}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={themeColors.textSecondary} />
+            </View>
+        </Pressable>
+    );
+}
+
+function OrderDetailsSheetContent({
+    order,
+    menuItemLookup,
+    isRefreshing,
+    onRefresh,
+    onContinuePayment,
+}: {
+    order: CustomerOrder;
+    menuItemLookup: Map<string, MenuItem>;
+    isRefreshing: boolean;
+    onRefresh: () => void;
+    onContinuePayment: () => void;
+}) {
+    const status = getOrderStatus(order);
+    const canContinuePayment =
+        (order.paymentStatus === "payment_pending" || order.paymentStatus === "payment_form_created") &&
+        Boolean(order.payment?.paymentUrl);
+
+    return (
+        <View style={styles.detailsSheet}>
+            <View style={styles.detailsHero}>
+                <View style={styles.detailsHeroHeader}>
+                    <View style={styles.orderIconLarge}>
+                        <MaterialCommunityIcons
+                            name={order.orderType === "delivery" ? "bike-fast" : "shopping-outline"}
+                            size={24}
+                            color={themeColors.primary}
+                        />
+                    </View>
+
+                    <View style={styles.orderTitleWrap}>
+                        <Text style={styles.detailsTitle} numberOfLines={1}>
+                            {getOrderTypeLabel(order.orderType)} №{getOrderNumber(order)}
+                        </Text>
+                        <Text style={styles.orderDate} numberOfLines={1}>
+                            {formatDateTime(order.createdAt)}
+                        </Text>
+                    </View>
+
+                    <StatusBadge label={status.label} tone={status.tone} />
+                </View>
+
+                <View style={styles.orderMetaGrid}>
+                    <OrderMeta icon="cash" label={formatMoney(order.totalSum)} />
+                    <OrderMeta icon="clock-outline" label={formatDateTime(order.completeBefore)} />
+                    <OrderMeta icon="map-marker-outline" label={getOrderPlaceLabel(order)} />
+                    <OrderMeta icon="format-list-bulleted" label={getItemsLabel(order)} />
+                </View>
+            </View>
+
+            <View style={styles.detailsBlock}>
+                <Text style={styles.detailsBlockTitle}>Состав заказа</Text>
+
+                {order.items?.length ? (
+                    <View style={styles.orderItemsList}>
+                        {order.items.map((item, index) => {
+                            const menuItem = getMenuItemForOrderItem(item, menuItemLookup);
+                            const image = getOrderItemImage(item, menuItem);
+                            const quantity = getOrderItemQuantity(item);
+                            const price = getOrderItemPrice(item);
+
+                            return (
+                                <View key={item.id ?? `${getOrderItemName(item, menuItem)}-${index}`} style={styles.orderItemRow}>
+                                    <View style={styles.orderItemImageWrap}>
+                                        {image ? (
+                                            <Image
+                                                source={typeof image === "string" ? {uri: image} : image}
+                                                style={styles.orderItemImage}
+                                                contentFit="cover"
+                                            />
+                                        ) : (
+                                            <MaterialCommunityIcons
+                                                name="silverware-fork-knife"
+                                                size={22}
+                                                color={themeColors.primary}
+                                            />
+                                        )}
+                                    </View>
+
+                                    <View style={styles.orderItemInfo}>
+                                        <Text style={styles.orderItemName} numberOfLines={2}>
+                                            {getOrderItemName(item, menuItem)}
+                                        </Text>
+                                        <Text style={styles.orderItemMeta} numberOfLines={1}>
+                                            {quantity} шт.{item.sizeName ? ` · ${item.sizeName}` : ""}
+                                        </Text>
+                                        {item.comment ? (
+                                            <Text style={styles.orderItemComment} numberOfLines={2}>
+                                                {item.comment}
+                                            </Text>
+                                        ) : null}
+                                    </View>
+
+                                    <Text style={styles.orderItemPrice} numberOfLines={1}>
+                                        {price === null ? "" : formatMoney(price)}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+                ) : (
+                    <Text style={styles.detailsMutedText}>Состав заказа уточняется.</Text>
+                )}
+            </View>
+
+            {order.comment ? (
+                <View style={styles.detailsBlock}>
+                    <Text style={styles.detailsBlockTitle}>Комментарий</Text>
+                    <Text style={styles.detailsText}>{order.comment}</Text>
+                </View>
+            ) : null}
 
             <View style={styles.orderActions}>
                 {canContinuePayment ? (

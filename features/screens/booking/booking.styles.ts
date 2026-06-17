@@ -1,6 +1,12 @@
 import {StyleSheet} from "react-native";
 
 import {themeColors} from "@/utils/theme-colors";
+import {
+    SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT,
+    SCREEN_HERO_CONTENT_BOTTOM,
+    SCREEN_HERO_HORIZONTAL_PADDING,
+    SCREEN_HERO_TOP_GRADIENT_HEIGHT,
+} from "@/features/screens/shared/hero-layout";
 
 import {HERO_HEIGHT} from "./booking.constants";
 
@@ -33,20 +39,21 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        height: 120,
+        height: SCREEN_HERO_TOP_GRADIENT_HEIGHT,
     },
     heroBottomGradient: {
         position: "absolute",
         left: 0,
         right: 0,
         bottom: 0,
-        height: 184,
+        height: SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT + 72,
     },
     heroContent: {
         position: "absolute",
-        left: 14,
-        right: 14,
-        bottom: 54,
+        left: SCREEN_HERO_HORIZONTAL_PADDING,
+        right: SCREEN_HERO_HORIZONTAL_PADDING,
+        bottom: SCREEN_HERO_CONTENT_BOTTOM + 58,
+        paddingBottom: 0,
     },
     heroPill: {
         alignSelf: "flex-start",
@@ -66,16 +73,18 @@ const styles = StyleSheet.create({
         fontFamily: "Point-SemiBold",
     },
     heroTitle: {
-        marginTop: 9,
+        marginTop: 8,
         color: themeColors.primary,
         fontSize: 20,
+        lineHeight: 29,
         fontFamily: "Point-Black",
     },
     heroSubtitle: {
-        marginTop: 8,
+        marginTop: 6,
         maxWidth: 360,
         color: themeColors.text,
         fontSize: 14,
+        lineHeight: 23,
         fontFamily: "Point-Regular",
     },
 
@@ -90,7 +99,7 @@ const styles = StyleSheet.create({
     filtersRow: {
         flexDirection: "row",
         gap: 8,
-        paddingTop: 10,
+        paddingTop: 0,
         paddingBottom: 14,
     },
     filterButton: {
@@ -167,6 +176,25 @@ const styles = StyleSheet.create({
     },
     cardsList: {
         gap: 12,
+    },
+    bookingState: {
+        minHeight: 120,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        paddingHorizontal: 18,
+        paddingVertical: 24,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: themeColors.cardBorder,
+        backgroundColor: themeColors.card,
+    },
+    bookingStateText: {
+        color: themeColors.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+        textAlign: "center",
+        fontFamily: "Point-Regular",
     },
     bookingCard: {
         height: 196,

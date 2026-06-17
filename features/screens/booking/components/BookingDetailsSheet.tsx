@@ -21,12 +21,15 @@ import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import type {Booking} from "@/types/booking";
+import type {Organization} from "@/types/organization";
 import {themeColors} from "@/utils/theme-colors";
 
 import {BOOKING_PHONE_FALLBACK} from "../booking.constants";
 import styles from "../booking.styles";
 import {
     getBookingImages,
+    getBookingOrganizationName,
+    getBookingOrganizationPhone,
     getCategoryTitle,
     getOrganization,
     getPhoneDigits,
@@ -36,10 +39,15 @@ import {InfoRow} from "./InfoRow";
 
 type BookingDetailsSheetProps = {
     booking: Booking | null;
+    organizations: Organization[];
     onDismiss: () => void;
 };
 
-export function BookingDetailsSheet({booking, onDismiss}: BookingDetailsSheetProps) {
+export function BookingDetailsSheet({
+    booking,
+    organizations,
+    onDismiss,
+}: BookingDetailsSheetProps) {
     const sheetRef = useRef<BottomSheetModal>(null);
     const insets = useSafeAreaInsets();
     const {width} = useWindowDimensions();
@@ -47,7 +55,13 @@ export function BookingDetailsSheet({booking, onDismiss}: BookingDetailsSheetPro
 
     const snapPoints = useMemo(() => ["92%"], []);
     const images = useMemo(() => getBookingImages(booking), [booking]);
-    const organization = useMemo(() => getOrganization(booking?.organizationId), [booking?.organizationId]);
+    const organization = useMemo(
+        () => getOrganization(organizations, booking?.organizationId),
+        [booking?.organizationId, organizations],
+    );
+    const organizationName = booking ? getBookingOrganizationName(booking, organization) : "";
+    const organizationPhone = booking ? getBookingOrganizationPhone(booking, organization) : "";
+    const callPhone = organizationPhone || BOOKING_PHONE_FALLBACK;
     const imageHeight = Math.min(320, width * 0.78);
 
     useEffect(() => {
@@ -71,19 +85,20 @@ export function BookingDetailsSheet({booking, onDismiss}: BookingDetailsSheetPro
     );
 
     const handleCall = useCallback(() => {
-        const phone = organization?.phone ?? BOOKING_PHONE_FALLBACK;
-        const normalizedPhone = phone.replace(/[^\d+]/g, "");
+        const normalizedPhone = callPhone.replace(/[^\d+]/g, "");
 
         openExternalUrl(`tel:${normalizedPhone}`);
-    }, [organization?.phone]);
+    }, [callPhone]);
 
     const handleWhatsApp = useCallback(() => {
-        const phone = organization?.phone ?? BOOKING_PHONE_FALLBACK;
-        const digits = getPhoneDigits(phone);
+        const digits = getPhoneDigits(callPhone);
         const text = encodeURIComponent(`Здравствуйте! Хочу забронировать ${booking?.title ?? "зону"}.`);
 
-        openExternalUrl(`whatsapp://send?phone=${digits}&text=${text}`, `https://wa.me/${digits}?text=${text}`);
-    }, [booking?.title, organization?.phone]);
+        openExternalUrl(
+            `whatsapp://send?phone=${digits}&text=${text}`,
+            `https://wa.me/${digits}?text=${text}`,
+        );
+    }, [booking?.title, callPhone]);
 
     const renderBackdrop = useCallback(
         (props: BottomSheetBackdropProps) => (
@@ -187,22 +202,12 @@ export function BookingDetailsSheet({booking, onDismiss}: BookingDetailsSheetPro
                     <View style={styles.detailsBody}>
                         <View style={styles.detailsMetaRow}>
                             <View style={styles.detailsMetaPill}>
-                                <MaterialCommunityIcons
-                                    name="storefront-outline"
-                                    size={15}
-                                    color={themeColors.primary}
-                                />
-                                <Text style={styles.detailsMetaText}>{organization.name}</Text>
+                                <Text style={styles.detailsMetaText}>{organizationName}</Text>
                             </View>
 
                             <View style={styles.detailsMetaPill}>
-                                <MaterialCommunityIcons
-                                    name="calendar-check-outline"
-                                    size={15}
-                                    color={themeColors.primary}
-                                />
                                 <Text style={styles.detailsMetaText}>
-                                    {getCategoryTitle(booking.categoryId)}
+                                    {getCategoryTitle(booking)}
                                 </Text>
                             </View>
                         </View>
@@ -214,13 +219,19 @@ export function BookingDetailsSheet({booking, onDismiss}: BookingDetailsSheetPro
                         </Text>
 
                         <View style={styles.infoBlock}>
-                            <InfoRow
-                                icon="map-marker-outline"
-                                label="Адрес"
-                                value={`${organization.city}, ${organization.address}`}
-                            />
-                            <InfoRow icon="clock-outline" label="График" value={organization.schedule} />
-                            <InfoRow icon="phone-outline" label="Телефон" value={organization.phone} />
+                            {organization ? (
+                                <InfoRow
+                                    icon="map-marker-outline"
+                                    label="Адрес"
+                                    value={`${organization.city}, ${organization.address}`}
+                                />
+                            ) : null}
+                            {organization?.schedule ? (
+                                <InfoRow icon="clock-outline" label="График" value={organization.schedule} />
+                            ) : null}
+                            {callPhone ? (
+                                <InfoRow icon="phone-outline" label="Телефон" value={callPhone} />
+                            ) : null}
                         </View>
                     </View>
                 ) : null}

@@ -246,8 +246,7 @@ export function DeliveryAddress() {
             return;
         }
 
-        const {deliveryPrice: _deliveryPrice, ...addressToSave} = draftAddress;
-        const result = addAddress(addressToSave);
+        const result = addAddress(draftAddress);
 
         if (result.limitReached) {
             setLocationStatusTone("error");

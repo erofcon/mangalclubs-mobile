@@ -1,6 +1,5 @@
 import {Linking} from "react-native";
 
-import {BookingCategories, Organizations} from "@/mocks/mocks-data";
 import type {Booking} from "@/types/booking";
 import type {Organization} from "@/types/organization";
 
@@ -22,6 +21,10 @@ export function getBookingImageSource(path?: string) {
         return bookingImageMap[DEFAULT_BOOKING_IMAGE_PATH];
     }
 
+    if (/^https?:\/\//i.test(path)) {
+        return {uri: path};
+    }
+
     return bookingImageMap[path] ?? bookingImageMap[DEFAULT_BOOKING_IMAGE_PATH];
 }
 
@@ -36,12 +39,29 @@ export function getBookingImages(booking: Booking | null) {
     return uniquePaths.map(getBookingImageSource);
 }
 
-export function getOrganization(organizationId?: Organization["id"]) {
-    return Organizations.find((organization) => organization.id === organizationId) ?? Organizations[0];
+export function getOrganization(
+    organizations: Organization[],
+    organizationId?: Organization["id"],
+) {
+    return organizations.find((organization) => organization.id === organizationId) ?? null;
 }
 
-export function getCategoryTitle(categoryId?: string) {
-    return BookingCategories.find((category) => category.id === categoryId)?.title ?? "Бронирование";
+export function getBookingOrganizationName(
+    booking: Booking,
+    organization?: Organization | null,
+) {
+    return organization?.name ?? booking.organization?.name ?? "Ресторан";
+}
+
+export function getBookingOrganizationPhone(
+    booking: Booking,
+    organization?: Organization | null,
+) {
+    return organization?.phone ?? booking.organization?.phone ?? "";
+}
+
+export function getCategoryTitle(booking: Booking) {
+    return booking.category?.title ?? "Бронирование";
 }
 
 export function getPhoneDigits(phone: string) {

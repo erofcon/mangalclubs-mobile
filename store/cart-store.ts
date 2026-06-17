@@ -4,7 +4,6 @@ import {createJSONStorage, persist} from "zustand/middleware";
 
 import type {MenuItem} from "@/types/products";
 
-export const CART_DELIVERY_FEE = 540;
 export const CART_UTENSILS_PRICE = 50;
 
 export type CartItem = MenuItem & {
@@ -15,6 +14,7 @@ export type CartItem = MenuItem & {
 type CartStore = {
     items: CartItem[];
     promoCode: string;
+    orderComment: string;
     addUtensils: boolean;
     addBread: boolean;
     hasHydrated: boolean;
@@ -23,6 +23,7 @@ type CartStore = {
     decrementItem: (id: string) => void;
     removeItem: (id: string) => void;
     setItemComment: (id: string, comment: string) => void;
+    setOrderComment: (comment: string) => void;
     setPromoCode: (promoCode: string) => void;
     toggleUtensils: () => void;
     toggleBread: () => void;
@@ -42,8 +43,12 @@ export function getCartExtrasTotal(addUtensils: boolean): number {
     return addUtensils ? CART_UTENSILS_PRICE : 0;
 }
 
-export function getCartTotal(items: CartItem[], addUtensils: boolean): number {
-    return getCartSubtotal(items) + CART_DELIVERY_FEE + getCartExtrasTotal(addUtensils);
+export function getCartTotal(
+    items: CartItem[],
+    addUtensils: boolean,
+    deliveryFee = 0
+): number {
+    return getCartSubtotal(items) + deliveryFee + getCartExtrasTotal(addUtensils);
 }
 
 function normalizeQuantity(quantity: number): number {
@@ -55,6 +60,7 @@ export const useCartStore = create<CartStore>()(
         (set) => ({
             items: [],
             promoCode: "",
+            orderComment: "",
             addUtensils: false,
             addBread: false,
             hasHydrated: false,
@@ -116,6 +122,7 @@ export const useCartStore = create<CartStore>()(
                         item.id === id ? {...item, comment} : item
                     ),
                 })),
+            setOrderComment: (orderComment) => set({orderComment}),
             setPromoCode: (promoCode) => set({promoCode}),
             toggleUtensils: () =>
                 set((state) => ({addUtensils: !state.addUtensils})),
@@ -125,6 +132,7 @@ export const useCartStore = create<CartStore>()(
                 set({
                     items: [],
                     promoCode: "",
+                    orderComment: "",
                     addUtensils: false,
                     addBread: false,
                 }),
@@ -136,6 +144,7 @@ export const useCartStore = create<CartStore>()(
             partialize: (state) => ({
                 items: state.items,
                 promoCode: state.promoCode,
+                orderComment: state.orderComment,
                 addUtensils: state.addUtensils,
                 addBread: state.addBread,
             }),

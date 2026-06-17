@@ -34,8 +34,8 @@ import type {AppBottomSheetRef} from "@/components/ui/bottom-sheet/AppBottomShee
 import {MenuCategoriesSheet} from "@/features/screens/menu/MenuCategoriesSheet";
 import {useCartStore} from "@/store/cart-store";
 import {useAppDataStore} from "@/store/app-data-store";
-import {useDeliveryStore} from "@/store/delivery-store";
 import {OrderAvailabilityBar} from "@/components/OrderAvailabilityBar";
+import {requestCartAddPermission} from "@/store/cart-gate-store";
 
 type AnimatedScrollViewRef = ComponentRef<typeof Animated.ScrollView>;
 const SKELETON_CATEGORIES = [
@@ -65,7 +65,6 @@ export function MenuScreen() {
     const categoryScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const itemWidth = useMenuItemWidth(containerWidth);
     const addItemToCart = useCartStore((state) => state.addItem);
-    const deliveryType = useDeliveryStore((state) => state.type);
     const menus = useAppDataStore((state) => state.menu);
     const isMenuLoading = useAppDataStore((state) => state.isMenuLoading);
     const errorMessage = useAppDataStore((state) => state.errorMessage);
@@ -158,8 +157,7 @@ export function MenuScreen() {
     }, [toastProgress]);
 
     const handleProductAdd = useCallback((item: MenuItem) => {
-        if (!deliveryType) {
-            router.push("/order_type");
+        if (!requestCartAddPermission(item)) {
             return;
         }
 
@@ -167,7 +165,7 @@ export function MenuScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
         });
         showAddedToast(item);
-    }, [addItemToCart, deliveryType, showAddedToast]);
+    }, [addItemToCart, showAddedToast]);
 
     useEffect(() => {
         return () => {
