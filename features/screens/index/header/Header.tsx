@@ -9,9 +9,10 @@ import {useDeliveryStore} from "@/store/delivery-store";
 import {useAddressStore} from "@/store/address-store";
 import {useAppDataStore} from "@/store/app-data-store";
 import {openAuthSheet} from "@/features/auth/AuthSheetController";
-import {isProfileAuthenticated} from "@/store/profile-store";
+import {isProfileAuthenticated, useProfileStore} from "@/store/profile-store";
 
 export function Header() {
+    const user = useProfileStore((state) => state.user);
     const deliveryType = useDeliveryStore((state) => state.type);
     const addresses = useAddressStore((state) => state.addresses);
     const selectedAddressId = useAddressStore((state) => state.selectedAddressId);
@@ -103,7 +104,13 @@ export function Header() {
                         });
                     }}
                 >
-                    <View style={styles.avatar} />
+                    <View style={[styles.avatar, user && styles.avatarAuthenticated]}>
+                        <MaterialCommunityIcons
+                            name={user ? "account" : "account-outline"}
+                            size={22}
+                            color={user ? themeColors.textOnPrimary : themeColors.text}
+                        />
+                    </View>
                 </Pressable>
             </View>
         </View>
@@ -124,16 +131,27 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
+        paddingVertical: 11,
+        paddingHorizontal: 12,
         borderRadius: 16,
-        backgroundColor: "rgba(255,255,255,0.04)",
+        borderWidth: 1,
+        borderColor: "rgba(236,172,24,0.34)",
+        backgroundColor: "rgba(8,9,9,0.72)",
+        shadowColor: themeColors.primary,
+        shadowOffset: {width: 0, height: 8},
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+        elevation: 4,
     },
     iconWrap: {
         width: 34,
         height: 34,
         alignItems: "center",
         justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(236,172,24,0.22)",
+        backgroundColor: "rgba(236,172,24,0.10)",
     },
     textWrap: {
         flex: 1,
@@ -158,13 +176,22 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         alignItems: "center",
         justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.16)",
+        backgroundColor: "rgba(8,9,9,0.58)",
     },
     avatar: {
         width: 36,
         height: 36,
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: 18,
         backgroundColor: "rgba(255,255,255,0.15)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.25)",
+    },
+    avatarAuthenticated: {
+        backgroundColor: themeColors.primary,
+        borderColor: "rgba(236,172,24,0.85)",
     },
 });

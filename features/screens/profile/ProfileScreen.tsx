@@ -1,5 +1,6 @@
 import {Ionicons, MaterialCommunityIcons} from "@expo/vector-icons";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import Constants from "expo-constants";
 import {Image} from "expo-image";
 import * as Linking from "expo-linking";
 import {router} from "expo-router";
@@ -61,6 +62,21 @@ const initialForm: ProfileForm = {
     email: "",
     birthday: "",
 };
+
+const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+
+const profileLegalItems: Array<{
+    label: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    danger?: boolean;
+}> = [
+    {label: "Условия доставки", icon: "truck-delivery-outline"},
+    {label: "Поддержка", icon: "lifebuoy"},
+    {label: "Обработка персональных данных", icon: "shield-account-outline"},
+    {label: "Условия использования карт", icon: "map-marker-radius-outline"},
+    {label: "О компании", icon: "information-outline"},
+    {label: "Удалить аккаунт", icon: "account-remove-outline", danger: true},
+];
 
 const fallbackStatus = {
     label: "Статус уточняется",
@@ -668,18 +684,21 @@ export function ProfileScreen() {
                     {isInitialLoading ? (
                         <LoadingBlock />
                     ) : activeTab === "profile" ? (
-                        <ProfileDetails
-                            profile={profile}
-                            form={form}
-                            message={message}
-                            errorMessage={errorMessage}
-                            isSaving={saveProfileMutation.isPending}
-                            onChange={(field, value) => {
-                                setMessage("");
-                                setForm((prev) => ({...prev, [field]: value}));
-                            }}
-                            onSave={() => saveProfileMutation.mutate(form)}
-                        />
+                        <>
+                            <ProfileDetails
+                                profile={profile}
+                                form={form}
+                                message={message}
+                                errorMessage={errorMessage}
+                                isSaving={saveProfileMutation.isPending}
+                                onChange={(field, value) => {
+                                    setMessage("");
+                                    setForm((prev) => ({...prev, [field]: value}));
+                                }}
+                                onSave={() => saveProfileMutation.mutate(form)}
+                            />
+                            <ProfileLinks />
+                        </>
                     ) : (
                         <OrdersSection
                             activeTab={ordersTab}
@@ -695,6 +714,35 @@ export function ProfileScreen() {
                 </ScrollView>
             </KeyboardAvoidingView>
         </Screen>
+    );
+}
+
+function ProfileLinks() {
+    return (
+        <View style={styles.linksBlock}>
+            {profileLegalItems.map((item) => (
+                <Pressable
+                    key={item.label}
+                    accessibilityRole="button"
+                    style={({pressed}) => [styles.linkRow, pressed && styles.pressed]}
+                    onPress={() => undefined}
+                >
+                    <View style={[styles.linkIcon, item.danger && styles.linkIconDanger]}>
+                        <MaterialCommunityIcons
+                            name={item.icon}
+                            size={19}
+                            color={item.danger ? themeColors.notification : themeColors.primary}
+                        />
+                    </View>
+                    <Text style={[styles.linkText, item.danger && styles.linkTextDanger]}>
+                        {item.label}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={themeColors.textSecondary} />
+                </Pressable>
+            ))}
+
+            <Text style={styles.versionText}>Версия приложения {appVersion}</Text>
+        </View>
     );
 }
 

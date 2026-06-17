@@ -2,12 +2,12 @@ import {ElementRef, useCallback, useEffect, useMemo, useRef, useState} from "rea
 import {
     ActivityIndicator,
     Keyboard,
+    Linking,
     Pressable,
     StyleSheet,
     Text,
     View,
 } from "react-native";
-import {Ionicons} from "@expo/vector-icons";
 
 import {
     BottomSheetTextInput,
@@ -29,6 +29,7 @@ import {useProfileStore} from "@/store/profile-store";
 import {themeColors} from "@/utils/theme-colors";
 
 const OTP_LENGTH = 4;
+const PERSONAL_DATA_POLICY_URL = "https://mangalclubs.ru/personal-data";
 
 type AuthStep = "phone" | "code";
 
@@ -43,7 +44,6 @@ export function AuthSheetHost() {
     const [submittedPhone, setSubmittedPhone] = useState("");
     const [otpCode, setOtpCode] = useState("");
     const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
-    const [accepted, setAccepted] = useState(false);
 
     const user = useProfileStore((state) => state.user);
     const isRequestingOtp = useProfileStore((state) => state.isRequestingOtp);
@@ -54,7 +54,7 @@ export function AuthSheetHost() {
     const verifyOtp = useProfileStore((state) => state.verifyOtp);
 
     const phone = getRuPhoneE164(phoneInput);
-    const canSubmitPhone = isRuPhoneComplete(phoneInput) && accepted;
+    const canSubmitPhone = isRuPhoneComplete(phoneInput);
     const canVerifyCode = otpCode.length === OTP_LENGTH;
 
     const resetFlow = useCallback(() => {
@@ -63,7 +63,6 @@ export function AuthSheetHost() {
         setSubmittedPhone("");
         setOtpCode("");
         setResendSecondsLeft(0);
-        setAccepted(false);
         clearError();
     }, [clearError]);
 
@@ -176,6 +175,10 @@ export function AuthSheetHost() {
         setOtpCode(value.replace(/\D/g, "").slice(0, OTP_LENGTH));
     };
 
+    const handleOpenConsent = () => {
+        Linking.openURL(PERSONAL_DATA_POLICY_URL).catch(() => undefined);
+    };
+
     const renderPhoneStep = () => (
         <View style={styles.content}>
             <Text style={styles.eyebrow}>Профиль</Text>
@@ -197,19 +200,12 @@ export function AuthSheetHost() {
             />
 
             <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{checked: accepted}}
-                onPress={() => setAccepted((value) => !value)}
-                style={styles.consentRow}
+                accessibilityRole="link"
+                onPress={handleOpenConsent}
+                style={({pressed}) => [styles.consentNote, pressed && styles.pressed]}
             >
-                <View style={[styles.checkbox, accepted && styles.checkboxChecked]}>
-                    {accepted ? (
-                        <Ionicons name="checkmark" size={14} color={themeColors.textOnPrimary} />
-                    ) : null}
-                </View>
                 <Text style={styles.consentText}>
-                    Соглашаюсь с обработкой персональных данных, политикой обработки персональных данных,
-                    политикой обработки файлов cookie, и условиями сервиса
+                    Авторизуясь, вы соглашаетесь с обработкой персональных данных
                 </Text>
             </Pressable>
 
@@ -320,6 +316,10 @@ const styles = StyleSheet.create({
         paddingTop: 4,
     },
 
+    pressed: {
+        opacity: 0.76,
+    },
+
     eyebrow: {
         color: themeColors.primary,
         fontSize: 13,
@@ -362,35 +362,24 @@ const styles = StyleSheet.create({
         backgroundColor: "#080909",
     },
 
-    consentRow: {
+    consentNote: {
         marginTop: 26,
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 14,
-    },
-
-    checkbox: {
-        width: 16,
-        height: 16,
-        marginTop: 3,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 3,
+        minHeight: 52,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#E8E3DD",
-        backgroundColor: themeColors.text,
-    },
-
-    checkboxChecked: {
-        backgroundColor: themeColors.primary,
-        borderColor: themeColors.primary,
+        borderColor: "rgba(236,172,24,0.24)",
+        backgroundColor: "rgba(236,172,24,0.08)",
     },
 
     consentText: {
-        flex: 1,
-        color: "#B7B0AA",
+        color: "#D5CCC2",
         fontSize: 15,
-        lineHeight: 24,
+        lineHeight: 22,
+        textAlign: "center",
         textDecorationLine: "underline",
         fontFamily: "Point-Regular",
     },

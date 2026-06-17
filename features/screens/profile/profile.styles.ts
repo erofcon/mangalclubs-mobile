@@ -307,6 +307,61 @@ export const profileStyles = StyleSheet.create({
         fontFamily: "Point-Bold",
     },
 
+    linksBlock: {
+        gap: 8,
+        paddingTop: 2,
+    },
+
+    linkRow: {
+        minHeight: 54,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 11,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    linkIcon: {
+        width: 34,
+        height: 34,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(236,172,24,0.20)",
+        backgroundColor: "rgba(236,172,24,0.08)",
+    },
+
+    linkIconDanger: {
+        borderColor: "rgba(221,46,68,0.24)",
+        backgroundColor: "rgba(221,46,68,0.08)",
+    },
+
+    linkText: {
+        flex: 1,
+        minWidth: 0,
+        color: themeColors.text,
+        fontSize: 16,
+        lineHeight: 18,
+        fontFamily: "Point-SemiBold",
+    },
+
+    linkTextDanger: {
+        color: "#FF8C9A",
+    },
+
+    versionText: {
+        marginTop: 10,
+        color: themeColors.textSecondary,
+        fontSize: 12,
+        lineHeight: 16,
+        textAlign: "center",
+        fontFamily: "Point-Regular",
+    },
+
     menuButton: {
         width: 40,
         height: 40,
