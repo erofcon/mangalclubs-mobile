@@ -158,7 +158,7 @@ export function BookingScreen() {
                         onScroll={scrollHandler}
                         stickyHeaderIndices={[1]}
                     >
-                        <BookingHero scrollY={scrollY} />
+                        <BookingHero scrollY={scrollY} bookings={bookings} />
 
                         <View
                             style={[

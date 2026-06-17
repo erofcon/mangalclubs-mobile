@@ -10,15 +10,22 @@ import Animated, {
 } from "react-native-reanimated";
 
 import {themeColors} from "@/utils/theme-colors";
+import type {Booking} from "@/types/booking";
 
 import {HERO_HEIGHT} from "../booking.constants";
 import styles from "../booking.styles";
+import {getBookingPrimaryImageSource} from "../booking.utils";
 
 type BookingHeroProps = {
     scrollY: SharedValue<number>;
+    bookings: Booking[];
 };
 
-export function BookingHero({scrollY}: BookingHeroProps) {
+export function BookingHero({scrollY, bookings}: BookingHeroProps) {
+    const heroImage = bookings
+        .map(getBookingPrimaryImageSource)
+        .find(Boolean);
+
     const imageStyle = useAnimatedStyle(() => {
         const opacity = interpolate(
             scrollY.value,
@@ -47,11 +54,13 @@ export function BookingHero({scrollY}: BookingHeroProps) {
     return (
         <View style={styles.hero}>
             <Animated.View style={[styles.heroImageLayer, imageStyle]}>
-                <Image
-                    source={require("@/assets/mocks/booking/610633596_18097555435907715_5781624860738448425_n..jpg")}
-                    style={styles.heroImage}
-                    contentFit="cover"
-                />
+                {heroImage ? (
+                    <Image
+                        source={heroImage}
+                        style={styles.heroImage}
+                        contentFit="cover"
+                    />
+                ) : null}
 
                 <View style={styles.heroOverlay} />
 

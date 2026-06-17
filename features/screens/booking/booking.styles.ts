@@ -207,6 +207,12 @@ const styles = StyleSheet.create({
     cardImage: {
         ...StyleSheet.absoluteFillObject,
     },
+    cardImagePlaceholder: {
+        ...StyleSheet.absoluteFillObject,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.cardSecondary,
+    },
     cardGradient: {
         ...StyleSheet.absoluteFillObject,
     },
@@ -301,6 +307,12 @@ const styles = StyleSheet.create({
     },
     galleryImage: {
         height: "100%",
+    },
+    galleryPlaceholder: {
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.cardSecondary,
     },
     galleryCounter: {
         position: "absolute",

@@ -2,11 +2,6 @@ import {create} from "zustand";
 
 import {apiFetch} from "@/services/api";
 import {normalizeMenu} from "@/services/menu";
-import {
-    Organizations as fallbackOrganizations,
-    categories as fallbackCategories,
-    menus as fallbackMenus,
-} from "@/mocks/mocks-data";
 import type {Category, MenuCategory} from "@/types/products";
 import type {
     Organization,
@@ -307,11 +302,11 @@ const loadAvailabilityMap = async (
 };
 
 export const useAppDataStore = create<AppDataStore>((set, get) => ({
-    organizations: fallbackOrganizations,
-    categories: fallbackCategories,
-    menu: normalizeMenu(fallbackMenus),
+    organizations: [],
+    categories: [],
+    menu: [],
     availabilityByOrganizationId: {},
-    defaultDeliveryOrganization: getDefaultDeliveryOrganization(fallbackOrganizations),
+    defaultDeliveryOrganization: null,
     isInitialized: false,
     isInitializing: false,
     isMenuLoading: false,

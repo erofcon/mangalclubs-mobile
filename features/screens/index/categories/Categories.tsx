@@ -1,7 +1,7 @@
 import {Dimensions, Pressable, StyleSheet, Text, View} from "react-native";
 
-import {themeColors} from "@/utils/theme-colors";
 import type {MenuCategory} from "@/types/products";
+import {themeColors} from "@/utils/theme-colors";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const PADDING = 24;
@@ -11,34 +11,17 @@ const COLUMNS = 4;
 const CARD_SIZE =
     (SCREEN_WIDTH - PADDING - GAP * (COLUMNS - 1)) / COLUMNS;
 
-type DishCategory = {
-    id: string;
-    title: string;
-    isSelectable?: boolean;
-};
-
-const fallbackCategories: DishCategory[] = [
-    {id: "salads", title: "Салаты"},
-    {id: "mangal", title: "Мангал"},
-    {id: "soups", title: "Супы"},
-    {id: "desserts", title: "Десерты"},
-    {id: "drinks", title: "Напитки"},
-    {id: "pizza", title: "Пицца"},
-];
-
 type Props = {
     categories?: MenuCategory[];
     onSelectCategory?: (categoryId: MenuCategory["id"]) => void;
 };
 
 export function Categories({categories, onSelectCategory}: Props) {
-    const visibleCategories = categories?.length
-        ? categories.slice(0, 6).map((category) => ({
-            id: category.id,
-            title: category.title,
-            isSelectable: true,
-        }))
-        : fallbackCategories;
+    const visibleCategories = categories?.slice(0, 6) ?? [];
+
+    if (visibleCategories.length === 0) {
+        return null;
+    }
 
     return (
         <View style={styles.block}>
@@ -46,11 +29,7 @@ export function Categories({categories, onSelectCategory}: Props) {
                 {visibleCategories.map((category) => (
                     <Pressable
                         key={category.id}
-                        onPress={
-                            category.isSelectable
-                                ? () => onSelectCategory?.(category.id)
-                                : undefined
-                        }
+                        onPress={() => onSelectCategory?.(category.id)}
                         style={({pressed}) => [
                             styles.card,
                             pressed && styles.pressed,

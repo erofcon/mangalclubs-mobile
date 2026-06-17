@@ -146,6 +146,8 @@ const styles = StyleSheet.create({
         height: 92,
         borderRadius: 16,
         overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
         backgroundColor: themeColors.cardSecondary,
         flexShrink: 0,
     },

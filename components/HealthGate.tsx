@@ -49,11 +49,13 @@ export function HealthGate({children}: PropsWithChildren) {
                 return;
             }
 
-            setStatus("ready");
+            await initializeAppData(controller.signal);
 
-            await initializeAppData(controller.signal).catch(() => {
-                // Ошибка данных будет показана внутри приложения, health gate не держим закрытым.
-            });
+            if (activeCheckRef.current !== controller) {
+                return;
+            }
+
+            setStatus("ready");
         } catch (error) {
             if (activeCheckRef.current !== controller) {
                 return;

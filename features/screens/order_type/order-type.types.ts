@@ -1,5 +1,3 @@
-import type {ImageSourcePropType} from "react-native";
-
 import type {Coordinates} from "@/types/organization";
 import type {DeliveryScheduleDay, DeliveryTimeSlot} from "@/store/delivery-store";
 
@@ -10,7 +8,7 @@ export type TakeawayRestaurant = {
     hours: string;
     hoursLines?: string[];
     distance: string;
-    image: ImageSourcePropType | string;
+    image?: string;
     isUnavailable?: boolean;
     unavailableMessage?: string;
 };

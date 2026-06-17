@@ -24,7 +24,6 @@ import type {Booking} from "@/types/booking";
 import type {Organization} from "@/types/organization";
 import {themeColors} from "@/utils/theme-colors";
 
-import {BOOKING_PHONE_FALLBACK} from "../booking.constants";
 import styles from "../booking.styles";
 import {
     getBookingImages,
@@ -61,7 +60,7 @@ export function BookingDetailsSheet({
     );
     const organizationName = booking ? getBookingOrganizationName(booking, organization) : "";
     const organizationPhone = booking ? getBookingOrganizationPhone(booking, organization) : "";
-    const callPhone = organizationPhone || BOOKING_PHONE_FALLBACK;
+    const callPhone = organizationPhone;
     const imageHeight = Math.min(320, width * 0.78);
 
     useEffect(() => {
@@ -115,7 +114,7 @@ export function BookingDetailsSheet({
 
     const renderFooter = useCallback(
         (props: BottomSheetFooterProps) => {
-            if (!booking) {
+            if (!booking || !callPhone) {
                 return null;
             }
 
@@ -181,21 +180,33 @@ export function BookingDetailsSheet({
                         bounces={false}
                         onMomentumScrollEnd={handleGalleryScrollEnd}
                     >
-                        {images.map((image, index) => (
-                            <Image
-                                key={`${booking?.id}-${index}`}
-                                source={image}
-                                style={[styles.galleryImage, {width}]}
-                                contentFit="cover"
-                            />
-                        ))}
+                        {images.length > 0 ? (
+                            images.map((image, index) => (
+                                <Image
+                                    key={`${booking?.id}-${index}`}
+                                    source={image}
+                                    style={[styles.galleryImage, {width}]}
+                                    contentFit="cover"
+                                />
+                            ))
+                        ) : (
+                            <View style={[styles.galleryPlaceholder, {width}]}>
+                                <Ionicons
+                                    name="image-outline"
+                                    size={38}
+                                    color={themeColors.textSecondary}
+                                />
+                            </View>
+                        )}
                     </ScrollView>
 
-                    <View style={styles.galleryCounter}>
-                        <Text style={styles.galleryCounterText}>
-                            {activeImageIndex + 1}/{Math.max(images.length, 1)}
-                        </Text>
-                    </View>
+                    {images.length > 0 ? (
+                        <View style={styles.galleryCounter}>
+                            <Text style={styles.galleryCounterText}>
+                                {activeImageIndex + 1}/{images.length}
+                            </Text>
+                        </View>
+                    ) : null}
                 </View>
 
                 {booking ? (

@@ -105,7 +105,7 @@ export const DishCard = memo(function DishCard({
 
 const styles = StyleSheet.create({
     card: {
-        minHeight: 202,
+        height: 218,
         overflow: "hidden",
         borderRadius: 20,
         backgroundColor: "#121210",
@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     },
 
     cardTitle: {
+        minHeight: 38,
         color: themeColors.text,
         fontSize: 14,
         lineHeight: 19,

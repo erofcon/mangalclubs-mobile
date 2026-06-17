@@ -2,6 +2,8 @@ import { Image } from "expo-image";
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { themeColors } from "@/utils/theme-colors";
+import {useAppDataStore} from "@/store/app-data-store";
+import {resolveApiAssetUrl} from "@/services/api";
 import {
     SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT,
     SCREEN_HERO_CONTENT_BOTTOM,
@@ -11,14 +13,20 @@ import {
 } from "@/features/screens/shared/hero-layout";
 
 export function Hero() {
+    const defaultDeliveryOrganization = useAppDataStore(
+        (state) => state.defaultDeliveryOrganization
+    );
+    const heroImage = resolveApiAssetUrl(defaultDeliveryOrganization?.photo_url);
+
     return (
         <View style={styles.hero}>
-            {/* Background image */}
-            <Image
-                source={require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp")}
-                style={styles.image}
-                contentFit="cover"
-            />
+            {heroImage ? (
+                <Image
+                    source={heroImage}
+                    style={styles.image}
+                    contentFit="cover"
+                />
+            ) : null}
 
             {/* Dark overlay */}
             <View style={styles.overlay} />

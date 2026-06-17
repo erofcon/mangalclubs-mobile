@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {
-    ImageSourcePropType,
     Linking,
     Pressable,
     StyleSheet,
@@ -31,12 +30,7 @@ type Restaurant = {
     hoursLines?: string[];
     phone: string;
     intro: string;
-    image: ImageSourcePropType | string;
-};
-
-const restaurantImages: Record<string, ImageSourcePropType> = {
-    fazenda: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
-    "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
+    image?: string;
 };
 
 const getPhoneUrl = (phone: string) =>
@@ -66,11 +60,7 @@ export function RestaurantsList() {
             hoursLines: organization.scheduleLines,
             phone: organization.phone,
             intro: organization.intro,
-            image:
-                image ??
-                restaurantImages[organization.slug ?? organization.id] ??
-                restaurantImages[organization.id] ??
-                restaurantImages.fazenda,
+            image,
         };
     });
 
@@ -175,11 +165,21 @@ export function RestaurantsList() {
 
                     <View style={styles.imageWrap}>
 
-                        <Image
-                            source={restaurant.image}
-                            style={styles.image}
-                            contentFit="cover"
-                        />
+                        {restaurant.image ? (
+                            <Image
+                                source={restaurant.image}
+                                style={styles.image}
+                                contentFit="cover"
+                            />
+                        ) : (
+                            <View style={styles.imagePlaceholder}>
+                                <Ionicons
+                                    name="restaurant-outline"
+                                    size={32}
+                                    color={themeColors.textSecondary}
+                                />
+                            </View>
+                        )}
 
                         <LinearGradient
                             colors={[
@@ -244,15 +244,25 @@ export function RestaurantsList() {
                                 }
                             >
 
-                                <Image
-                                    source={
-                                        selectedRestaurant.image
-                                    }
-                                    style={
-                                        styles.sheetImage
-                                    }
-                                    contentFit="cover"
-                                />
+                                {selectedRestaurant.image ? (
+                                    <Image
+                                        source={
+                                            selectedRestaurant.image
+                                        }
+                                        style={
+                                            styles.sheetImage
+                                        }
+                                        contentFit="cover"
+                                    />
+                                ) : (
+                                    <View style={styles.sheetImagePlaceholder}>
+                                        <Ionicons
+                                            name="restaurant-outline"
+                                            size={38}
+                                            color={themeColors.textSecondary}
+                                        />
+                                    </View>
+                                )}
 
                             </View>
 
@@ -450,11 +460,20 @@ const styles = StyleSheet.create({
 
     imageWrap: {
         aspectRatio: 1.72,
+        backgroundColor: themeColors.cardSecondary,
     },
 
     image: {
         width: "100%",
         height: "100%",
+    },
+
+    imagePlaceholder: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.cardSecondary,
     },
 
     imageOverlay: {
@@ -488,11 +507,20 @@ const styles = StyleSheet.create({
         aspectRatio: 1.72,
         borderRadius: 18,
         overflow: "hidden",
+        backgroundColor: themeColors.cardSecondary,
     },
 
     sheetImage: {
         width: "100%",
         height: "100%",
+    },
+
+    sheetImagePlaceholder: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: themeColors.cardSecondary,
     },
 
     sheetSectionTitle: {

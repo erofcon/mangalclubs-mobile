@@ -25,6 +25,7 @@ export function BookingCard({booking, organizations, onPress}: BookingCardProps)
     const organization = getOrganization(organizations, booking.organizationId);
     const organizationName = getBookingOrganizationName(booking, organization);
     const categoryTitle = getCategoryTitle(booking);
+    const imageSource = getBookingPrimaryImageSource(booking);
 
     return (
         <Pressable
@@ -33,11 +34,21 @@ export function BookingCard({booking, organizations, onPress}: BookingCardProps)
             style={styles.bookingCard}
             onPress={onPress}
         >
-            <Image
-                source={getBookingPrimaryImageSource(booking)}
-                style={styles.cardImage}
-                contentFit="cover"
-            />
+            {imageSource ? (
+                <Image
+                    source={imageSource}
+                    style={styles.cardImage}
+                    contentFit="cover"
+                />
+            ) : (
+                <View style={styles.cardImagePlaceholder}>
+                    <Ionicons
+                        name="image-outline"
+                        size={30}
+                        color={themeColors.textSecondary}
+                    />
+                </View>
+            )}
 
             <LinearGradient
                 colors={["rgba(0,0,0,0.42)", "rgba(0,0,0,0.38)", "rgba(0,0,0,0.92)"]}

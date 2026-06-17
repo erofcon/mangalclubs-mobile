@@ -1,7 +1,9 @@
 import {FlatList, Pressable, Text, View} from "react-native";
 import {Image} from "expo-image";
+import {Ionicons} from "@expo/vector-icons";
 
 import type {TakeawayRestaurant} from "../order-type.types";
+import {themeColors} from "@/utils/theme-colors";
 import styles from "../order-type.styles";
 
 type Props = {
@@ -37,12 +39,20 @@ export function TakeawayRestaurantsList({
                 ]}
             >
                 <View style={styles.restaurantImageWrap}>
-                    <Image
-                        source={item.image}
-                        style={styles.restaurantImage}
-                        contentFit="cover"
-                        transition={180}
-                    />
+                    {item.image ? (
+                        <Image
+                            source={item.image}
+                            style={styles.restaurantImage}
+                            contentFit="cover"
+                            transition={180}
+                        />
+                    ) : (
+                        <Ionicons
+                            name="restaurant-outline"
+                            size={28}
+                            color={themeColors.textSecondary}
+                        />
+                    )}
                 </View>
 
                 <View style={styles.restaurantContent}>

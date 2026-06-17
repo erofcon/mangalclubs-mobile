@@ -10,6 +10,8 @@ import Animated, {
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 import {themeColors} from "@/utils/theme-colors";
+import {resolveApiAssetUrl} from "@/services/api";
+import {useAppDataStore} from "@/store/app-data-store";
 import {
     SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT,
     SCREEN_HERO_CONTENT_BOTTOM,
@@ -25,6 +27,13 @@ type Props = {
 };
 
 export function Hero({scrollY}: Props) {
+    const organizations = useAppDataStore((state) => state.organizations);
+    const heroOrganization =
+        organizations[1]?.photo_url
+            ? organizations[1]
+            : organizations.find((organization) => Boolean(organization.photo_url));
+    const heroImage = resolveApiAssetUrl(heroOrganization?.photo_url);
+
     const heroAnimatedStyle = useAnimatedStyle(() => {
         const opacity = interpolate(
             scrollY.value,
@@ -70,11 +79,13 @@ export function Hero({scrollY}: Props) {
     return (
         <View style={styles.hero}>
             <Animated.View style={[styles.imageLayer, heroAnimatedStyle]}>
-                <Image
-                    source={require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp")}
-                    style={styles.image}
-                    contentFit="cover"
-                />
+                {heroImage ? (
+                    <Image
+                        source={heroImage}
+                        style={styles.image}
+                        contentFit="cover"
+                    />
+                ) : null}
 
                 <View style={styles.overlay}/>
 

@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef, useState} from "react";
-import type {ImageSourcePropType} from "react-native";
 import {router, useLocalSearchParams, useNavigation} from "expo-router";
 
 import {
@@ -34,12 +33,6 @@ import {
     getScheduleSlots,
 } from "./order-type.utils";
 import type {TakeawayRestaurant} from "./order-type.types";
-
-const restaurantImages: Record<string, ImageSourcePropType> = {
-    fazenda: require("@/assets/mocks/restaurant-images/fazenda/XXXL.webp"),
-    "mangal-club": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
-    "mangal-clubs": require("@/assets/mocks/restaurant-images/mangal-clubs/XXXL.webp"),
-};
 
 const scheduleDays: DeliveryScheduleDay[] = [
     "today",
@@ -128,11 +121,7 @@ export function useOrderTypeScreen() {
                         distance: selectedAddress
                             ? formatDistanceKm(selectedAddress, organization.coordinates)
                             : "-",
-                        image:
-                            image ??
-                            restaurantImages[organization.slug ?? organization.id] ??
-                            restaurantImages[organization.id] ??
-                            restaurantImages.fazenda,
+                        image,
                         isUnavailable: availability?.orders_available === false,
                         unavailableMessage: availability?.message,
                     };

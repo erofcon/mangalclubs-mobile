@@ -126,6 +126,15 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
         };
     }, [cancelSmoothScroll]);
 
+    const applyPendingCategory = useCallback(() => {
+        const pendingCategoryId = pendingCategoryIdRef.current;
+        if (!pendingCategoryId) return;
+
+        setActiveCategoryId((current) =>
+            current === pendingCategoryId ? current : pendingCategoryId
+        );
+    }, []);
+
     const clearAutoScrollLock = useCallback(() => {
         autoScrollLockRef.current = false;
         autoScrollTargetYRef.current = null;
@@ -137,22 +146,20 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
         }
     }, []);
 
-    const scheduleAutoScrollUnlock = useCallback(() => {
+    const finishAutoScroll = useCallback(() => {
+        applyPendingCategory();
+        clearAutoScrollLock();
+    }, [applyPendingCategory, clearAutoScrollLock]);
+
+    const scheduleAutoScrollUnlock = useCallback((delayMs = AUTO_SCROLL_LOCK_TIMEOUT_MS) => {
         if (autoScrollUnlockTimeoutRef.current !== null) {
             clearTimeout(autoScrollUnlockTimeoutRef.current);
         }
 
         autoScrollUnlockTimeoutRef.current = setTimeout(() => {
-            const pendingCategoryId = pendingCategoryIdRef.current;
-            if (pendingCategoryId) {
-                setActiveCategoryId((current) =>
-                    current === pendingCategoryId ? current : pendingCategoryId
-                );
-            }
-
-            clearAutoScrollLock();
-        }, AUTO_SCROLL_LOCK_TIMEOUT_MS);
-    }, [clearAutoScrollLock]);
+            finishAutoScroll();
+        }, delayMs);
+    }, [finishAutoScroll]);
 
     const getCategoryByOffset = useCallback(
         (
@@ -267,14 +274,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                     Math.abs(nextScrollY - autoScrollTargetYRef.current) > SCROLL_TARGET_TOLERANCE;
 
                 if (hasReachedTarget || hasReachedScrollableEnd) {
-                    const pendingCategoryId = pendingCategoryIdRef.current;
-                    if (pendingCategoryId) {
-                        setActiveCategoryId((current) =>
-                            current === pendingCategoryId ? current : pendingCategoryId
-                        );
-                    }
-
-                    clearAutoScrollLock();
+                    applyPendingCategory();
                 }
 
                 return;
@@ -287,7 +287,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                 shouldPinTabs
             );
         },
-        [clearAutoScrollLock, updateActiveCategory, updateTabsPinned]
+        [applyPendingCategory, updateActiveCategory, updateTabsPinned]
     );
 
     const handleMenuScrollEndDrag = useCallback(
@@ -321,14 +321,12 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
             const shouldPinTabs = updateTabsPinned(nextScrollY);
 
             if (autoScrollLockRef.current) {
-                const pendingCategoryId = pendingCategoryIdRef.current;
-                if (pendingCategoryId) {
-                    setActiveCategoryId((current) =>
-                        current === pendingCategoryId ? current : pendingCategoryId
-                    );
+                applyPendingCategory();
+
+                if (scrollAnimationFrameRef.current === null) {
+                    clearAutoScrollLock();
                 }
 
-                clearAutoScrollLock();
                 return;
             }
 
@@ -339,7 +337,7 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                 shouldPinTabs
             );
         },
-        [clearAutoScrollLock, updateActiveCategory, updateTabsPinned]
+        [applyPendingCategory, clearAutoScrollLock, updateActiveCategory, updateTabsPinned]
     );
 
     const handleMenuScrollBeginDrag = useCallback(() => {
@@ -388,10 +386,20 @@ export function useIndexMenuScroll(availableCategories: MenuCategory[]) {
                 autoScrollLockRef.current = true;
                 autoScrollTargetYRef.current = targetY;
                 pendingCategoryIdRef.current = categoryId;
-                scheduleAutoScrollUnlock();
             }
 
-            return smoothScrollTo(targetY);
+            const scrollDuration = smoothScrollTo(targetY);
+
+            if (shouldAnimateScroll) {
+                scheduleAutoScrollUnlock(
+                    Math.min(
+                        AUTO_SCROLL_LOCK_TIMEOUT_MS,
+                        Math.max(scrollDuration + 120, CATEGORY_SCROLL_MIN_DURATION_MS + 120)
+                    )
+                );
+            }
+
+            return scrollDuration;
         },
         [
             availableCategories,
