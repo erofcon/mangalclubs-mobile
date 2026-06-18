@@ -81,6 +81,7 @@ export type CustomerOrder = {
     creationStatus?: string | null;
     orderStatus?: string | null;
     notificationEvent?: "pickup_ready" | "delivery_on_way" | "delivery_delivered" | null;
+    hasUnreadNotification?: boolean;
     totalSum?: number | null;
     createdAt?: string;
     updatedAt?: string;

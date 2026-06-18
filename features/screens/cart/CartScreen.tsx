@@ -28,12 +28,11 @@ import { SHADOW, themeColors } from "@/utils/theme-colors";
 import { CartRow } from "@/features/screens/cart/CartRow";
 import { formatPrice } from "@/utils/format_price";
 import {useAppDataStore} from "@/store/app-data-store";
+import {currentOrdersQueryKey, historyOrdersQueryKey, unreadNotificationsQueryKey} from "@/services/notifications";
 
 const TAB_BAR_HEIGHT = 24;
 const FIXED_HEADER_HEIGHT = 80;
 const FOOTER_EXTRA_SPACE = 220;
-const currentOrdersQueryKey = ["customer-orders", "current"];
-const historyOrdersQueryKey = ["customer-orders", "history"];
 const PAYMENT_RETURN_PATH = "order-payment";
 const terminalPaidStatuses = new Set(["paid", "PaymentConfirmed", "Success"]);
 const terminalFailedStatuses = new Set([
@@ -442,6 +441,7 @@ export function CartScreen() {
                     "Оплата еще не подтверждена. Продолжить оплату можно в профиле."
                 );
                 void queryClient.invalidateQueries({queryKey: currentOrdersQueryKey});
+                void queryClient.invalidateQueries({queryKey: unreadNotificationsQueryKey});
                 router.push("/profile");
                 return;
             }
@@ -458,6 +458,7 @@ export function CartScreen() {
             clearCart();
             void queryClient.invalidateQueries({queryKey: currentOrdersQueryKey});
             void queryClient.invalidateQueries({queryKey: historyOrdersQueryKey});
+            void queryClient.invalidateQueries({queryKey: unreadNotificationsQueryKey});
             Alert.alert(
                 "Оплата принята",
                 `Заказ ${createdOrder.publicNumber} создан. После подтверждения оплаты он автоматически уйдет в ресторан.`

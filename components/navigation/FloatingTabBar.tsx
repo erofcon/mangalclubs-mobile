@@ -1,12 +1,17 @@
 import type {BottomTabBarProps} from "@react-navigation/bottom-tabs";
 import {MaterialCommunityIcons} from "@expo/vector-icons";
+import {useQuery} from "@tanstack/react-query";
 import {Pressable, StyleSheet, Text, View} from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {themeColors} from "@/utils/theme-colors";
 import {getCartItemsCount, useCartStore} from "@/store/cart-store";
 import {openAuthSheet} from "@/features/auth/AuthSheetController";
-import {isProfileAuthenticated} from "@/store/profile-store";
+import {isProfileAuthenticated, useProfileStore} from "@/store/profile-store";
+import {
+    getUnreadNotifications,
+    unreadNotificationsQueryKey,
+} from "@/services/notifications";
 
 const TAB_META: Record<
     string,
@@ -46,7 +51,16 @@ const TAB_META: Record<
 export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarProps) {
     const insets = useSafeAreaInsets();
     const cartItems = useCartStore((store) => store.items);
+    const hasHydrated = useProfileStore((store) => store.hasHydrated);
+    const user = useProfileStore((store) => store.user);
     const cartItemsCount = getCartItemsCount(cartItems);
+    const unreadNotificationsQuery = useQuery({
+        queryKey: unreadNotificationsQueryKey,
+        queryFn: getUnreadNotifications,
+        enabled: hasHydrated && Boolean(user),
+        refetchInterval: 30000,
+    });
+    const profileBadgeCount = unreadNotificationsQuery.data?.count ?? 0;
 
     return (
         <View
@@ -124,6 +138,13 @@ export function FloatingTabBar({state, descriptors, navigation}: BottomTabBarPro
                                     <View style={styles.badge}>
                                         <Text style={styles.badgeText} numberOfLines={1}>
                                             {cartItemsCount > 99 ? "99+" : cartItemsCount}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                                {route.name === "profile" && profileBadgeCount > 0 ? (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText} numberOfLines={1}>
+                                            {profileBadgeCount > 99 ? "99+" : profileBadgeCount}
                                         </Text>
                                     </View>
                                 ) : null}

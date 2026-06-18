@@ -164,8 +164,10 @@ export const profileStyles = StyleSheet.create({
     segment: {
         flex: 1,
         minHeight: 36,
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+        gap: 6,
         borderRadius: 9,
     },
 
@@ -182,6 +184,23 @@ export const profileStyles = StyleSheet.create({
 
     segmentTextActive: {
         color: themeColors.textOnPrimary,
+    },
+
+    segmentBadge: {
+        minWidth: 18,
+        height: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 5,
+        borderRadius: 9,
+        backgroundColor: themeColors.notification,
+    },
+
+    segmentBadgeText: {
+        color: themeColors.text,
+        fontSize: 10,
+        lineHeight: 12,
+        fontFamily: "Point-Bold",
     },
 
     section: {
@@ -754,6 +773,18 @@ export const profileStyles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.09)",
         backgroundColor: "#080909",
+    },
+
+    orderUnreadBadge: {
+        position: "absolute",
+        top: -3,
+        right: -3,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: "#11100E",
+        backgroundColor: themeColors.notification,
     },
 
     orderTitleWrap: {

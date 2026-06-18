@@ -2,7 +2,7 @@ const {version} = require("./package.json");
 
 /** @type {import("expo/config").ExpoConfig} */
 module.exports = {
-  name: "mangalclubs-mobile",
+  name: "Mangal Clubs",
   slug: "mangalclubs-mobile",
   version,
   orientation: "portrait",
@@ -12,6 +12,7 @@ module.exports = {
   newArchEnabled: true,
   ios: {
     supportsTablet: false,
+    bundleIdentifier: "com.erofcon.mangalclubsmobile",
   },
   android: {
     edgeToEdgeEnabled: true,
@@ -25,6 +26,7 @@ module.exports = {
   },
   plugins: [
     "expo-router",
+    "expo-notifications",
     [
       "expo-splash-screen",
       {

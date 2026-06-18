@@ -8,6 +8,7 @@ import {router} from "expo-router";
 import {forwardRef, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     ActivityIndicator,
+    AppState,
     Dimensions,
     Keyboard,
     KeyboardAvoidingView,
@@ -49,6 +50,14 @@ import {useProfileStore} from "@/store/profile-store";
 import type {Organization} from "@/types/organization";
 import type {MenuItem} from "@/types/products";
 import {resolveApiAssetUrl} from "@/services/api";
+import {
+    currentOrdersQueryKey,
+    getUnreadNotifications,
+    historyOrdersQueryKey,
+    markOrderNotificationsRead,
+    unreadNotificationsQueryKey,
+    type CustomerUnreadNotifications,
+} from "@/services/notifications";
 import {appVersion} from "@/utils/app-version";
 import {formatPrice} from "@/utils/format_price";
 import {themeColors} from "@/utils/theme-colors";
@@ -68,8 +77,6 @@ type ProfileForm = {
 type ProfileFieldFocusHandler = NonNullable<React.ComponentProps<typeof TextInput>["onFocus"]>;
 
 const profileQueryKey = ["customer-profile"];
-const currentOrdersQueryKey = ["customer-orders", "current"];
-const historyOrdersQueryKey = ["customer-orders", "history"];
 const avatarMaxSourceSizeBytes = 8 * 1024 * 1024;
 const avatarTargetSize = 512;
 const avatarUploadMimeType = "image/jpeg";
@@ -128,7 +135,7 @@ const notificationStatusMap: Record<string, {label: string; tone: StatusTone}> =
 const orderStatusMap: Record<string, {label: string; tone: StatusTone}> = {
     New: {label: "Новый", tone: "progress"},
     Unconfirmed: {label: "Не подтвержден", tone: "warning"},
-    WaitCooking: {label: "Ожидает кухни", tone: "progress"},
+    WaitCooking: {label: "Готовится", tone: "progress"},
     ReadyForCooking: {label: "Передан на кухню", tone: "progress"},
     CookingStarted: {label: "Готовится", tone: "progress"},
     CookingCompleted: {label: "Приготовлен", tone: "success"},
@@ -566,6 +573,11 @@ const mergeOrderStatus = (order: CustomerOrder, status: Partial<CustomerOrder>):
     publicNumber: status.publicNumber ?? order.publicNumber,
 });
 
+const markOrderReadInCache = (order: CustomerOrder): CustomerOrder => ({
+    ...order,
+    hasUnreadNotification: false,
+});
+
 export function ProfileScreen() {
     const queryClient = useQueryClient();
     const user = useProfileStore((state) => state.user);
@@ -636,6 +648,24 @@ export function ProfileScreen() {
         };
     }, []);
 
+    useEffect(() => {
+        if (!enabled) {
+            return;
+        }
+
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state !== "active") {
+                return;
+            }
+
+            queryClient.invalidateQueries({queryKey: unreadNotificationsQueryKey}).catch(() => undefined);
+            queryClient.invalidateQueries({queryKey: currentOrdersQueryKey}).catch(() => undefined);
+            queryClient.invalidateQueries({queryKey: historyOrdersQueryKey}).catch(() => undefined);
+        });
+
+        return () => subscription.remove();
+    }, [enabled, queryClient]);
+
     const profileQuery = useQuery({
         queryKey: profileQueryKey,
         queryFn: getCustomerProfile,
@@ -652,6 +682,13 @@ export function ProfileScreen() {
         queryKey: historyOrdersQueryKey,
         queryFn: getHistoryCustomerOrders,
         enabled,
+    });
+
+    const unreadNotificationsQuery = useQuery({
+        queryKey: unreadNotificationsQueryKey,
+        queryFn: getUnreadNotifications,
+        enabled,
+        refetchInterval: 15000,
     });
 
     useEffect(() => {
@@ -731,20 +768,33 @@ export function ProfileScreen() {
         [menu]
     );
 
+    const unreadOrderIds = useMemo(
+        () => new Set(unreadNotificationsQuery.data?.orderIds ?? []),
+        [unreadNotificationsQuery.data?.orderIds]
+    );
+    const unreadOrdersCount = unreadNotificationsQuery.data?.count ?? 0;
+
+    const withUnreadState = useCallback((order: CustomerOrder): CustomerOrder => ({
+        ...order,
+        hasUnreadNotification: Boolean(order.hasUnreadNotification || unreadOrderIds.has(order.id)),
+    }), [unreadOrderIds]);
+
     const displayedCurrentOrders = useMemo(
-        () => (currentOrdersQuery.data ?? []).filter((order) => !shouldShowInHistory(order)),
-        [currentOrdersQuery.data]
+        () => (currentOrdersQuery.data ?? [])
+            .map(withUnreadState)
+            .filter((order) => !shouldShowInHistory(order)),
+        [currentOrdersQuery.data, withUnreadState]
     );
 
     const displayedHistoryOrders = useMemo(() => {
-        const historyOrders = historyOrdersQuery.data ?? [];
+        const historyOrders = (historyOrdersQuery.data ?? []).map(withUnreadState);
         const historyIds = new Set(historyOrders.map((order) => order.id));
-        const movedToHistory = (currentOrdersQuery.data ?? []).filter((order) => (
-            shouldShowInHistory(order) && !historyIds.has(order.id)
-        ));
+        const movedToHistory = (currentOrdersQuery.data ?? [])
+            .map(withUnreadState)
+            .filter((order) => shouldShowInHistory(order) && !historyIds.has(order.id));
 
         return [...movedToHistory, ...historyOrders];
-    }, [currentOrdersQuery.data, historyOrdersQuery.data]);
+    }, [currentOrdersQuery.data, historyOrdersQuery.data, withUnreadState]);
 
     const profile = profileQuery.data;
     const isInitialLoading =
@@ -765,6 +815,8 @@ export function ProfileScreen() {
                                     ? deleteAvatarMutation.error.message
                                     : deleteAccountMutation.error instanceof Error
                                         ? deleteAccountMutation.error.message
+                                        : unreadNotificationsQuery.error instanceof Error
+                                            ? unreadNotificationsQuery.error.message
                                         : "";
 
     const refreshAll = async () => {
@@ -775,6 +827,7 @@ export function ProfileScreen() {
             queryClient.invalidateQueries({queryKey: profileQueryKey}),
             queryClient.invalidateQueries({queryKey: currentOrdersQueryKey}),
             queryClient.invalidateQueries({queryKey: historyOrdersQueryKey}),
+            queryClient.invalidateQueries({queryKey: unreadNotificationsQueryKey}),
         ]);
     };
 
@@ -812,6 +865,38 @@ export function ProfileScreen() {
             });
         }
     };
+
+    const handleOpenOrder = useCallback((order: CustomerOrder) => {
+        if (!order.hasUnreadNotification) {
+            return;
+        }
+
+        queryClient.setQueryData<CustomerOrder[]>(currentOrdersQueryKey, (orders = []) => (
+            orders.map((item) => item.id === order.id ? markOrderReadInCache(item) : item)
+        ));
+        queryClient.setQueryData<CustomerOrder[]>(historyOrdersQueryKey, (orders = []) => (
+            orders.map((item) => item.id === order.id ? markOrderReadInCache(item) : item)
+        ));
+        queryClient.setQueryData<CustomerUnreadNotifications | undefined>(unreadNotificationsQueryKey, (data) => {
+            if (!data) {
+                return data;
+            }
+
+            const notifications = data.notifications.filter((item) => item.orderId !== order.id);
+
+            return {
+                ...data,
+                count: notifications.length,
+                orderIds: data.orderIds.filter((id) => id !== order.id),
+                notifications,
+            };
+        });
+        queryClient.invalidateQueries({queryKey: unreadNotificationsQueryKey}).catch(() => undefined);
+
+        markOrderNotificationsRead(order.id)
+            .then(() => queryClient.invalidateQueries({queryKey: unreadNotificationsQueryKey}))
+            .catch(() => undefined);
+    }, [queryClient]);
 
     const handlePickAvatar = async () => {
         if (uploadAvatarMutation.isPending || deleteAvatarMutation.isPending) {
@@ -949,7 +1034,7 @@ export function ProfileScreen() {
                         value={activeTab}
                         options={[
                             {value: "profile", label: "Данные"},
-                            {value: "orders", label: "Заказы"},
+                            {value: "orders", label: "Заказы", badgeCount: unreadOrdersCount},
                         ]}
                         onChange={setActiveTab}
                     />
@@ -986,6 +1071,7 @@ export function ProfileScreen() {
                             menuItemLookup={menuItemLookup}
                             refreshingOrderIds={refreshingOrderIds}
                             onChangeTab={setOrdersTab}
+                            onOpenOrder={handleOpenOrder}
                             onRefreshOrder={handleRefreshOrderStatus}
                             onContinuePayment={handleContinuePayment}
                         />
@@ -1459,7 +1545,7 @@ function SegmentedControl<T extends string>({
     onChange,
 }: {
     value: T;
-    options: Array<{value: T; label: string}>;
+    options: Array<{value: T; label: string; badgeCount?: number}>;
     onChange: (value: T) => void;
 }) {
     return (
@@ -1481,6 +1567,13 @@ function SegmentedControl<T extends string>({
                         <Text style={[styles.segmentText, selected && styles.segmentTextActive]}>
                             {option.label}
                         </Text>
+                        {option.badgeCount ? (
+                            <View style={styles.segmentBadge}>
+                                <Text style={styles.segmentBadgeText} numberOfLines={1}>
+                                    {option.badgeCount > 99 ? "99+" : option.badgeCount}
+                                </Text>
+                            </View>
+                        ) : null}
                     </Pressable>
                 );
             })}
@@ -1650,6 +1743,7 @@ function OrdersSection({
     menuItemLookup,
     refreshingOrderIds,
     onChangeTab,
+    onOpenOrder,
     onRefreshOrder,
     onContinuePayment,
 }: {
@@ -1659,6 +1753,7 @@ function OrdersSection({
     menuItemLookup: Map<string, MenuItem>;
     refreshingOrderIds: string[];
     onChangeTab: (tab: OrdersTab) => void;
+    onOpenOrder: (order: CustomerOrder) => void;
     onRefreshOrder: (order: CustomerOrder) => void;
     onContinuePayment: (order: CustomerOrder) => void;
 }) {
@@ -1670,6 +1765,7 @@ function OrdersSection({
         : null;
 
     const handleOrderPress = (order: CustomerOrder) => {
+        onOpenOrder(order);
         setSelectedOrder(order);
         requestAnimationFrame(() => orderDetailsSheetRef.current?.open());
     };
@@ -1719,7 +1815,7 @@ function OrdersSection({
 
             <AppBottomSheetModal
                 ref={orderDetailsSheetRef}
-                title={selectedOrderDetails ? `${getOrderTypeLabel(selectedOrderDetails.orderType)} в„–${getOrderNumber(selectedOrderDetails)}` : "Заказ"}
+                title={selectedOrderDetails ? `${getOrderTypeLabel(selectedOrderDetails.orderType)} №${getOrderNumber(selectedOrderDetails)}` : "Заказ"}
                 showCloseButton
                 scrollable
                 snapPoints={["82%"]}
@@ -1799,11 +1895,14 @@ function OrderCard({
                         size={21}
                         color={themeColors.primary}
                     />
+                    {order.hasUnreadNotification ? (
+                        <View style={styles.orderUnreadBadge} />
+                    ) : null}
                 </View>
 
                 <View style={styles.orderTitleWrap}>
                     <Text style={styles.orderTitle} numberOfLines={1}>
-                        {getOrderTypeLabel(order.orderType)} в„–{getOrderNumber(order)}
+                        {getOrderTypeLabel(order.orderType)} №{getOrderNumber(order)}
                     </Text>
                     <Text style={styles.orderDate} numberOfLines={1}>
                         {formatDateTime(order.createdAt)}
@@ -1860,7 +1959,7 @@ function OrderDetailsSheetContent({
 
                     <View style={styles.orderTitleWrap}>
                         <Text style={styles.detailsTitle} numberOfLines={1}>
-                            {getOrderTypeLabel(order.orderType)} в„–{getOrderNumber(order)}
+                            {getOrderTypeLabel(order.orderType)} №{getOrderNumber(order)}
                         </Text>
                         <Text style={styles.orderDate} numberOfLines={1}>
                             {formatDateTime(order.createdAt)}
@@ -1912,7 +2011,7 @@ function OrderDetailsSheetContent({
                                             {getOrderItemName(item, menuItem)}
                                         </Text>
                                         <Text style={styles.orderItemMeta} numberOfLines={1}>
-                                            {quantity} С€С‚.{item.sizeName ? ` В· ${item.sizeName}` : ""}
+                                            {quantity} шт.{item.sizeName ? ` · ${item.sizeName}` : ""}
                                         </Text>
                                         {item.comment ? (
                                             <Text style={styles.orderItemComment} numberOfLines={2}>
