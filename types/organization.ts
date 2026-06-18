@@ -21,6 +21,7 @@ export type Organization = {
     schedule: string;
     scheduleLines?: string[];
     phone: string;
+    whatsapp_phone?: string | null;
     intro: string,
     coordinates: Coordinates;
     photo_url?: string | null;

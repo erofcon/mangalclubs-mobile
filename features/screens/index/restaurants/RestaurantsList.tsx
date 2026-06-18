@@ -29,6 +29,7 @@ type Restaurant = {
     hours: string;
     hoursLines?: string[];
     phone: string;
+    whatsappPhone?: string | null;
     intro: string;
     image?: string;
 };
@@ -59,6 +60,7 @@ export function RestaurantsList() {
             hours: organization.schedule,
             hoursLines: organization.scheduleLines,
             phone: organization.phone,
+            whatsappPhone: organization.whatsapp_phone,
             intro: organization.intro,
             image,
         };
@@ -93,8 +95,11 @@ export function RestaurantsList() {
 
             const phone =
                 getWhatsAppPhone(
+                    selectedRestaurant.whatsappPhone ||
                     selectedRestaurant.phone,
                 );
+
+            if (!phone) return;
 
             const text =
                 encodeURIComponent(

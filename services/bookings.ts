@@ -6,6 +6,7 @@ type ApiBookingOrganization = {
     slug?: string | null;
     name: string;
     phone?: string | null;
+    whatsapp_phone?: string | null;
 };
 
 type ApiBookingCategory = {
@@ -53,6 +54,7 @@ const normalizeBookingOrganization = (
         slug: organization.slug ?? undefined,
         name: organization.name,
         phone: organization.phone,
+        whatsappPhone: organization.whatsapp_phone,
     };
 };
 

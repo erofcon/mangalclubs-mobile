@@ -1221,7 +1221,9 @@ function SupportRestaurantCard({restaurant}: {restaurant: Organization}) {
         ? restaurant.scheduleLines
         : [restaurant.schedule || "График уточняйте по телефону"];
     const formattedPhone = phone ? formatRuPhoneDisplay(phone) : "Телефон уточняется";
-    const canContact = Boolean(phone);
+    const whatsappPhone = restaurant.whatsapp_phone?.trim() || phone;
+    const canCall = Boolean(phone);
+    const canWhatsApp = Boolean(whatsappPhone);
 
     const handleCall = () => {
         if (!phone) {
@@ -1232,18 +1234,18 @@ function SupportRestaurantCard({restaurant}: {restaurant: Organization}) {
     };
 
     const handleWhatsApp = () => {
-        if (!phone) {
+        if (!whatsappPhone) {
             return;
         }
 
-        const whatsappPhone = getWhatsAppPhone(phone);
+        const normalizedWhatsAppPhone = getWhatsAppPhone(whatsappPhone);
         const text = encodeURIComponent(
             `Здравствуйте! Хочу уточнить информацию по ресторану ${restaurant.name}.`
         );
 
         void openExternalUrl(
-            `whatsapp://send?phone=${whatsappPhone}&text=${text}`,
-            `https://wa.me/${whatsappPhone}?text=${text}`
+            `whatsapp://send?phone=${normalizedWhatsAppPhone}&text=${text}`,
+            `https://wa.me/${normalizedWhatsAppPhone}?text=${text}`
         );
     };
 
@@ -1301,10 +1303,10 @@ function SupportRestaurantCard({restaurant}: {restaurant: Organization}) {
             <View style={styles.supportActions}>
                 <Pressable
                     accessibilityRole="button"
-                    disabled={!canContact}
+                    disabled={!canCall}
                     style={({pressed}) => [
                         styles.supportCallButton,
-                        !canContact && styles.disabled,
+                        !canCall && styles.disabled,
                         pressed && styles.pressed,
                     ]}
                     onPress={handleCall}
@@ -1317,10 +1319,10 @@ function SupportRestaurantCard({restaurant}: {restaurant: Organization}) {
 
                 <Pressable
                     accessibilityRole="button"
-                    disabled={!canContact}
+                    disabled={!canWhatsApp}
                     style={({pressed}) => [
                         styles.supportWhatsappButton,
-                        !canContact && styles.disabled,
+                        !canWhatsApp && styles.disabled,
                         pressed && styles.pressed,
                     ]}
                     onPress={handleWhatsApp}

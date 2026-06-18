@@ -5,6 +5,7 @@ export type BookingOrganization = {
     slug?: string;
     name: string;
     phone?: string | null;
+    whatsappPhone?: string | null;
 };
 
 export type BookingCategory = {

@@ -59,6 +59,13 @@ export function getBookingOrganizationPhone(
     return organization?.phone ?? booking.organization?.phone ?? "";
 }
 
+export function getBookingOrganizationWhatsAppPhone(
+    booking: Booking,
+    organization?: Organization | null,
+) {
+    return organization?.whatsapp_phone ?? booking.organization?.whatsappPhone ?? "";
+}
+
 export function getCategoryTitle(booking: Booking) {
     return booking.category?.title ?? "Бронирование";
 }

@@ -29,6 +29,7 @@ import {
     getBookingImages,
     getBookingOrganizationName,
     getBookingOrganizationPhone,
+    getBookingOrganizationWhatsAppPhone,
     getCategoryTitle,
     getOrganization,
     getPhoneDigits,
@@ -60,7 +61,11 @@ export function BookingDetailsSheet({
     );
     const organizationName = booking ? getBookingOrganizationName(booking, organization) : "";
     const organizationPhone = booking ? getBookingOrganizationPhone(booking, organization) : "";
+    const organizationWhatsAppPhone = booking
+        ? getBookingOrganizationWhatsAppPhone(booking, organization)
+        : "";
     const callPhone = organizationPhone;
+    const whatsAppPhone = organizationWhatsAppPhone || organizationPhone;
     const imageHeight = Math.min(320, width * 0.78);
 
     useEffect(() => {
@@ -90,14 +95,14 @@ export function BookingDetailsSheet({
     }, [callPhone]);
 
     const handleWhatsApp = useCallback(() => {
-        const digits = getPhoneDigits(callPhone);
+        const digits = getPhoneDigits(whatsAppPhone);
         const text = encodeURIComponent(`Здравствуйте! Хочу забронировать ${booking?.title ?? "зону"}.`);
 
         openExternalUrl(
             `whatsapp://send?phone=${digits}&text=${text}`,
             `https://wa.me/${digits}?text=${text}`,
         );
-    }, [booking?.title, callPhone]);
+    }, [booking?.title, whatsAppPhone]);
 
     const renderBackdrop = useCallback(
         (props: BottomSheetBackdropProps) => (
@@ -114,14 +119,15 @@ export function BookingDetailsSheet({
 
     const renderFooter = useCallback(
         (props: BottomSheetFooterProps) => {
-            if (!booking || !callPhone) {
+            if (!booking || (!callPhone && !whatsAppPhone)) {
                 return null;
             }
 
             return (
                 <BottomSheetFooter {...props} bottomInset={0}>
                     <View style={[styles.detailsFooter, {paddingBottom: insets.bottom + 12}]}>
-                        <Pressable
+                        {callPhone ? (
+                            <Pressable
                             accessibilityRole="button"
                             accessibilityLabel="Позвонить для бронирования"
                             style={styles.reserveButton}
@@ -131,9 +137,11 @@ export function BookingDetailsSheet({
                             <Text style={styles.reserveButtonText} numberOfLines={1}>
                                 Забронировать
                             </Text>
-                        </Pressable>
+                            </Pressable>
+                        ) : null}
 
-                        <Pressable
+                        {whatsAppPhone ? (
+                            <Pressable
                             accessibilityRole="button"
                             accessibilityLabel="Написать в WhatsApp"
                             style={styles.whatsappButton}
@@ -143,12 +151,13 @@ export function BookingDetailsSheet({
                             <Text style={styles.whatsappButtonText} numberOfLines={1}>
                                 WhatsApp
                             </Text>
-                        </Pressable>
+                            </Pressable>
+                        ) : null}
                     </View>
                 </BottomSheetFooter>
             );
         },
-        [booking, handleCall, handleWhatsApp, insets.bottom],
+        [booking, callPhone, handleCall, handleWhatsApp, insets.bottom, whatsAppPhone],
     );
 
     return (
