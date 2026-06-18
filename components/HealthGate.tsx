@@ -1,6 +1,8 @@
 import {PropsWithChildren, useCallback, useEffect, useRef, useState} from "react";
 import {
     ActivityIndicator,
+    Alert,
+    Linking,
     Pressable,
     StyleSheet,
     Text,
@@ -9,10 +11,15 @@ import {
 import {Ionicons} from "@expo/vector-icons";
 
 import {apiFetch} from "@/services/api";
+import {
+    evaluateMobileVersion,
+    getMobileVersionConfig,
+    type MobileVersionStatus,
+} from "@/services/mobile-version";
 import {useAppDataStore} from "@/store/app-data-store";
 import {themeColors} from "@/utils/theme-colors";
 
-type HealthStatus = "checking" | "ready" | "error";
+type HealthStatus = "checking" | "ready" | "error" | "update-required";
 
 type HealthResponse = {
     status?: string;
@@ -29,8 +36,43 @@ const requestHealth = async (signal: AbortSignal) => {
 export function HealthGate({children}: PropsWithChildren) {
     const [status, setStatus] = useState<HealthStatus>("checking");
     const [errorMessage, setErrorMessage] = useState("");
+    const [requiredUpdate, setRequiredUpdate] = useState<Extract<
+        MobileVersionStatus,
+        {status: "force-update"}
+    > | null>(null);
     const initializeAppData = useAppDataStore((state) => state.initialize);
     const activeCheckRef = useRef<AbortController | null>(null);
+    const shownSoftUpdateRef = useRef(false);
+
+    const openStore = useCallback((url?: string | null) => {
+        if (!url) {
+            return;
+        }
+
+        Linking.openURL(url).catch(() => {
+            Alert.alert("Не удалось открыть ссылку", "Попробуйте обновить приложение через магазин.");
+        });
+    }, []);
+
+    const showSoftUpdate = useCallback((
+        update: Extract<MobileVersionStatus, {status: "soft-update"}>
+    ) => {
+        if (shownSoftUpdateRef.current) {
+            return;
+        }
+
+        shownSoftUpdateRef.current = true;
+        Alert.alert(
+            update.title,
+            update.message,
+            [
+                {text: "Позже", style: "cancel"},
+                ...(update.storeUrl
+                    ? [{text: "Обновить", onPress: () => openStore(update.storeUrl)}]
+                    : []),
+            ],
+        );
+    }, [openStore]);
 
     const checkHealth = useCallback(async () => {
         activeCheckRef.current?.abort();
@@ -41,11 +83,26 @@ export function HealthGate({children}: PropsWithChildren) {
 
         setStatus("checking");
         setErrorMessage("");
+        setRequiredUpdate(null);
 
         try {
             await requestHealth(controller.signal);
 
             if (activeCheckRef.current !== controller) {
+                return;
+            }
+
+            const versionConfig = await getMobileVersionConfig(controller.signal);
+
+            if (activeCheckRef.current !== controller) {
+                return;
+            }
+
+            const versionStatus = evaluateMobileVersion(versionConfig);
+
+            if (versionStatus?.status === "force-update") {
+                setRequiredUpdate(versionStatus);
+                setStatus("update-required");
                 return;
             }
 
@@ -56,6 +113,10 @@ export function HealthGate({children}: PropsWithChildren) {
             }
 
             setStatus("ready");
+
+            if (versionStatus?.status === "soft-update") {
+                showSoftUpdate(versionStatus);
+            }
         } catch (error) {
             if (activeCheckRef.current !== controller) {
                 return;
@@ -76,7 +137,7 @@ export function HealthGate({children}: PropsWithChildren) {
                 activeCheckRef.current = null;
             }
         }
-    }, [initializeAppData]);
+    }, [initializeAppData, showSoftUpdate]);
 
     useEffect(() => {
         void checkHealth();
@@ -101,6 +162,34 @@ export function HealthGate({children}: PropsWithChildren) {
                         <Text style={styles.subtitle}>
                             Подождите немного, приложение скоро откроется.
                         </Text>
+                    </>
+                ) : status === "update-required" ? (
+                    <>
+                        <Ionicons
+                            name="download-outline"
+                            size={42}
+                            color={themeColors.primary}
+                        />
+                        <Text style={styles.title}>
+                            {requiredUpdate?.title || "Обновите приложение"}
+                        </Text>
+                        <Text style={styles.subtitle}>
+                            {requiredUpdate?.message ||
+                                "Эта версия приложения больше не поддерживается."}
+                        </Text>
+                        {requiredUpdate?.storeUrl ? (
+                            <Pressable
+                                style={styles.retryButton}
+                                onPress={() => openStore(requiredUpdate.storeUrl)}
+                            >
+                                <Ionicons
+                                    name="open-outline"
+                                    size={18}
+                                    color={themeColors.textOnPrimary}
+                                />
+                                <Text style={styles.retryText}>Обновить</Text>
+                            </Pressable>
+                        ) : null}
                     </>
                 ) : (
                     <>

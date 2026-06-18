@@ -13,12 +13,14 @@ module.exports = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: "com.erofcon.mangalclubsmobile",
+    buildNumber: "1",
   },
   android: {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     softwareKeyboardLayoutMode: "resize",
     package: "com.erofcon.mangalclubsmobile",
+    versionCode: 1,
   },
   web: {
     output: "static",
