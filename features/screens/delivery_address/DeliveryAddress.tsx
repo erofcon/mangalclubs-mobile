@@ -10,6 +10,7 @@ import {
 import {Ionicons} from "@expo/vector-icons";
 import {router} from "expo-router";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {Screen} from "@/components/ui/Screen";
 import {
@@ -94,6 +95,7 @@ const normalizeBackendAddress = (
 };
 
 export function DeliveryAddress() {
+    const insets = useSafeAreaInsets();
     const mapRef = useRef<AddressMapRef>(null);
     const pendingMoveToCurrentLocationRef = useRef(false);
     const requestIdRef = useRef(0);
@@ -331,10 +333,11 @@ export function DeliveryAddress() {
 
                     <CenterPin />
 
-                    <View style={styles.header}>
+                    <View style={[styles.header, {top: insets.top + 12}]}>
                         <Pressable
                             style={styles.iconButton}
                             onPress={() => router.back()}
+                            hitSlop={10}
                         >
                             <Ionicons
                                 name="chevron-back"
@@ -392,7 +395,6 @@ const styles = StyleSheet.create({
     },
     header: {
         position: "absolute",
-        top: 24,
         left: 16,
         right: 16,
         flexDirection: "row",

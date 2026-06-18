@@ -9,6 +9,10 @@ import {
     SCREEN_HERO_CONTENT_BOTTOM,
     SCREEN_HERO_HEIGHT,
     SCREEN_HERO_HORIZONTAL_PADDING,
+    SCREEN_HERO_SUBTITLE_FONT_SIZE,
+    SCREEN_HERO_SUBTITLE_LINE_HEIGHT,
+    SCREEN_HERO_TITLE_FONT_SIZE,
+    SCREEN_HERO_TITLE_LINE_HEIGHT,
     SCREEN_HERO_TOP_GRADIENT_HEIGHT,
 } from "@/features/screens/shared/hero-layout";
 
@@ -104,16 +108,16 @@ const styles = StyleSheet.create({
 
     title: {
         color: themeColors.primary,
-        fontSize: 20,
-        lineHeight: 24,
+        fontSize: SCREEN_HERO_TITLE_FONT_SIZE,
+        lineHeight: SCREEN_HERO_TITLE_LINE_HEIGHT,
         fontFamily: "Point-Black",
     },
 
     subtitle: {
         marginTop: 8,
         color: themeColors.text,
-        fontSize: 22,
-        lineHeight: 27,
+        fontSize: SCREEN_HERO_SUBTITLE_FONT_SIZE,
+        lineHeight: SCREEN_HERO_SUBTITLE_LINE_HEIGHT,
         fontFamily: "Point-Regular",
         maxWidth: 360,
     },

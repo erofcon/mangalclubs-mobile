@@ -446,7 +446,9 @@ const styles = StyleSheet.create({
 
     restaurantsTitle: {
         color: themeColors.text,
-        fontSize: 16,
+        fontSize: 18,
+        lineHeight: 22,
+        fontFamily: "Point-Bold",
     },
 
     card: {

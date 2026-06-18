@@ -165,7 +165,7 @@ export function BookingScreen() {
                                 styles.stickyFiltersWrapper,
                                 {
                                     paddingTop: topInset,
-                                    marginTop: -topInset - 34,
+                                    marginTop: -topInset,
                                 },
                             ]}
                         >

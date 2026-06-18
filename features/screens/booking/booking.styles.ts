@@ -5,6 +5,10 @@ import {
     SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT,
     SCREEN_HERO_CONTENT_BOTTOM,
     SCREEN_HERO_HORIZONTAL_PADDING,
+    SCREEN_HERO_SUBTITLE_FONT_SIZE,
+    SCREEN_HERO_SUBTITLE_LINE_HEIGHT,
+    SCREEN_HERO_TITLE_FONT_SIZE,
+    SCREEN_HERO_TITLE_LINE_HEIGHT,
     SCREEN_HERO_TOP_GRADIENT_HEIGHT,
 } from "@/features/screens/shared/hero-layout";
 
@@ -46,13 +50,13 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        height: SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT + 72,
+        height: SCREEN_HERO_BOTTOM_GRADIENT_HEIGHT + 76,
     },
     heroContent: {
         position: "absolute",
         left: SCREEN_HERO_HORIZONTAL_PADDING,
         right: SCREEN_HERO_HORIZONTAL_PADDING,
-        bottom: SCREEN_HERO_CONTENT_BOTTOM + 58,
+        bottom: SCREEN_HERO_CONTENT_BOTTOM + 28,
         paddingBottom: 0,
     },
     heroPill: {
@@ -75,16 +79,16 @@ const styles = StyleSheet.create({
     heroTitle: {
         marginTop: 8,
         color: themeColors.primary,
-        fontSize: 20,
-        lineHeight: 29,
+        fontSize: SCREEN_HERO_TITLE_FONT_SIZE,
+        lineHeight: SCREEN_HERO_TITLE_LINE_HEIGHT,
         fontFamily: "Point-Black",
     },
     heroSubtitle: {
         marginTop: 6,
         maxWidth: 360,
         color: themeColors.text,
-        fontSize: 14,
-        lineHeight: 23,
+        fontSize: SCREEN_HERO_SUBTITLE_FONT_SIZE,
+        lineHeight: SCREEN_HERO_SUBTITLE_LINE_HEIGHT,
         fontFamily: "Point-Regular",
     },
 
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
         paddingVertical: 7,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.10)",
+        borderColor: themeColors.cardBorder,
         backgroundColor: "rgba(18,18,16,0.96)",
     },
     filterButtonCompact: {

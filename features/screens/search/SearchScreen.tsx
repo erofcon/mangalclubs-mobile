@@ -1,7 +1,8 @@
-import {useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {
     FlatList,
     Keyboard,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -12,12 +13,18 @@ import {
 import {StatusBar} from "expo-status-bar";
 import {Ionicons} from "@expo/vector-icons";
 import {router} from "expo-router";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
 import {Screen} from "@/components/ui/Screen";
+import {CartAddedToast} from "@/components/ui/CartAddedToast";
 import type {MenuItem} from "@/types/products";
 import {DishDetailsModal} from "@/features/screens/menu/DishDetailsModal";
 import {DishCard} from "@/features/screens/menu/DishCard";
 import {useAppDataStore} from "@/store/app-data-store";
+import {requestCartAddPermission} from "@/store/cart-gate-store";
+import {useCartStore} from "@/store/cart-store";
+import {useCartAddedToast} from "@/hooks/useCartAddedToast";
 import {SHADOW, themeColors} from "@/utils/theme-colors";
 
 type SearchItem = MenuItem & {
@@ -44,8 +51,16 @@ function closeSearch() {
 export function SearchScreen() {
     const [query, setQuery] = useState("");
     const [selectedDish, setSelectedDish] = useState<MenuItem | null>(null);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
     const {width} = useWindowDimensions();
+    const insets = useSafeAreaInsets();
     const menu = useAppDataStore((state) => state.menu);
+    const addItemToCart = useCartStore((state) => state.addItem);
+    const {
+        toastMessage,
+        toastAnimatedStyle,
+        showAddedToast,
+    } = useCartAddedToast();
 
     const allSearchItems = useMemo<SearchItem[]>(
         () =>
@@ -79,6 +94,36 @@ export function SearchScreen() {
             return searchableText.includes(normalizedQuery);
         });
     }, [allSearchItems, normalizedQuery]);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+        const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+        const showSubscription = Keyboard.addListener(showEvent, (event) => {
+            setKeyboardHeight(event.endCoordinates.height);
+        });
+        const hideSubscription = Keyboard.addListener(hideEvent, () => {
+            setKeyboardHeight(0);
+        });
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
+
+    const handleProductAdd = useCallback((item: MenuItem) => {
+        if (!requestCartAddPermission(item)) {
+            return;
+        }
+
+        addItemToCart(item);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+        });
+        showAddedToast(item);
+    }, [addItemToCart, showAddedToast]);
+
+    const toastBottom = Math.max(insets.bottom + 28, keyboardHeight + 16);
 
     return (
         <>
@@ -122,7 +167,7 @@ export function SearchScreen() {
                     extraData={cardWidth}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
-                    keyboardShouldPersistTaps="handled"
+                    keyboardShouldPersistTaps="always"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
                         styles.listContent,
@@ -137,6 +182,7 @@ export function SearchScreen() {
                                 Keyboard.dismiss();
                                 setSelectedDish(item);
                             }}
+                            onAddPress={() => handleProductAdd(item)}
                         />
                     )}
                     ListEmptyComponent={
@@ -148,11 +194,18 @@ export function SearchScreen() {
                         </View>
                     }
                 />
+
+                <CartAddedToast
+                    message={toastMessage}
+                    bottom={toastBottom}
+                    animatedStyle={toastAnimatedStyle}
+                />
             </Screen>
 
             <DishDetailsModal
                 item={selectedDish}
                 onDismiss={() => setSelectedDish(null)}
+                onAddedToCart={showAddedToast}
             />
         </>
     );

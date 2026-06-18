@@ -74,6 +74,7 @@ export function ListOfDay({onAddedToCart}: ListOfDayProps) {
                 <Pressable
                     style={styles.sectionLink}
                     onPress={() => router.push("/menu")}
+                    hitSlop={8}
                 >
                     <Text style={styles.sectionLinkText}>Смотреть все</Text>
                     <MaterialCommunityIcons
@@ -122,19 +123,23 @@ const styles = StyleSheet.create({
 
     sectionTitle: {
         color: themeColors.text,
-        fontSize: 16,
+        fontSize: 18,
+        lineHeight: 22,
         fontFamily: "Point-Bold",
     },
 
     sectionLink: {
+        minHeight: 36,
         flexDirection: "row",
         alignItems: "center",
-        paddingBottom: 2,
+        paddingLeft: 8,
+        paddingVertical: 4,
     },
 
     sectionLinkText: {
         color: themeColors.primary,
-        fontSize: 12,
+        fontSize: 14,
+        lineHeight: 18,
         fontFamily: "Point-Bold",
     },
 

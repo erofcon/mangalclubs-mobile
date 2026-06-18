@@ -1042,27 +1042,20 @@ export function ProfileScreen() {
                     {isInitialLoading ? (
                         <LoadingBlock />
                     ) : activeTab === "profile" ? (
-                        <>
-                            <ProfileDetails
-                                profile={profile}
-                                form={form}
-                                message={message}
-                                errorMessage={errorMessage}
-                                isSaving={saveProfileMutation.isPending}
-                                onChange={(field, value) => {
-                                    setMessage("");
-                                    saveProfileMutation.reset();
-                                    setForm((prev) => ({...prev, [field]: value}));
-                                }}
-                                onFieldFocus={handleProfileFieldFocus}
-                                onSave={() => saveProfileMutation.mutate(form)}
-                            />
-                            <ProfileLinks
-                                isDeletingAccount={deleteAccountMutation.isPending}
-                                onOpenSupport={() => supportSheetRef.current?.open()}
-                                onDeleteAccount={handleOpenDeleteAccount}
-                            />
-                        </>
+                        <ProfileDetails
+                            profile={profile}
+                            form={form}
+                            message={message}
+                            errorMessage={errorMessage}
+                            isSaving={saveProfileMutation.isPending}
+                            onChange={(field, value) => {
+                                setMessage("");
+                                saveProfileMutation.reset();
+                                setForm((prev) => ({...prev, [field]: value}));
+                            }}
+                            onFieldFocus={handleProfileFieldFocus}
+                            onSave={() => saveProfileMutation.mutate(form)}
+                        />
                     ) : (
                         <OrdersSection
                             activeTab={ordersTab}
@@ -1076,6 +1069,14 @@ export function ProfileScreen() {
                             onContinuePayment={handleContinuePayment}
                         />
                     )}
+
+                    {!isInitialLoading ? (
+                        <ProfileLinks
+                            isDeletingAccount={deleteAccountMutation.isPending}
+                            onOpenSupport={() => supportSheetRef.current?.open()}
+                            onDeleteAccount={handleOpenDeleteAccount}
+                        />
+                    ) : null}
                 </ScrollView>
             </KeyboardAvoidingView>
 
