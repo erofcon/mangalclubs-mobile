@@ -67,6 +67,7 @@ import {profileStyles as styles} from "./profile.styles";
 type ProfileTab = "profile" | "orders";
 type OrdersTab = "current" | "history";
 type StatusTone = "success" | "progress" | "warning" | "danger" | "muted";
+type ProfileLinkAction = "url" | "support" | "about" | "delete-account";
 
 type ProfileForm = {
     name: string;
@@ -77,6 +78,11 @@ type ProfileForm = {
 type ProfileFieldFocusHandler = NonNullable<React.ComponentProps<typeof TextInput>["onFocus"]>;
 
 const profileQueryKey = ["customer-profile"];
+const DEFAULT_WEB_URL = "http://192.168.0.11:3000";
+const WEB_BASE_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? DEFAULT_WEB_URL).replace(/\/+$/, "");
+const YANDEX_MAPS_TERMS_URL = "https://yandex.ru/legal/maps_api/ru/";
+const MANGAL_CLUBS_INSTAGRAM_URL = "https://www.instagram.com/mangalclubs/";
+const MANGAL_CLUBS_WHATSAPP_URL = "https://wa.me/79839995050";
 const avatarMaxSourceSizeBytes = 8 * 1024 * 1024;
 const avatarTargetSize = 512;
 const avatarUploadMimeType = "image/jpeg";
@@ -90,16 +96,43 @@ const initialForm: ProfileForm = {
 };
 
 const profileLegalItems: Array<{
-    key: "delivery" | "support" | "personal-data" | "cards" | "delete-account";
+    key: "delivery" | "support" | "personal-data" | "cards" | "about" | "delete-account";
     label: string;
     icon: keyof typeof MaterialCommunityIcons.glyphMap;
+    action: ProfileLinkAction;
+    url?: string;
     danger?: boolean;
 }> = [
-    {key: "delivery", label: "Условия доставки", icon: "truck-delivery-outline"},
-    {key: "support", label: "Поддержка", icon: "lifebuoy"},
-    {key: "personal-data", label: "Обработка персональных данных", icon: "shield-account-outline"},
-    {key: "cards", label: "Условия использования карт", icon: "map-marker-radius-outline"},
-    {key: "delete-account", label: "Удалить аккаунт", icon: "account-remove-outline", danger: true},
+    {
+        key: "delivery",
+        label: "Условия доставки",
+        icon: "truck-delivery-outline",
+        action: "url",
+        url: `${WEB_BASE_URL}/delivery`,
+    },
+    {key: "support", label: "Поддержка", icon: "lifebuoy", action: "support"},
+    {
+        key: "personal-data",
+        label: "Обработка персональных данных",
+        icon: "shield-account-outline",
+        action: "url",
+        url: `${WEB_BASE_URL}/legal`,
+    },
+    {
+        key: "cards",
+        label: "Условия использования карт",
+        icon: "map-marker-radius-outline",
+        action: "url",
+        url: YANDEX_MAPS_TERMS_URL,
+    },
+    {key: "about", label: "О компании", icon: "food-steak", action: "about"},
+    {
+        key: "delete-account",
+        label: "Удалить аккаунт",
+        icon: "account-remove-outline",
+        action: "delete-account",
+        danger: true,
+    },
 ];
 
 const fallbackStatus = {
@@ -598,6 +631,7 @@ export function ProfileScreen() {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isDeleteAccountModalVisible, setIsDeleteAccountModalVisible] = useState(false);
     const supportSheetRef = useRef<AppBottomSheetRef>(null);
+    const aboutSheetRef = useRef<AppBottomSheetRef>(null);
     const scrollViewRef = useRef<ScrollView>(null);
     const keyboardHeightRef = useRef(0);
 
@@ -965,6 +999,27 @@ export function ProfileScreen() {
         setIsDeleteAccountModalVisible(false);
     };
 
+    const handleOpenProfileLink = (item: (typeof profileLegalItems)[number]) => {
+        if (item.action === "support") {
+            supportSheetRef.current?.open();
+            return;
+        }
+
+        if (item.action === "about") {
+            aboutSheetRef.current?.open();
+            return;
+        }
+
+        if (item.action === "delete-account") {
+            handleOpenDeleteAccount();
+            return;
+        }
+
+        if (item.url) {
+            void openExternalUrl(item.url);
+        }
+    };
+
     const handleProfileFieldFocus: ProfileFieldFocusHandler = (event) => {
         const target = event.target;
 
@@ -1073,8 +1128,7 @@ export function ProfileScreen() {
                     {!isInitialLoading ? (
                         <ProfileLinks
                             isDeletingAccount={deleteAccountMutation.isPending}
-                            onOpenSupport={() => supportSheetRef.current?.open()}
-                            onDeleteAccount={handleOpenDeleteAccount}
+                            onOpenLink={handleOpenProfileLink}
                         />
                     ) : null}
                 </ScrollView>
@@ -1091,17 +1145,17 @@ export function ProfileScreen() {
                 ref={supportSheetRef}
                 organizations={organizations}
             />
+
+            <AboutCompanySheet ref={aboutSheetRef} />
         </Screen>
     );
 }
 
 function ProfileLinks({
-    onOpenSupport,
-    onDeleteAccount,
+    onOpenLink,
     isDeletingAccount,
 }: {
-    onOpenSupport: () => void;
-    onDeleteAccount: () => void;
+    onOpenLink: (item: (typeof profileLegalItems)[number]) => void;
     isDeletingAccount: boolean;
 }) {
     return (
@@ -1116,13 +1170,7 @@ function ProfileLinks({
                         item.danger && isDeletingAccount && styles.disabled,
                         pressed && styles.pressed,
                     ]}
-                    onPress={
-                        item.key === "support"
-                            ? onOpenSupport
-                            : item.danger
-                                ? onDeleteAccount
-                                : undefined
-                    }
+                    onPress={() => onOpenLink(item)}
                 >
                     <View style={[styles.linkIcon, item.danger && styles.linkIconDanger]}>
                         <MaterialCommunityIcons
@@ -1213,6 +1261,96 @@ const SupportSheet = forwardRef<AppBottomSheetRef, {organizations: Organization[
 );
 
 SupportSheet.displayName = "SupportSheet";
+
+const AboutCompanySheet = forwardRef<AppBottomSheetRef>((_, ref) => {
+    const handleInstagram = () => {
+        void openExternalUrl(MANGAL_CLUBS_INSTAGRAM_URL);
+    };
+
+    const handleWhatsApp = () => {
+        const text = encodeURIComponent("Здравствуйте! Хочу уточнить информацию о Mangal Clubs.");
+
+        void openExternalUrl(
+            `whatsapp://send?phone=79839995050&text=${text}`,
+            `${MANGAL_CLUBS_WHATSAPP_URL}?text=${text}`
+        );
+    };
+
+    return (
+        <AppBottomSheetModal
+            ref={ref}
+            title="О компании"
+            showCloseButton
+            snapPoints={["48%"]}
+            enableDynamicSizing
+            backgroundStyle={styles.supportSheetBackground}
+            handleIndicatorStyle={styles.orderSheetHandle}
+            containerStyle={styles.supportSheetContainer}
+            contentContainerStyle={styles.supportSheetContent}
+        >
+            <View style={styles.aboutHero}>
+                <View style={styles.aboutHeroIcon}>
+                    <MaterialCommunityIcons
+                        name="food-steak"
+                        size={28}
+                        color={themeColors.primary}
+                    />
+                </View>
+                <View style={styles.aboutHeroText}>
+                    <Text style={styles.aboutTitle}>Мангал Клабс</Text>
+                    <Text style={styles.aboutSubtitle}>
+                        Сеть мясных ресторанов с приватными кабинками, живым огнем и внимательным отношением к каждому гостю.
+                    </Text>
+                </View>
+            </View>
+
+            <View style={styles.aboutInfoBlock}>
+                <Text style={styles.aboutInfoLabel}>Реквизиты</Text>
+                <Text style={styles.aboutInfoText}>ИП Гусейнова Парване Махаррамовна</Text>
+            </View>
+
+            <View style={styles.aboutActions}>
+                <Pressable
+                    accessibilityRole="button"
+                    style={({pressed}) => [
+                        styles.aboutInstagramButton,
+                        pressed && styles.pressed,
+                    ]}
+                    onPress={handleInstagram}
+                >
+                    <MaterialCommunityIcons
+                        name="instagram"
+                        size={20}
+                        color={themeColors.text}
+                    />
+                    <Text style={styles.aboutInstagramButtonText} numberOfLines={1}>
+                        Instagram
+                    </Text>
+                </Pressable>
+
+                <Pressable
+                    accessibilityRole="button"
+                    style={({pressed}) => [
+                        styles.aboutWhatsappButton,
+                        pressed && styles.pressed,
+                    ]}
+                    onPress={handleWhatsApp}
+                >
+                    <MaterialCommunityIcons
+                        name="whatsapp"
+                        size={20}
+                        color={themeColors.textOnPrimary}
+                    />
+                    <Text style={styles.aboutWhatsappButtonText} numberOfLines={1}>
+                        WhatsApp
+                    </Text>
+                </Pressable>
+            </View>
+        </AppBottomSheetModal>
+    );
+});
+
+AboutCompanySheet.displayName = "AboutCompanySheet";
 
 function SupportRestaurantCard({restaurant}: {restaurant: Organization}) {
     const phone = restaurant.phone?.trim() ?? "";
@@ -1378,8 +1516,7 @@ function DeleteAccountModal({
                 <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
                     <Text style={styles.modalTitle}>Удалить аккаунт?</Text>
                     <Text style={styles.modalText}>
-                        РџСЂРѕС„РёР»СЊ Р±СѓРґРµС‚ СѓРґР°Р»РµРЅ Р±РµР· РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ. РСЃС‚РѕСЂРёСЏ Р°РєРєР°СѓРЅС‚Р°
-                        Р±РѕР»СЊС€Рµ РЅРµ Р±СѓРґРµС‚ РґРѕСЃС‚СѓРїРЅР°.
+                        Аккаунт будет удален без возможности восстановления. История заказов и данные профиля больше не будут доступны в приложении.
                     </Text>
 
                     <View style={styles.modalActions}>
@@ -1492,24 +1629,28 @@ function ProfileHero({
                     <Text style={styles.heroSubtitle} numberOfLines={1}>
                         {phone ? formatRuPhoneDisplay(phone) : "Телефон подтвержден"}
                     </Text>
+                    {avatarUrl ? (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Удалить фото профиля"
+                            disabled={isUpdatingAvatar}
+                            hitSlop={8}
+                            style={({pressed}) => [
+                                styles.avatarDeleteButton,
+                                isUpdatingAvatar && styles.disabled,
+                                pressed && styles.pressed,
+                            ]}
+                            onPress={onDeleteAvatar}
+                        >
+                            <MaterialCommunityIcons
+                                name="trash-can-outline"
+                                size={14}
+                                color="#FF8C9A"
+                            />
+                            <Text style={styles.avatarDeleteText}>Удалить фото</Text>
+                        </Pressable>
+                    ) : null}
                 </View>
-
-                {avatarUrl ? (
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Удалить аватар"
-                        disabled={isUpdatingAvatar}
-                        hitSlop={10}
-                        style={({pressed}) => [
-                            styles.iconButton,
-                            isUpdatingAvatar && styles.disabled,
-                            pressed && styles.pressed,
-                        ]}
-                        onPress={onDeleteAvatar}
-                    >
-                        <MaterialCommunityIcons name="trash-can-outline" size={20} color={themeColors.text} />
-                    </Pressable>
-                ) : null}
 
                 <Pressable
                     accessibilityRole="button"

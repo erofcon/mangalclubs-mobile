@@ -102,6 +102,27 @@ export const profileStyles = StyleSheet.create({
         fontFamily: "Point-Regular",
     },
 
+    avatarDeleteButton: {
+        alignSelf: "flex-start",
+        minHeight: 28,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        marginTop: 8,
+        paddingHorizontal: 9,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(221,46,68,0.22)",
+        backgroundColor: "rgba(221,46,68,0.07)",
+    },
+
+    avatarDeleteText: {
+        color: "#FF8C9A",
+        fontSize: 12,
+        lineHeight: 15,
+        fontFamily: "Point-SemiBold",
+    },
+
     iconButton: {
         width: 40,
         height: 40,
@@ -629,6 +650,117 @@ export const profileStyles = StyleSheet.create({
         lineHeight: 17,
         textAlign: "center",
         fontFamily: "Point-Regular",
+    },
+
+    aboutHero: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: 13,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.09)",
+        backgroundColor: "#080909",
+    },
+
+    aboutHeroIcon: {
+        width: 56,
+        height: 56,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(236,172,24,0.24)",
+        backgroundColor: "rgba(236,172,24,0.08)",
+    },
+
+    aboutHeroText: {
+        flex: 1,
+        minWidth: 0,
+    },
+
+    aboutTitle: {
+        color: themeColors.text,
+        fontSize: 22,
+        lineHeight: 27,
+        fontFamily: "Point-SemiBold",
+    },
+
+    aboutSubtitle: {
+        marginTop: 6,
+        color: themeColors.textSecondary,
+        fontSize: 13,
+        lineHeight: 19,
+        fontFamily: "Point-Regular",
+    },
+
+    aboutInfoBlock: {
+        gap: 5,
+        marginTop: 12,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "#11100E",
+    },
+
+    aboutInfoLabel: {
+        color: themeColors.primary,
+        fontSize: 10,
+        lineHeight: 13,
+        fontFamily: "Point-Bold",
+        textTransform: "uppercase",
+    },
+
+    aboutInfoText: {
+        color: themeColors.text,
+        fontSize: 14,
+        lineHeight: 19,
+        fontFamily: "Point-Regular",
+    },
+
+    aboutActions: {
+        flexDirection: "row",
+        gap: 8,
+        marginTop: 12,
+    },
+
+    aboutInstagramButton: {
+        flex: 1,
+        minHeight: 46,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+        backgroundColor: "#11100E",
+    },
+
+    aboutInstagramButtonText: {
+        color: themeColors.text,
+        fontSize: 13,
+        lineHeight: 17,
+        fontFamily: "Point-Bold",
+    },
+
+    aboutWhatsappButton: {
+        flex: 1,
+        minHeight: 46,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 12,
+        backgroundColor: themeColors.primary,
+    },
+
+    aboutWhatsappButtonText: {
+        color: themeColors.textOnPrimary,
+        fontSize: 13,
+        lineHeight: 17,
+        fontFamily: "Point-Bold",
     },
 
     modalBackdrop: {

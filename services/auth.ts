@@ -32,12 +32,16 @@ export type DeviceInfo = {
     device_name?: string | null;
 };
 
-export const requestCustomerOtp = (phone: string) => (
+export const requestCustomerOtp = (
+    payload: DeviceInfo & {
+        phone: string;
+    }
+) => (
     apiFetch<OtpRequestResponse>("/api/v1/auth/customer/otp/request", {
         method: "POST",
         auth: false,
         retryOnUnauthorized: false,
-        body: JSON.stringify({phone}),
+        body: JSON.stringify(payload),
     })
 );
 

@@ -184,7 +184,7 @@ export function AuthSheetHost() {
             <Text style={styles.eyebrow}>Профиль</Text>
             <Text style={styles.title}>Войдите в профиль</Text>
             <Text style={styles.description}>
-                Необходимо авторизоваться, чтобы сделать заказ
+                Укажите телефон, и мы позвоним для подтверждения входа
             </Text>
 
             <BottomSheetTextInput
@@ -212,7 +212,7 @@ export function AuthSheetHost() {
             {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
             <PrimaryBottomButton
-                text="Отправить код в Telegram или СМС"
+                text="Получить звонок"
                 onPress={handleRequestOtp}
                 disabled={!canSubmitPhone}
                 loading={isRequestingOtp}
@@ -225,7 +225,7 @@ export function AuthSheetHost() {
             <Text style={styles.eyebrow}>Подтверждение</Text>
             <Text style={styles.title}>Введите код</Text>
             <Text style={styles.description}>
-                Код уже в пути! Проверьте Telegram или СМС на {formatRuPhoneDisplay(submittedPhone)}
+                Дождитесь звонка на {formatRuPhoneDisplay(submittedPhone)} и введите последние 4 цифры номера
             </Text>
 
             <Pressable style={styles.codeCells} onPress={() => codeInputRef.current?.focus()}>
@@ -260,7 +260,7 @@ export function AuthSheetHost() {
 
             {resendSecondsLeft > 0 ? (
                 <Text style={styles.timerText}>
-                    Для повторной отправки ожидайте {resendSecondsLeft} секунд
+                    Повторный звонок будет доступен через {resendSecondsLeft} секунд
                 </Text>
             ) : (
                 <Pressable
@@ -271,7 +271,7 @@ export function AuthSheetHost() {
                     {isRequestingOtp ? (
                         <ActivityIndicator color={themeColors.primary} />
                     ) : (
-                        <Text style={styles.resendText}>Отправить код повторно</Text>
+                        <Text style={styles.resendText}>Позвонить еще раз</Text>
                     )}
                 </Pressable>
             )}

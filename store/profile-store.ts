@@ -28,6 +28,8 @@ type ProfileStore = {
     isVerifyingOtp: boolean;
     isRefreshing: boolean;
     errorMessage: string;
+    otpRetryAfterSeconds: number;
+    otpRetryStartedAt: number | null;
     setHasHydrated: (value: boolean) => void;
     syncUser: (user: Partial<AuthSubject>) => void;
     clearError: () => void;
@@ -78,7 +80,21 @@ const toAuthState = (tokens: TokenPair) => ({
         avatarUrl: tokens.user.avatarUrl ?? tokens.user.avatar_url ?? null,
     },
     errorMessage: "",
+    otpRetryAfterSeconds: 0,
+    otpRetryStartedAt: null,
 });
+
+const getCurrentRetryAfterSeconds = () => {
+    const {otpRetryAfterSeconds, otpRetryStartedAt} = useProfileStore.getState();
+
+    if (!otpRetryStartedAt || otpRetryAfterSeconds <= 0) {
+        return 0;
+    }
+
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - otpRetryStartedAt) / 1000));
+
+    return Math.max(0, otpRetryAfterSeconds - elapsedSeconds);
+};
 
 export const useProfileStore = create<ProfileStore>()(
     persist(
@@ -92,6 +108,8 @@ export const useProfileStore = create<ProfileStore>()(
             isVerifyingOtp: false,
             isRefreshing: false,
             errorMessage: "",
+            otpRetryAfterSeconds: 0,
+            otpRetryStartedAt: null,
 
             setHasHydrated: (value) => set({hasHydrated: value}),
             syncUser: (user) => set((state) => {
@@ -114,14 +132,33 @@ export const useProfileStore = create<ProfileStore>()(
             clearError: () => set({errorMessage: ""}),
 
             requestOtp: async (phone) => {
+                const retryAfterSeconds = getCurrentRetryAfterSeconds();
+
+                if (retryAfterSeconds > 0) {
+                    const message = `Повторный звонок можно запросить через ${retryAfterSeconds} секунд`;
+
+                    set({errorMessage: message});
+                    throw new Error(message);
+                }
+
                 set({isRequestingOtp: true, errorMessage: ""});
 
                 try {
-                    const response = await requestCustomerOtp(phone);
+                    const deviceId = await getStoredDeviceId();
+                    const response = await requestCustomerOtp({
+                        phone,
+                        device_id: deviceId,
+                        device_name: getDeviceName(),
+                    });
+                    const retryAfter = response.retry_after_seconds ?? 0;
 
-                    set({isRequestingOtp: false});
+                    set({
+                        isRequestingOtp: false,
+                        otpRetryAfterSeconds: retryAfter,
+                        otpRetryStartedAt: Date.now(),
+                    });
 
-                    return response.retry_after_seconds ?? 0;
+                    return retryAfter;
                 } catch (error) {
                     const message = error instanceof Error
                         ? error.message
